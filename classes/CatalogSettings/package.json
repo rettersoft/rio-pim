@@ -1,0 +1,7 @@
+{
+  "name": "catalog-settings",
+  "version": "1.0.0",
+  "dependencies": {
+    "@retter/rdk": "1.3.0"
+  }
+}

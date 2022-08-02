@@ -1,0 +1,6 @@
+init: index.init
+getState: index.getState
+methods:
+  - method: upsertCategories
+    type: WRITE
+    handler: categories.upsertCategories
