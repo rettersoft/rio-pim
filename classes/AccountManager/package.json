@@ -1,8 +1,8 @@
 {
-  "name": "catalog-settings",
+  "name": "tenant",
   "version": "1.0.0",
   "dependencies": {
     "@retter/rdk": "1.3.0",
-    "zod": "^3.17.10"
+    "uuid": "8.3.2"
   }
 }

@@ -1,0 +1,9 @@
+init:
+  handler: index.init
+  inputModel: SystemInitInput
+getState: index.getState
+getInstanceId: index.getInstanceId
+methods:
+  - method: inviteUser
+    type: WRITE
+    handler: users.inviteUser

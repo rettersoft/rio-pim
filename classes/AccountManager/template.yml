@@ -1,0 +1,8 @@
+init: index.init
+getState: index.getState
+getInstanceId: index.getInstanceId
+methods:
+  - method: createAccount
+    inputModel: CreateAccountInput
+    type: WRITE
+    handler: index.createAccount

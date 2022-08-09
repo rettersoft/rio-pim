@@ -1,0 +1,17 @@
+{
+  "type": "object",
+  "properties": {
+    "accountName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "rootEmail": {
+      "type": "string",
+      "format": "email"
+    }
+  },
+  "required": [
+    "accountName"
+  ]
+}

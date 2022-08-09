@@ -1,0 +1,14 @@
+init:
+  handler: index.init
+  inputModel: SystemUserInitInput
+getState: index.getState
+getInstanceId: index.getInstanceId
+methods:
+  - method: sendEmailOtp
+    type: WRITE
+    handler: index.sendEmailOtp
+
+  - method: validateEmailOtp
+    inputModel: ValidateEmailOtpInput
+    type: WRITE
+    handler: index.validateEmailOtp

@@ -1,0 +1,25 @@
+{
+  "type": "object",
+  "properties": {
+    "accountId": {
+      "type": "string"
+    },
+    "userEmail": {
+      "type": "string",
+      "format": "email"
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minLength": 1,
+      "maxLength": 50
+    }
+  },
+  "required": [
+    "accountId",
+    "userEmail",
+    "roles"
+  ]
+}

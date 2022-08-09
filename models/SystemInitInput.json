@@ -1,0 +1,16 @@
+{
+  "type": "object",
+  "properties": {
+    "accountId": {
+      "type": "string"
+    },
+    "rootEmail": {
+      "type": "string",
+      "format": "email"
+    }
+  },
+  "required": [
+    "rootEmail",
+    "accountId"
+  ]
+}
