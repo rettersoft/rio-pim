@@ -1,6 +1,7 @@
 init: index.init
 getState: index.getState
 getInstanceId: index.getInstanceId
+authorizer: index.authorizer
 methods:
   - method: createAccount
     inputModel: CreateAccountInput

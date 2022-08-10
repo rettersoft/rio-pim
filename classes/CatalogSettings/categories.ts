@@ -61,7 +61,7 @@ export async function updateCategory(data: CatalogSettingsData): Promise<Catalog
     const cIndex = data.state.public.categories.findIndex(c => c.code === result.data.code)
     if (cIndex === -1) {
         data.response = {
-            statusCode: 400,
+            statusCode: 404,
             body: {
                 message: "Category not found!"
             }

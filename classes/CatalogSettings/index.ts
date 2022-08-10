@@ -1,5 +1,5 @@
 import {Data, Response} from "@retter/rdk";
-import {checkUpdateToken, randomString} from "./helpers";
+import {randomString} from "./helpers";
 import {AccountIDInput} from "./rio";
 import {Category, Channel} from "./models";
 import {addCategory, removeCategory, updateCategory} from "./categories";
@@ -15,15 +15,17 @@ export interface CatalogSettingsPublicState {
 export type CatalogSettingsData<Input = any, Output = any> = Data<Input, Output, CatalogSettingsPublicState>
 
 export async function authorizer(data: CatalogSettingsData): Promise<Response> {
-    const isDeveloper= data.context.identity === "developer"
+    const isDeveloper = data.context.identity === "developer"
 
-    if (["addCategory", "removeCategory", "updateCategory", "toggleCurrency", "toggleLocale", "upsertChannel", "deleteChannel"].includes(data.context.methodName)) {
+    if ([
+        "addCategory", "removeCategory", "updateCategory", "toggleCurrency", "toggleLocale", "upsertChannel", "deleteChannel"
+    ].includes(data.context.methodName)) {
         return {statusCode: 200}
     }
 
     switch (data.context.methodName) {
         case 'STATE':
-            if(isDeveloper) return {statusCode: 200}
+            if (isDeveloper) return {statusCode: 200}
             break
         case 'GET':
             return {statusCode: 200}

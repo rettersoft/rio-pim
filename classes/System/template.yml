@@ -3,6 +3,7 @@ init:
   inputModel: SystemInitInput
 getState: index.getState
 getInstanceId: index.getInstanceId
+authorizer: index.authorizer
 methods:
   - method: inviteUser
     type: WRITE

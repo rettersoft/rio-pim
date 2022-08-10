@@ -16,9 +16,11 @@ export interface AccountPrivateState {
 export type AccountData<Input = any, Output = any> = Data<Input, Output, any, AccountPrivateState>
 
 export async function authorizer(data: AccountData): Promise<Response> {
+    const isDeveloper = data.context.identity === "developer"
     switch (data.context.methodName) {
         case 'createAccount':
-            return {statusCode: 200}
+            if(isDeveloper) return {statusCode: 200}
+            break
     }
     return {statusCode: 401};
 }

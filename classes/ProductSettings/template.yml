@@ -5,30 +5,34 @@ getState: index.getState
 authorizer: index.authorizer
 getInstanceId: index.getInstanceId
 methods:
-  - method: addCategory
+  - method: addAttributeGroup
     type: WRITE
-    handler: categories.addCategory
+    handler: attribute-groups.addAttributeGroup
 
-  - method: removeCategory
+  - method: updateAttributeGroup
     type: WRITE
-    handler: categories.removeCategory
+    handler: attribute-groups.updateAttributeGroup
 
-  - method: updateCategory
+  - method: deleteAttributeGroup
     type: WRITE
-    handler: categories.updateCategory
+    handler: attribute-groups.deleteAttributeGroup
 
-  - method: toggleCurrency
+  - method: createAttribute
     type: WRITE
-    handler: currencies.toggleCurrency
+    handler: attribute.createAttribute
 
-  - method: toggleLocale
+  - method: updateAttribute
     type: WRITE
-    handler: locales.toggleLocale
+    handler: attribute.updateAttribute
 
-  - method: upsertChannel
+  - method: deleteAttribute
     type: WRITE
-    handler: channels.upsertChannel
+    handler: attribute.deleteAttribute
 
-  - method: deleteChannel
+  - method: upsertSelectOption
     type: WRITE
-    handler: channels.deleteChannel
+    handler: attribute.upsertSelectOption
+
+  - method: deleteSelectOption
+    type: WRITE
+    handler: attribute.deleteSelectOption
