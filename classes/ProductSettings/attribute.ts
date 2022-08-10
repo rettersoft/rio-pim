@@ -96,7 +96,7 @@ export async function updateAttribute(data: ProductSettingsData): Promise<Produc
     result.data.type = attribute.type // Dont change
     result.data.localizable = attribute.localizable // Dont change
     result.data.scopable = attribute.scopable // Dont change
-    result.data.unique = attribute.unique // Dont change
+    result.data.isUnique = attribute.isUnique // Dont change
 
     data.state.public.attributes[aIndex] = result.data
     data.state.public.updateToken = randomString()

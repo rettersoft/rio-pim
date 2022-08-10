@@ -52,11 +52,11 @@ export const BaseAttribute = Z.object({
     type: AttributeTypes,
     group: Z.string().min(1).max(100),
     localizable: Z.boolean(),
-    scopable: Z.oboolean(),
+    scopable: Z.boolean(),
     label: Label,
     isLocaleSpecific: Z.boolean(),
     availableLocales: Z.array(Locale).default([]),
-    unique: Z.boolean().default(false),
+    isUnique: Z.boolean().default(false),
 })
 export type BaseAttribute = Z.infer<typeof BaseAttribute>
 /**
