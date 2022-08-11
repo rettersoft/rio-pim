@@ -51,10 +51,10 @@ export const BaseAttribute = Z.object({
     code: Code,
     type: AttributeTypes,
     group: Z.string().min(1).max(100),
-    localizable: Z.boolean(),
-    scopable: Z.boolean(),
+    localizable: Z.boolean().default(false),
+    scopable: Z.boolean().default(false),
     label: Label,
-    isLocaleSpecific: Z.boolean(),
+    isLocaleSpecific: Z.boolean().default(false),
     availableLocales: Z.array(Locale).default([]),
     isUnique: Z.boolean().default(false),
 })
@@ -69,40 +69,39 @@ export type BaseAttribute = Z.infer<typeof BaseAttribute>
 
 export const SpecificAttributes = {
     TEXT: BaseAttribute.extend({
-        maxCharacters: Z.number().min(0).max(255),
-        validationRule: PimValidationRules,
+        maxCharacters: Z.number().min(0).max(255).optional(),
+        validationRule: PimValidationRules.optional(),
         validationRegexp: Z.string().optional(),
     }),
     TEXTAREA: BaseAttribute.extend({
-        maxCharacters: Z.number().min(0).max(65535)
+        maxCharacters: Z.number().min(0).max(65535).optional()
     }),
     BOOLEAN: BaseAttribute.extend({
-        maxCharacters: Z.number().min(0).max(65535),
         defaultValue: Z.boolean().optional()
     }),
     IDENTIFIER: BaseAttribute.extend({
-        maxCharacters: Z.number().min(0).max(65535),
+        maxCharacters: Z.number().min(0).max(255),
         validationRule: Z.enum<any, any>(["REGEXP"]).optional(),
         validationRegexp: Z.string().optional(),
     }),
     NUMBER: BaseAttribute.extend({
-        negativeAllowed: Z.boolean(),
-        decimalsAllowed: Z.boolean(),
+        negativeAllowed: Z.boolean().default(false),
+        decimalsAllowed: Z.boolean().default(false),
         minNumber: Z.number().optional(),
         maxNumber: Z.number().optional(),
     }),
     IMAGE: BaseAttribute.extend({
-        maxFileSizeInMB: Z.number().max(5).min(0),
-        allowedExtensions: Z.array(PimImageExtensions)
+        maxFileSizeInMB: Z.number().min(0).max(5).optional(),
+        allowedExtensions: Z.array(PimImageExtensions).default([])
     }),
     MULTISELECT: BaseAttribute.extend({}),
     SIMPLESELECT: BaseAttribute.extend({}),
     DATE: BaseAttribute.extend({
-        minDate: Z.date(),
-        maxDate: Z.date(),
+        minDate: Z.date().optional(),
+        maxDate: Z.date().optional(),
     }),
     PRICE: BaseAttribute.extend({
-        decimalsAllowed: Z.boolean(),
+        decimalsAllowed: Z.boolean().default(true),
         minNumber: Z.number().optional(),
         maxNumber: Z.number().optional(),
     }),

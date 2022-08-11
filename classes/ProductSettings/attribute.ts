@@ -6,7 +6,7 @@ import {AttributeTypes, BaseAttribute, Code, SelectOption, SpecificAttributes} f
 export async function createAttribute(data: ProductSettingsData): Promise<ProductSettingsData> {
     checkUpdateToken(data)
 
-    const baseAttribute = BaseAttribute.safeParse(data.request.body)
+    const baseAttribute = BaseAttribute.safeParse(data.request.body.attribute)
     if (baseAttribute.success === false) {
         data.response = {
             statusCode: 400,
@@ -18,7 +18,7 @@ export async function createAttribute(data: ProductSettingsData): Promise<Produc
         return data
     }
 
-    const result = SpecificAttributes[baseAttribute.data.type].safeParse(baseAttribute)
+    const result = SpecificAttributes[baseAttribute.data.type].safeParse(data.request.body.attribute)
 
     if (result.success === false) {
         data.response = {
@@ -43,6 +43,20 @@ export async function createAttribute(data: ProductSettingsData): Promise<Produc
         return data
     }
 
+    const agIndex = data.state.public.attributeGroups.findIndex(ag => ag.code === baseAttribute.data.group)
+
+    if (agIndex === -1) {
+        data.response = {
+            statusCode: 404,
+            body: {
+                message: "Attribute group not found!"
+            }
+        }
+        return data
+    }
+
+    data.state.public.attributeGroups[agIndex].attributes.push(baseAttribute.data.code)
+
     data.state.public.attributes.push(result.data)
     data.state.public.updateToken = randomString()
 
@@ -52,7 +66,7 @@ export async function createAttribute(data: ProductSettingsData): Promise<Produc
 export async function updateAttribute(data: ProductSettingsData): Promise<ProductSettingsData> {
     checkUpdateToken(data)
 
-    const baseAttribute = BaseAttribute.safeParse(data.request.body)
+    const baseAttribute = BaseAttribute.safeParse(data.request.body.attribute)
     if (baseAttribute.success === false) {
         data.response = {
             statusCode: 400,
@@ -64,7 +78,7 @@ export async function updateAttribute(data: ProductSettingsData): Promise<Produc
         return data
     }
 
-    const result = SpecificAttributes[baseAttribute.data.type].safeParse(baseAttribute)
+    const result = SpecificAttributes[baseAttribute.data.type].safeParse(data.request.body.attribute)
 
     if (result.success === false) {
         data.response = {
@@ -93,6 +107,29 @@ export async function updateAttribute(data: ProductSettingsData): Promise<Produc
 
     const attribute = data.state.public.attributes[aIndex]
 
+    if (attribute.group !== result.data.group) {
+        const agIndexOld = data.state.public.attributeGroups.findIndex(ag => ag.code === attribute.code)
+        const agIndexNew = data.state.public.attributeGroups.findIndex(ag => ag.code === result.data.group)
+
+        if (agIndexNew === -1) {
+            data.response = {
+                statusCode: 404,
+                body: {
+                    message: "Attribute group not found!"
+                }
+            }
+            return data
+        }
+
+        data.state.public.attributeGroups[agIndexNew].attributes.push(result.data.code)
+
+        if (agIndexOld !== -1) {
+            data.state.public.attributeGroups[agIndexOld].attributes = data.state.public.attributeGroups[agIndexNew]
+                .attributes.filter(a => a !== result.data.code)
+        }
+
+    }
+
     result.data.type = attribute.type // Dont change
     result.data.localizable = attribute.localizable // Dont change
     result.data.scopable = attribute.scopable // Dont change
@@ -115,6 +152,13 @@ export async function deleteAttribute(data: ProductSettingsData): Promise<Produc
             }
         }
         return data
+    }
+
+    const agIndex = data.state.public.attributeGroups.findIndex(ag => ag.code === data.request.body.attributeCode)
+
+    if (agIndex !== -1) {
+        data.state.public.attributeGroups[agIndex].attributes = data.state.public.attributeGroups[agIndex]
+            .attributes.filter(a=>a!==data.request.body.attributeCode)
     }
 
     data.state.public.attributes = data.state.public.attributes.filter(a => a.code !== data.request.body.attributeCode)
@@ -203,7 +247,6 @@ export async function deleteSelectOption(data: ProductSettingsData): Promise<Pro
 }
 
 
-
 function getAttribute(code: string | undefined, data: ProductSettingsData) {
     const attributeCodeModel = Code.safeParse(code)
     if (attributeCodeModel.success === false) throw new Error("Invalid attribute code!")
@@ -221,6 +264,6 @@ function specificAttributeValidation(attribute: BaseAttribute) {
             AttributeTypes.Enum.MULTISELECT, AttributeTypes.Enum.SIMPLESELECT, AttributeTypes.Enum.PRICE,
             AttributeTypes.Enum.TEXTAREA].includes(attribute.type)
     ) {
-        if (this._attribute.unique === false) throw new Error('Attribute can not be unique!')
+        if (attribute.isUnique === true) throw new Error('Attribute can not be unique!')
     }
 }

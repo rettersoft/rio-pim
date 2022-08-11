@@ -57,7 +57,13 @@ export async function init(data: ProductSettingsData): Promise<ProductSettingsDa
     data.state.public = {
         attributeOptions: [],
         attributes: [],
-        attributeGroups: [],
+        attributeGroups: [{
+            code: "other",
+            label: [{
+                locale: "en_US",
+                value: "Other"
+            }]
+        }],
         updateToken: randomString()
     }
     return data
