@@ -30,8 +30,6 @@ export async function addAttributeGroup(data: ProductSettingsData): Promise<Prod
         return data
     }
 
-    result.data.attributes = []
-
     data.state.public.attributeGroups.push(result.data)
     data.state.public.updateToken = randomString()
 

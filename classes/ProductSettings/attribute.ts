@@ -55,8 +55,6 @@ export async function createAttribute(data: ProductSettingsData): Promise<Produc
         return data
     }
 
-    data.state.public.attributeGroups[agIndex].attributes.push(baseAttribute.data.code)
-
     data.state.public.attributes.push(result.data)
     data.state.public.updateToken = randomString()
 
@@ -108,7 +106,6 @@ export async function updateAttribute(data: ProductSettingsData): Promise<Produc
     const attribute = data.state.public.attributes[aIndex]
 
     if (attribute.group !== result.data.group) {
-        const agIndexOld = data.state.public.attributeGroups.findIndex(ag => ag.code === attribute.code)
         const agIndexNew = data.state.public.attributeGroups.findIndex(ag => ag.code === result.data.group)
 
         if (agIndexNew === -1) {
@@ -120,14 +117,6 @@ export async function updateAttribute(data: ProductSettingsData): Promise<Produc
             }
             return data
         }
-
-        data.state.public.attributeGroups[agIndexNew].attributes.push(result.data.code)
-
-        if (agIndexOld !== -1) {
-            data.state.public.attributeGroups[agIndexOld].attributes = data.state.public.attributeGroups[agIndexNew]
-                .attributes.filter(a => a !== result.data.code)
-        }
-
     }
 
     result.data.type = attribute.type // Dont change
@@ -152,13 +141,6 @@ export async function deleteAttribute(data: ProductSettingsData): Promise<Produc
             }
         }
         return data
-    }
-
-    const agIndex = data.state.public.attributeGroups.findIndex(ag => ag.code === data.request.body.attributeCode)
-
-    if (agIndex !== -1) {
-        data.state.public.attributeGroups[agIndex].attributes = data.state.public.attributeGroups[agIndex]
-            .attributes.filter(a=>a!==data.request.body.attributeCode)
     }
 
     data.state.public.attributes = data.state.public.attributes.filter(a => a.code !== data.request.body.attributeCode)

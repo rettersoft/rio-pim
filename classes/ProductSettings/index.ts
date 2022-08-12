@@ -41,7 +41,7 @@ export async function authorizer(data: ProductSettingsData): Promise<Response> {
         case 'GET':
             return {statusCode: 200}
         case 'INIT':
-            if (data.context.identity === "AccountManager") {
+            if (data.context.identity === "AccountManager" || isDeveloper) {
                 return {statusCode: 200}
             }
             break
@@ -61,7 +61,7 @@ export async function init(data: ProductSettingsData): Promise<ProductSettingsDa
             code: "other",
             label: [{
                 locale: "en_US",
-                value: "Other"
+                value: "Other",
             }]
         }],
         updateToken: randomString()

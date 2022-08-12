@@ -114,7 +114,6 @@ export const SpecificAttributes = {
 
 export const AttributeGroup = Z.object({
     code: Code,
-    attributes: Z.array(Code).default([]),
     label: Label
 })
 export type AttributeGroup = Z.infer<typeof AttributeGroup>
