@@ -30,7 +30,7 @@ export async function authorizer(data: CatalogSettingsData): Promise<Response> {
         case 'GET':
             return {statusCode: 200}
         case 'INIT':
-            if (data.context.identity === "AccountManager") {
+            if (data.context.identity === "AccountManager" || isDeveloper) {
                 return {statusCode: 200}
             }
             break

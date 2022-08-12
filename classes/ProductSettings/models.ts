@@ -10,7 +10,7 @@ export const LocaleSet = Z.object({
 })
 export type Locale = Z.infer<typeof LocaleSet>
 
-export const Label = Z.array(LocaleSet).optional()
+export const Label = Z.array(LocaleSet).default([])
 export type Label = Z.infer<typeof Label>
 
 export const Code = Z.string().min(1).max(100).regex(new RegExp(/^([A-Za-z0-9_])*$/g))
