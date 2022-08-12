@@ -87,11 +87,11 @@ export const SpecificAttributes = {
     NUMBER: BaseAttribute.extend({
         negativeAllowed: Z.boolean().default(false),
         decimalsAllowed: Z.boolean().default(false),
-        minNumber: Z.number().optional(),
-        maxNumber: Z.number().optional(),
+        minNumber: Z.number().min(Number.MIN_SAFE_INTEGER).optional(),
+        maxNumber: Z.number().max(Number.MAX_SAFE_INTEGER).optional(),
     }),
     IMAGE: BaseAttribute.extend({
-        maxFileSizeInMB: Z.number().min(0).max(5).optional(),
+        maxFileSizeInMB: Z.number().min(0).max(5).default(5),
         allowedExtensions: Z.array(PimImageExtensions).default([])
     }),
     MULTISELECT: BaseAttribute.extend({}),
@@ -102,8 +102,8 @@ export const SpecificAttributes = {
     }),
     PRICE: BaseAttribute.extend({
         decimalsAllowed: Z.boolean().default(true),
-        minNumber: Z.number().optional(),
-        maxNumber: Z.number().optional(),
+        minNumber: Z.number().min(0).optional(),
+        maxNumber: Z.number().max(Number.MAX_SAFE_INTEGER).optional(),
     }),
 }
 
