@@ -19,20 +19,60 @@ methods:
 
   - method: createAttribute
     type: WRITE
-    handler: attribute.createAttribute
+    handler: attributes.createAttribute
 
   - method: updateAttribute
     type: WRITE
-    handler: attribute.updateAttribute
+    handler: attributes.updateAttribute
 
   - method: deleteAttribute
     type: WRITE
-    handler: attribute.deleteAttribute
+    handler: attributes.deleteAttribute
 
   - method: upsertSelectOption
     type: WRITE
-    handler: attribute.upsertSelectOption
+    handler: attributes.upsertSelectOption
 
   - method: deleteSelectOption
     type: WRITE
-    handler: attribute.deleteSelectOption
+    handler: attributes.deleteSelectOption
+
+  - method: createFamily
+    type: WRITE
+    handler: families.createFamily
+
+  - method: updateFamily
+    type: WRITE
+    handler: families.updateFamily
+
+  - method: deleteFamily
+    type: WRITE
+    handler: families.deleteFamily
+
+  - method: addAttributeToFamily
+    type: WRITE
+    handler: families.addAttributeToFamily
+
+  - method: removeAttributeFromFamily
+    type: WRITE
+    handler: families.removeAttributeFromFamily
+
+  - method: addVariant
+    type: WRITE
+    handler: families.addVariant
+
+  - method: deleteVariant
+    type: WRITE
+    handler: families.deleteVariant
+
+  - method: addAttributeToVariant
+    type: WRITE
+    handler: families.addAttributeToVariant
+
+  - method: removeAttributeFromVariant
+    type: WRITE
+    handler: families.removeAttributeFromVariant
+
+  - method: toggleRequiredStatusFamilyAttribute
+    type: WRITE
+    handler: families.toggleRequiredStatusFamilyAttribute

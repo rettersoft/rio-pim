@@ -1,8 +1,7 @@
 import {ProductSettingsData} from "./index";
 import {checkUpdateToken, randomString} from "./helpers";
 import {AttributeGroup, BaseAttribute, Code} from "./models";
-
-export const RESERVED_ATTRIBUTE_GROUP_CODE = "other"
+import {checkReservedAttributeGroup, RESERVED_ATTRIBUTE_GROUP_CODE} from "./attribute-groups.repository";
 
 
 export async function addAttributeGroup(data: ProductSettingsData): Promise<ProductSettingsData> {
@@ -99,8 +98,4 @@ export async function deleteAttributeGroup(data: ProductSettingsData): Promise<P
     data.state.public.updateToken = randomString()
 
     return data
-}
-
-function checkReservedAttributeGroup(code: string) {
-    if (RESERVED_ATTRIBUTE_GROUP_CODE === code) throw new Error("This is reserved attribute group!")
 }

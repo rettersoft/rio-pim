@@ -1,7 +1,9 @@
 import {Data, Response} from "@retter/rdk";
 import {AccountIDInput} from "./rio";
 import {randomString} from "./helpers";
-import {AttributeGroup, BaseAttribute, SelectOption} from "./models";
+import {AttributeGroup, AttributeTypes, BaseAttribute, Family, SelectOption} from "./models";
+import {RESERVED_ID_ATTRIBUTE_CODE} from "./attributes.repository";
+import {RESERVED_ATTRIBUTE_GROUP_CODE} from "./attribute-groups.repository";
 
 
 export interface AttributeOption {
@@ -13,6 +15,7 @@ export interface ProductSettingsPublicState {
     attributeGroups: AttributeGroup[]
     attributes: BaseAttribute[]
     attributeOptions: AttributeOption[]
+    families: Family[]
     updateToken: string
 }
 
@@ -30,6 +33,16 @@ export async function authorizer(data: ProductSettingsData): Promise<Response> {
         "deleteAttribute",
         "upsertSelectOption",
         "deleteSelectOption",
+        "createFamily",
+        "updateFamily",
+        "deleteFamily",
+        "addAttributeToFamily",
+        "removeAttributeFromFamily",
+        "addVariant",
+        "deleteVariant",
+        "addAttributeToVariant",
+        "removeAttributeFromVariant",
+        "toggleRequiredStatusFamilyAttribute"
     ].includes(data.context.methodName)) {
         return {statusCode: 200}
     }
@@ -55,10 +68,20 @@ export async function getInstanceId(data: ProductSettingsData<AccountIDInput>): 
 
 export async function init(data: ProductSettingsData): Promise<ProductSettingsData> {
     data.state.public = {
+        families: [],
         attributeOptions: [],
-        attributes: [],
+        attributes: [{
+            code: RESERVED_ID_ATTRIBUTE_CODE,
+            type: AttributeTypes.Enum.IDENTIFIER,
+            group: RESERVED_ATTRIBUTE_GROUP_CODE,
+            isUnique: true,
+            label: [{
+                locale: "en_US",
+                value: "SKU",
+            }]
+        }],
         attributeGroups: [{
-            code: "other",
+            code: RESERVED_ATTRIBUTE_GROUP_CODE,
             label: [{
                 locale: "en_US",
                 value: "Other",

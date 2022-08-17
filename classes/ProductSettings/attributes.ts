@@ -1,6 +1,7 @@
 import {ProductSettingsData} from "./index";
 import {checkUpdateToken, randomString} from "./helpers";
 import {AttributeTypes, BaseAttribute, Code, SelectOption, SpecificAttributes} from "./models";
+import {checkReservedIdAttribute, getAttribute, specificAttributeValidation} from "./attributes.repository";
 
 
 export async function createAttribute(data: ProductSettingsData): Promise<ProductSettingsData> {
@@ -31,7 +32,19 @@ export async function createAttribute(data: ProductSettingsData): Promise<Produc
         return data
     }
 
+    checkReservedIdAttribute(result.data.code)
+
     specificAttributeValidation(result.data)
+
+    if(result.data.type === AttributeTypes.Enum.IDENTIFIER && data.state.public.attributes.findIndex(a=>a.type=== AttributeTypes.Enum.IDENTIFIER) !== -1){
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "An identifier attribute already exists!"
+            }
+        }
+        return data
+    }
 
     if (data.state.public.attributes.findIndex(a => a.code === baseAttribute.data.code) !== -1) {
         data.response = {
@@ -89,6 +102,8 @@ export async function updateAttribute(data: ProductSettingsData): Promise<Produc
         return data
     }
 
+    checkReservedIdAttribute(result.data.code)
+
     specificAttributeValidation(result.data)
 
     const aIndex = data.state.public.attributes.findIndex(a => a.code === baseAttribute.data.code)
@@ -142,6 +157,8 @@ export async function deleteAttribute(data: ProductSettingsData): Promise<Produc
         }
         return data
     }
+
+    checkReservedIdAttribute(data.request.body.attributeCode)
 
     data.state.public.attributes = data.state.public.attributes.filter(a => a.code !== data.request.body.attributeCode)
     data.state.public.updateToken = randomString()
@@ -226,26 +243,4 @@ export async function deleteSelectOption(data: ProductSettingsData): Promise<Pro
 
 
     return data
-}
-
-
-function getAttribute(code: string | undefined, data: ProductSettingsData) {
-    const attributeCodeModel = Code.safeParse(code)
-    if (attributeCodeModel.success === false) throw new Error("Invalid attribute code!")
-
-    const attribute = data.state.public.attributes.find(a => a.code === attributeCodeModel.data)
-
-    if (!attribute) throw new Error("Attribute not found!")
-
-    return attribute
-}
-
-function specificAttributeValidation(attribute: BaseAttribute) {
-    if (
-        [AttributeTypes.Enum.BOOLEAN, AttributeTypes.Enum.DATE, AttributeTypes.Enum.IMAGE, AttributeTypes.Enum.MULTISELECT,
-            AttributeTypes.Enum.MULTISELECT, AttributeTypes.Enum.SIMPLESELECT, AttributeTypes.Enum.PRICE,
-            AttributeTypes.Enum.TEXTAREA].includes(attribute.type)
-    ) {
-        if (attribute.isUnique === true) throw new Error('Attribute can not be unique!')
-    }
 }

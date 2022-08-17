@@ -1,5 +1,6 @@
 import Z from "zod"
 import {Locales} from "./consts";
+import {RESERVED_ID_ATTRIBUTE_CODE} from "./attributes.repository";
 
 export const Locale = Z.string().refine((val) => Locales.findIndex(l => l.id === val) !== -1,
     "Invalid locale value!")
@@ -80,7 +81,7 @@ export const SpecificAttributes = {
         defaultValue: Z.boolean().optional()
     }),
     IDENTIFIER: BaseAttribute.extend({
-        maxCharacters: Z.number().min(0).max(255),
+        maxCharacters: Z.number().min(0).max(255).optional(),
         validationRule: Z.enum<any, any>(["REGEXP"]).optional(),
         validationRegexp: Z.string().optional(),
     }),
@@ -97,8 +98,12 @@ export const SpecificAttributes = {
     MULTISELECT: BaseAttribute.extend({}),
     SIMPLESELECT: BaseAttribute.extend({}),
     DATE: BaseAttribute.extend({
-        minDate: Z.preprocess((arg)=>{if(typeof arg === "string") return new Date(arg)},Z.date()).optional(),
-        maxDate: Z.preprocess((arg)=>{if(typeof arg === "string") return new Date(arg)},Z.date()).optional(),
+        minDate: Z.preprocess((arg) => {
+            if (typeof arg === "string") return new Date(arg)
+        }, Z.date()).optional(),
+        maxDate: Z.preprocess((arg) => {
+            if (typeof arg === "string") return new Date(arg)
+        }, Z.date()).optional(),
     }),
     PRICE: BaseAttribute.extend({
         decimalsAllowed: Z.boolean().default(true),
@@ -118,3 +123,24 @@ export const AttributeGroup = Z.object({
 })
 export type AttributeGroup = Z.infer<typeof AttributeGroup>
 
+
+const FamilyAttribute = Z.object({
+    attribute: Code,
+    requiredChannels: Z.array(Code)
+})
+
+export const FamilyVariant = Z.object({
+    code: Code,
+    axes: Z.array(Code),
+    attributes: Z.array(Code)
+})
+
+export const Family = Z.object({
+    code: Code,
+    label: Label,
+    attributeAsLabel: Z.string().default(RESERVED_ID_ATTRIBUTE_CODE),
+    attributeAsImage: Z.string().optional(),
+    attributes: Z.array(FamilyAttribute).default([]),
+    variants: Z.array(FamilyVariant).default([])
+})
+export type Family = Z.infer<typeof Family>
