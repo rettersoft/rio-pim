@@ -1,6 +1,6 @@
 import {ProductSettingsData} from "./index";
 import {checkUpdateToken, randomString} from "./helpers";
-import {AttributeTypes, BaseAttribute, Code, SelectOption, SpecificAttributes} from "./models";
+import {AttributeTypes, BaseAttribute, Code, Family, SelectOption, SpecificAttributes} from "./models";
 import {checkReservedIdAttribute, getAttribute, specificAttributeValidation} from "./attributes.repository";
 
 
@@ -148,7 +148,9 @@ export async function updateAttribute(data: ProductSettingsData): Promise<Produc
 export async function deleteAttribute(data: ProductSettingsData): Promise<ProductSettingsData> {
     checkUpdateToken(data)
 
-    if (!data.request.body.attributeCode) {
+    const attributeCode = data.request.body.attributeCode
+
+    if (!attributeCode) {
         data.response = {
             statusCode: 400,
             body: {
@@ -158,9 +160,15 @@ export async function deleteAttribute(data: ProductSettingsData): Promise<Produc
         return data
     }
 
-    checkReservedIdAttribute(data.request.body.attributeCode)
+    checkReservedIdAttribute(attributeCode)
 
-    data.state.public.attributes = data.state.public.attributes.filter(a => a.code !== data.request.body.attributeCode)
+    data.state.public.families = data.state.public.families = data.state.public.families.reduce<Family[]>((acc, val)=>{
+        val.attributes = val.attributes.filter(a=>a.attribute !== attributeCode)
+        acc.push(val)
+        return acc
+    }, [])
+
+    data.state.public.attributes = data.state.public.attributes.filter(a => a.code !== attributeCode)
     data.state.public.updateToken = randomString()
 
     return data
