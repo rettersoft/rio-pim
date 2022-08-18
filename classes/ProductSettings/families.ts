@@ -1,7 +1,12 @@
 import {ProductSettingsData} from "./index";
 import {checkUpdateToken, randomString} from "./helpers";
 import {Code, Family, FamilyVariant} from "./models";
-import {getAttribute, RESERVED_ID_ATTRIBUTE_CODE} from "./attributes.repository";
+import {
+    getAttribute,
+    isAxisAttribute,
+    isFamilyAttributeLabel,
+    RESERVED_ID_ATTRIBUTE_CODE
+} from "./attributes.repository";
 import {ALLOWED_AXE_TYPES} from "./families.repository";
 
 
@@ -220,7 +225,7 @@ export async function toggleRequiredStatusFamilyAttribute(data: ProductSettingsD
         return data
     }
 
-    const familyAttributeIndex = data.state.public.families[familyIndex].attributes.findIndex(a=>a.attribute === attributeCodeResult.data)
+    const familyAttributeIndex = data.state.public.families[familyIndex].attributes.findIndex(a => a.attribute === attributeCodeResult.data)
     if (familyAttributeIndex === -1) {
         data.response = {
             statusCode: 404,
@@ -231,10 +236,10 @@ export async function toggleRequiredStatusFamilyAttribute(data: ProductSettingsD
         return data
     }
 
-    if(data.state.public.families[familyIndex].attributes[familyAttributeIndex].requiredChannels.includes(channelCodeResult.data)){
+    if (data.state.public.families[familyIndex].attributes[familyAttributeIndex].requiredChannels.includes(channelCodeResult.data)) {
         data.state.public.families[familyIndex].attributes[familyAttributeIndex].requiredChannels =
-            data.state.public.families[familyIndex].attributes[familyAttributeIndex].requiredChannels.filter(rc=>rc !== channelCodeResult.data)
-    } else{
+            data.state.public.families[familyIndex].attributes[familyAttributeIndex].requiredChannels.filter(rc => rc !== channelCodeResult.data)
+    } else {
         data.state.public.families[familyIndex].attributes[familyAttributeIndex].requiredChannels.push(channelCodeResult.data)
     }
     data.state.public.updateToken = randomString()
@@ -291,6 +296,26 @@ export async function removeAttributeFromFamily(data: ProductSettingsData): Prom
         return data
     }
 
+    if(isAxisAttribute(attributeCodeResult.data, data)){
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "This attribute used as a variant axis in a family variant!"
+            }
+        }
+        return data
+    }
+
+    if(isFamilyAttributeLabel(attributeCodeResult.data, data)){
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "This attribute used as label!"
+            }
+        }
+        return data
+    }
+
     if (data.state.public.families[familyIndex].attributes.findIndex(fa => fa.attribute === attributeCodeResult.data) !== -1) {
         data.state.public.families[familyIndex].attributes = data.state.public.families[familyIndex].attributes
             .filter(a => a.attribute !== attributeCodeResult.data)
@@ -303,7 +328,7 @@ export async function removeAttributeFromFamily(data: ProductSettingsData): Prom
 export async function addVariant(data: ProductSettingsData): Promise<ProductSettingsData> {
     checkUpdateToken(data)
 
-    const familyCodeResult = Code.safeParse(data.request.body.code)
+    const familyCodeResult = Code.safeParse(data.request.body.familyCode)
 
     if (familyCodeResult.success === false) {
         data.response = {
@@ -316,7 +341,7 @@ export async function addVariant(data: ProductSettingsData): Promise<ProductSett
         return data
     }
 
-    const result = FamilyVariant.safeParse(data.response.body.variant)
+    const result = FamilyVariant.safeParse(data.request.body.variant)
     if (result.success === false) {
         data.response = {
             statusCode: 400,
@@ -410,38 +435,42 @@ export async function deleteVariant(data: ProductSettingsData): Promise<ProductS
     return data
 }
 
-export async function addAttributeToVariant(data: ProductSettingsData): Promise<ProductSettingsData> {
+export async function updateVariant(data: ProductSettingsData): Promise<ProductSettingsData> {
     checkUpdateToken(data)
-
     const familyCodeResult = Code.safeParse(data.request.body.familyCode)
-    const familyVariantCodeResult = Code.safeParse(data.request.body.familyVariantCode)
-    const familyVariantAttributeCodeResult = Code.safeParse(data.request.body.familyVariantAttrbiuteCode)
 
-    if (
-        familyCodeResult.success === false ||
-        familyVariantCodeResult.success === false ||
-        familyVariantAttributeCodeResult.success === false
-    ) {
+    if (familyCodeResult.success === false) {
         data.response = {
             statusCode: 400,
             body: {
                 message: "Model validation fail!",
+                error: familyCodeResult.error
             }
         }
         return data
     }
 
-    if (data.state.public.attributes.findIndex(a => a.code === familyVariantAttributeCodeResult.data) === -1) {
+    const result = FamilyVariant.safeParse(data.request.body.variant)
+    if (result.success === false) {
         data.response = {
-            statusCode: 404,
+            statusCode: 400,
             body: {
-                message: "Attribute not found!"
+                message: "Model validation fail!",
+                error: result.error
             }
         }
         return data
+    }
+
+    for (const axe of result.data.axes) {
+        const attribute = getAttribute(axe, data)
+        if (!ALLOWED_AXE_TYPES.includes(attribute.type)) {
+            throw new Error("Not allowed attribute type!")
+        }
     }
 
     const fIndex = data.state.public.families.findIndex(f => f.code === familyCodeResult.data)
+
     if (fIndex === -1) {
         data.response = {
             statusCode: 404,
@@ -452,17 +481,7 @@ export async function addAttributeToVariant(data: ProductSettingsData): Promise<
         return data
     }
 
-    if (data.state.public.families[fIndex].attributes.findIndex(fa => fa.attribute === familyVariantAttributeCodeResult.data) === -1) {
-        data.response = {
-            statusCode: 404,
-            body: {
-                message: "This attribute is not member of this family!"
-            }
-        }
-        return data
-    }
-
-    const fvIndex = data.state.public.families[fIndex].variants.findIndex(fv => fv.code === familyVariantCodeResult.data)
+    const fvIndex = data.state.public.families[fIndex].variants.findIndex(fv => fv.code === result.data.code)
     if (fvIndex === -1) {
         data.response = {
             statusCode: 400,
@@ -473,78 +492,11 @@ export async function addAttributeToVariant(data: ProductSettingsData): Promise<
         return data
     }
 
-    if (data.state.public.families[fIndex].variants[fvIndex].attributes.includes(familyVariantAttributeCodeResult.data)) {
-        data.response = {
-            statusCode: 400,
-            body: {
-                message: "Family variant attribute already exist!"
-            }
-        }
-        return data
-    }
+    // update specific fields
+    data.state.public.families[fIndex].variants[fvIndex].attributes = result.data.attributes
+    data.state.public.families[fIndex].variants[fvIndex].label = result.data.label
 
-    data.state.public.families[fIndex].variants[fvIndex].attributes.push(familyVariantAttributeCodeResult.data)
     data.state.public.updateToken = randomString()
-    return data
-}
 
-export async function removeAttributeFromVariant(data: ProductSettingsData): Promise<ProductSettingsData> {
-    checkUpdateToken(data)
-
-    const familyCodeResult = Code.safeParse(data.request.body.familyCode)
-    const familyVariantCodeResult = Code.safeParse(data.request.body.familyVariantCode)
-    const familyVariantAttributeCodeResult = Code.safeParse(data.request.body.familyVariantAttrbiuteCode)
-
-    if (
-        familyCodeResult.success === false ||
-        familyVariantCodeResult.success === false ||
-        familyVariantAttributeCodeResult.success === false
-    ) {
-        data.response = {
-            statusCode: 400,
-            body: {
-                message: "Model validation fail!",
-            }
-        }
-        return data
-    }
-
-    if (data.state.public.attributes.findIndex(a => a.code === familyVariantAttributeCodeResult.data) === -1) {
-        data.response = {
-            statusCode: 404,
-            body: {
-                message: "Attribute not found!"
-            }
-        }
-        return data
-    }
-
-    const fIndex = data.state.public.families.findIndex(f => f.code === familyCodeResult.data)
-    if (fIndex === -1) {
-        data.response = {
-            statusCode: 404,
-            body: {
-                message: "Family not found!"
-            }
-        }
-        return data
-    }
-
-    const fvIndex = data.state.public.families[fIndex].variants.findIndex(fv => fv.code === familyVariantCodeResult.data)
-    if (fvIndex === -1) {
-        data.response = {
-            statusCode: 400,
-            body: {
-                message: "Family variant not found!"
-            }
-        }
-        return data
-    }
-
-    if (data.state.public.families[fIndex].variants[fvIndex].attributes.includes(familyVariantAttributeCodeResult.data)) {
-        data.state.public.families[fIndex].variants[fvIndex].attributes =
-            data.state.public.families[fIndex].variants[fvIndex].attributes.filter(a => a !== familyVariantAttributeCodeResult.data)
-        data.state.public.updateToken = randomString()
-    }
     return data
 }

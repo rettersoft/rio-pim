@@ -39,9 +39,8 @@ export async function authorizer(data: ProductSettingsData): Promise<Response> {
         "addAttributeToFamily",
         "removeAttributeFromFamily",
         "addVariant",
+        "updateVariant",
         "deleteVariant",
-        "addAttributeToVariant",
-        "removeAttributeFromVariant",
         "toggleRequiredStatusFamilyAttribute"
     ].includes(data.context.methodName)) {
         return {statusCode: 200}

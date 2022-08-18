@@ -1,7 +1,12 @@
 import {ProductSettingsData} from "./index";
 import {checkUpdateToken, randomString} from "./helpers";
-import {AttributeTypes, BaseAttribute, Code, Family, SelectOption, SpecificAttributes} from "./models";
-import {checkReservedIdAttribute, getAttribute, specificAttributeValidation} from "./attributes.repository";
+import {AttributeTypes, BaseAttribute, Code, Family, FamilyVariant, SelectOption, SpecificAttributes} from "./models";
+import {
+    checkReservedIdAttribute,
+    getAttribute,
+    isAxisAttribute, isFamilyAttributeLabel,
+    specificAttributeValidation
+} from "./attributes.repository";
 
 
 export async function createAttribute(data: ProductSettingsData): Promise<ProductSettingsData> {
@@ -162,8 +167,33 @@ export async function deleteAttribute(data: ProductSettingsData): Promise<Produc
 
     checkReservedIdAttribute(attributeCode)
 
+    if(isAxisAttribute(attributeCode, data)){
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "This attribute used as a variant axis in a family variant!"
+            }
+        }
+        return data
+    }
+
+    if(isFamilyAttributeLabel(attributeCode, data)){
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "This attribute used as label!"
+            }
+        }
+        return data
+    }
+
     data.state.public.families = data.state.public.families = data.state.public.families.reduce<Family[]>((acc, val)=>{
         val.attributes = val.attributes.filter(a=>a.attribute !== attributeCode)
+        val.variants = val.variants.reduce<FamilyVariant[]>((acc, varVal)=>{
+            varVal.attributes === varVal.attributes.filter(a=>a !== attributeCode)
+            acc.push(varVal)
+            return acc
+        },[])
         acc.push(val)
         return acc
     }, [])

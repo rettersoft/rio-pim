@@ -61,17 +61,13 @@ methods:
     type: WRITE
     handler: families.addVariant
 
+  - method: updateVariant
+    type: WRITE
+    handler: families.updateVariant
+
   - method: deleteVariant
     type: WRITE
     handler: families.deleteVariant
-
-  - method: addAttributeToVariant
-    type: WRITE
-    handler: families.addAttributeToVariant
-
-  - method: removeAttributeFromVariant
-    type: WRITE
-    handler: families.removeAttributeFromVariant
 
   - method: toggleRequiredStatusFamilyAttribute
     type: WRITE

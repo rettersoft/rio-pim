@@ -131,9 +131,11 @@ const FamilyAttribute = Z.object({
 
 export const FamilyVariant = Z.object({
     code: Code,
+    label: Label,
     axes: Z.array(Code),
-    attributes: Z.array(Code)
+    attributes: Z.array(Code).default([])
 })
+export type FamilyVariant = Z.infer<typeof FamilyVariant>
 
 export const Family = Z.object({
     code: Code,
