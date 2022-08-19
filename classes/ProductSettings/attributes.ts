@@ -4,7 +4,8 @@ import {AttributeTypes, BaseAttribute, Code, Family, FamilyVariant, SelectOption
 import {
     checkReservedIdAttribute,
     getAttribute,
-    isAxisAttribute, isFamilyAttributeLabel,
+    isAxisAttribute,
+    isFamilyAttributeLabel,
     specificAttributeValidation
 } from "./attributes.repository";
 
@@ -41,7 +42,7 @@ export async function createAttribute(data: ProductSettingsData): Promise<Produc
 
     specificAttributeValidation(result.data)
 
-    if(result.data.type === AttributeTypes.Enum.IDENTIFIER && data.state.public.attributes.findIndex(a=>a.type=== AttributeTypes.Enum.IDENTIFIER) !== -1){
+    if (result.data.type === AttributeTypes.Enum.IDENTIFIER && data.state.public.attributes.findIndex(a => a.type === AttributeTypes.Enum.IDENTIFIER) !== -1) {
         data.response = {
             statusCode: 400,
             body: {
@@ -167,7 +168,7 @@ export async function deleteAttribute(data: ProductSettingsData): Promise<Produc
 
     checkReservedIdAttribute(attributeCode)
 
-    if(isAxisAttribute(attributeCode, data)){
+    if (isAxisAttribute(attributeCode, data)) {
         data.response = {
             statusCode: 400,
             body: {
@@ -177,7 +178,7 @@ export async function deleteAttribute(data: ProductSettingsData): Promise<Produc
         return data
     }
 
-    if(isFamilyAttributeLabel(attributeCode, data)){
+    if (isFamilyAttributeLabel(attributeCode, data)) {
         data.response = {
             statusCode: 400,
             body: {
@@ -187,13 +188,13 @@ export async function deleteAttribute(data: ProductSettingsData): Promise<Produc
         return data
     }
 
-    data.state.public.families = data.state.public.families = data.state.public.families.reduce<Family[]>((acc, val)=>{
-        val.attributes = val.attributes.filter(a=>a.attribute !== attributeCode)
-        val.variants = val.variants.reduce<FamilyVariant[]>((acc, varVal)=>{
-            varVal.attributes === varVal.attributes.filter(a=>a !== attributeCode)
+    data.state.public.families = data.state.public.families = data.state.public.families.reduce<Family[]>((acc, val) => {
+        val.attributes = val.attributes.filter(a => a.attribute !== attributeCode)
+        val.variants = val.variants.reduce<FamilyVariant[]>((acc, varVal) => {
+            varVal.attributes === varVal.attributes.filter(a => a !== attributeCode)
             acc.push(varVal)
             return acc
-        },[])
+        }, [])
         acc.push(val)
         return acc
     }, [])
@@ -279,6 +280,18 @@ export async function deleteSelectOption(data: ProductSettingsData): Promise<Pro
         return data
     }
 
+    const aoIndex = data.state.public.attributeOptions.findIndex(ao => ao.code === attribute.code)
+    if (aoIndex === -1) {
+        data.response = {
+            statusCode: 404,
+            body: {
+                message: "Attribute option not found!"
+            }
+        }
+        return data
+    }
 
+    data.state.public.attributeOptions[aoIndex].options = data.state.public.attributeOptions[aoIndex].options.filter(o => o.code !== attributeOptionCodeModel.data)
+    data.state.public.updateToken = randomString()
     return data
 }
