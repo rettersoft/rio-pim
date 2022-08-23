@@ -146,3 +146,17 @@ export const Family = Z.object({
     variants: Z.array(FamilyVariant).default([])
 })
 export type Family = Z.infer<typeof Family>
+
+
+export const GroupType = Z.object({
+    code: Code,
+    label: Label
+})
+export type GroupType = Z.infer<typeof GroupType>
+
+export const Group = Z.object({
+    code: Code,
+    type: Code,
+    label: Label
+})
+export type Group = Z.infer<typeof Group>

@@ -1,9 +1,18 @@
 import {Data, Response} from "@retter/rdk";
 import {AccountIDInput} from "./rio";
 import {randomString} from "./helpers";
-import {AttributeGroup, AttributeTypes, BaseAttribute, Family, SelectOption} from "./models";
+import {AttributeGroup, AttributeTypes, BaseAttribute, Family, Group, GroupType, SelectOption} from "./models";
 import {RESERVED_ID_ATTRIBUTE_CODE} from "./attributes.repository";
 import {RESERVED_ATTRIBUTE_GROUP_CODE} from "./attribute-groups.repository";
+import {
+    addProductToGroup,
+    createGroup,
+    createGroupType,
+    deleteGroup,
+    deleteGroupType,
+    updateGroup,
+    updateGroupType
+} from "./groups";
 
 
 export interface AttributeOption {
@@ -16,6 +25,8 @@ export interface ProductSettingsPublicState {
     attributes: BaseAttribute[]
     attributeOptions: AttributeOption[]
     families: Family[]
+    groupTypes: GroupType[]
+    groups: Group[]
     updateToken: string
 }
 
@@ -41,7 +52,14 @@ export async function authorizer(data: ProductSettingsData): Promise<Response> {
         "addVariant",
         "updateVariant",
         "deleteVariant",
-        "toggleRequiredStatusFamilyAttribute"
+        "toggleRequiredStatusFamilyAttribute",
+        "createGroupType",
+        "updateGroupType",
+        "deleteGroupType",
+        "createGroup",
+        "updateGroup",
+        "deleteGroup",
+        "addProductToGroup",
     ].includes(data.context.methodName)) {
         return {statusCode: 200}
     }
@@ -86,6 +104,8 @@ export async function init(data: ProductSettingsData): Promise<ProductSettingsDa
                 value: "Other",
             }]
         }],
+        groups: [],
+        groupTypes: [],
         updateToken: randomString()
     }
     return data

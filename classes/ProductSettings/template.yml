@@ -72,3 +72,31 @@ methods:
   - method: toggleRequiredStatusFamilyAttribute
     type: WRITE
     handler: families.toggleRequiredStatusFamilyAttribute
+
+  - method: createGroupType
+    type: WRITE
+    handler: groups.createGroupType
+
+  - method: updateGroupType
+    type: WRITE
+    handler: groups.updateGroupType
+
+  - method: deleteGroupType
+    type: WRITE
+    handler: groups.deleteGroupType
+
+  - method: createGroup
+    type: WRITE
+    handler: groups.createGroup
+
+  - method: updateGroup
+    type: WRITE
+    handler: groups.updateGroup
+
+  - method: deleteGroup
+    type: WRITE
+    handler: groups.deleteGroup
+
+  - method: addProductToGroup
+    type: WRITE
+    handler: groups.addProductToGroup
