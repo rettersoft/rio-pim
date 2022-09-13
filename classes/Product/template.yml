@@ -1,0 +1,30 @@
+init: index.init
+getState: index.getState
+getInstanceId: index.getInstanceId
+authorizer: index.authorizer
+destroy: index.destroy
+methods:
+
+  - method: getProduct
+    type: READ
+    handler: index.getProduct
+
+  - method: updateProduct
+    type: WRITE
+    handler: index.updateProduct
+
+  - method: uploadTempImage
+    type: WRITE
+    handler: index.uploadTempImage
+
+  - method: checkUploadedImage
+    type: WRITE
+    handler: index.checkUploadedImage
+
+  - method: deleteUploadedTempImage
+    type: WRITE
+    handler: index.deleteUploadedTempImage
+
+  - method: getUploadedImage
+    type: WRITE
+    handler: index.getUploadedImage

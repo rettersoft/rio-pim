@@ -100,3 +100,8 @@ methods:
   - method: addProductToGroup
     type: WRITE
     handler: groups.addProductToGroup
+
+
+  - method: getProductSettingsForProduct
+    type: READ
+    handler: index.getProductSettingsForProduct

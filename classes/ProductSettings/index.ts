@@ -1,7 +1,15 @@
 import {Data, Response} from "@retter/rdk";
 import {AccountIDInput} from "./rio";
 import {randomString} from "./helpers";
-import {AttributeGroup, AttributeTypes, BaseAttribute, Family, Group, GroupType, SelectOption} from "./models";
+import {
+    AttributeGroup,
+    AttributeTypes,
+    BaseAttribute,
+    Family,
+    Group,
+    GroupType, IDENTIFIER, PimValidationRules,
+    SelectOption
+} from "./models";
 import {RESERVED_ID_ATTRIBUTE_CODE} from "./attributes.repository";
 import {RESERVED_ATTRIBUTE_GROUP_CODE} from "./attribute-groups.repository";
 import {
@@ -65,6 +73,11 @@ export async function authorizer(data: ProductSettingsData): Promise<Response> {
     }
 
     switch (data.context.methodName) {
+        case 'getProductSettingsForProduct':
+            if (data.context.identity === "Product" || isDeveloper) {
+                return {statusCode: 200}
+            }
+            break
         case 'STATE':
             if (isDeveloper) return {statusCode: 200}
             break
@@ -84,19 +97,23 @@ export async function getInstanceId(data: ProductSettingsData<AccountIDInput>): 
 }
 
 export async function init(data: ProductSettingsData): Promise<ProductSettingsData> {
+    const identifier: IDENTIFIER = {
+        code: RESERVED_ID_ATTRIBUTE_CODE,
+        type: AttributeTypes.Enum.IDENTIFIER,
+        group: RESERVED_ATTRIBUTE_GROUP_CODE,
+        isUnique: true,
+        label: [{
+            locale: "en_US",
+            value: "SKU",
+        }],
+        maxCharacters: 255,
+        validationRegexp: "^([A-Za-z0-9_])*$",
+        validationRule: PimValidationRules.Enum.REGEXP
+    }
     data.state.public = {
         families: [],
         attributeOptions: [],
-        attributes: [{
-            code: RESERVED_ID_ATTRIBUTE_CODE,
-            type: AttributeTypes.Enum.IDENTIFIER,
-            group: RESERVED_ATTRIBUTE_GROUP_CODE,
-            isUnique: true,
-            label: [{
-                locale: "en_US",
-                value: "SKU",
-            }]
-        }],
+        attributes: [identifier],
         attributeGroups: [{
             code: RESERVED_ATTRIBUTE_GROUP_CODE,
             label: [{
@@ -113,4 +130,18 @@ export async function init(data: ProductSettingsData): Promise<ProductSettingsDa
 
 export async function getState(data: ProductSettingsData): Promise<Response> {
     return {statusCode: 200, body: data.state};
+}
+
+export async function getProductSettingsForProduct(data: ProductSettingsData): Promise<ProductSettingsData> {
+    data.response = {
+        statusCode: 200,
+        body: {
+            productSettings: {
+                attributes: data.state.public.attributes,
+                attributeOptions: data.state.public.attributeOptions,
+                families: data.state.public.families,
+            },
+        }
+    }
+    return data
 }

@@ -236,6 +236,27 @@ export async function toggleRequiredStatusFamilyAttribute(data: ProductSettingsD
         return data
     }
 
+    const attributeProperty = data.state.public.attributes.find(a=>a.code === attributeCodeResult.data)
+    if(!attributeProperty){
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Attribute property not found!"
+            }
+        }
+        return data
+    }
+
+    if(!attributeProperty.scopable){
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Only scopable attributes can be required per channel!"
+            }
+        }
+        return data
+    }
+
     if (data.state.public.families[familyIndex].attributes[familyAttributeIndex].requiredChannels.includes(channelCodeResult.data)) {
         data.state.public.families[familyIndex].attributes[familyAttributeIndex].requiredChannels =
             data.state.public.families[familyIndex].attributes[familyAttributeIndex].requiredChannels.filter(rc => rc !== channelCodeResult.data)

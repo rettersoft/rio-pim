@@ -1,0 +1,12 @@
+init:
+  handler: index.init
+  inputModel: AccountIDInput
+getState: index.getState
+getInstanceId: index.getInstanceId
+authorizer: index.authorizer
+methods:
+
+  - method: productHandler
+    inputModel: InternalDestinationProductHandlerInput
+    type: QUEUED_WRITE
+    handler: index.productHandler

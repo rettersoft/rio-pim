@@ -1,21 +1,41 @@
 import Z from "zod"
-import {Locales} from "./consts";
-import {RESERVED_ID_ATTRIBUTE_CODE} from "./attributes.repository";
 
-export const Locale = Z.string().refine((val) => Locales.findIndex(l => l.id === val) !== -1,
-    "Invalid locale value!")
+export const Code = Z.string().min(1).max(100).regex(new RegExp(/^([A-Za-z0-9_])*$/g))
+export const ProductCategoryCode = Z.string().min(1).max(500).regex(new RegExp(/^([A-Za-z0-9_#])*$/g))
 
+
+export const ProductAttributeData = Z.object({
+    scope: Code.optional(),
+    locale: Code.optional(),
+    value: Z.any()
+})
+
+export const ProductAttribute = Z.object({
+    code: Code,
+    data: Z.array(ProductAttributeData).default([])
+})
+export type ProductAttribute = Z.infer<typeof ProductAttribute>
+
+export const Product = Z.object({
+    sku: Z.string().max(255).min(1).regex(new RegExp("^([A-Za-z0-9_])*$", "g")),
+    family: Code,
+    enabled: Z.boolean().default(false),
+    groups: Z.array(Code).default([]),
+    categories: Z.array(ProductCategoryCode).default([]),
+    attributes: Z.array(ProductAttribute).default([])
+})
+export type Product = Z.infer<typeof Product>
+
+
+/**
+ *  Product settings models
+ */
+export const Locale = Z.string()
 export const LocaleSet = Z.object({
     locale: Locale,
     value: Z.string()
 })
-export type Locale = Z.infer<typeof LocaleSet>
-
 export const Label = Z.array(LocaleSet).default([])
-export type Label = Z.infer<typeof Label>
-
-export const Code = Z.string().min(1).max(100).regex(new RegExp(/^([A-Za-z0-9_])*$/g))
-
 export const AttributeTypes = Z.enum([
     "TEXT",
     "TEXTAREA",
@@ -29,25 +49,6 @@ export const AttributeTypes = Z.enum([
     "PRICE",
 ])
 
-export const PimImageExtensions = Z.enum([
-    "jpeg",
-    "jpg",
-    "png",
-    "tiff"
-])
-
-export const PimValidationRules = Z.enum([
-    "REGEXP",
-    "EMAIL",
-    "URL",
-])
-
-export const SelectOption = Z.object({
-    code: Code,
-    label: Label
-})
-export type SelectOption = Z.infer<typeof SelectOption>
-
 export const BaseAttribute = Z.object({
     code: Code,
     type: AttributeTypes,
@@ -60,14 +61,33 @@ export const BaseAttribute = Z.object({
     isUnique: Z.boolean().default(false),
 })
 export type BaseAttribute = Z.infer<typeof BaseAttribute>
-/**
- * uniqable units : TEXT, IDENTIFIER, NUMBER
- */
 
-/**
- * ATTRIBUTE MODELS - START
- */
+export const SelectOption = Z.object({
+    code: Code,
+    label: Label
+})
+export type SelectOption = Z.infer<typeof SelectOption>
 
+export const AttributeOption = Z.object({
+    code: Code,
+    options: Z.array(SelectOption)
+})
+
+export const ProductProperties = Z.object({
+    attributes: Z.array(BaseAttribute),
+    attributeOptions: Z.array(AttributeOption)
+})
+export const PimImageExtensions = Z.enum([
+    "jpeg",
+    "jpg",
+    "png",
+    "tiff"
+])
+export const PimValidationRules = Z.enum([
+    "REGEXP",
+    "EMAIL",
+    "URL",
+])
 export const SpecificAttributes = {
     TEXT: BaseAttribute.extend({
         maxCharacters: Z.number().min(0).max(255).optional(),
@@ -112,53 +132,41 @@ export const SpecificAttributes = {
     }),
 }
 
+export type TEXT = Z.infer<typeof SpecificAttributes.TEXT>
+export type TEXTAREA = Z.infer<typeof SpecificAttributes.TEXTAREA>
+export type BOOLEAN = Z.infer<typeof SpecificAttributes.BOOLEAN>
 export type IDENTIFIER = Z.infer<typeof SpecificAttributes.IDENTIFIER>
-
-/**
- * ATTRIBUTE MODELS - END
- */
-
-
-export const AttributeGroup = Z.object({
-    code: Code,
-    label: Label
-})
-export type AttributeGroup = Z.infer<typeof AttributeGroup>
+export type NUMBER = Z.infer<typeof SpecificAttributes.NUMBER>
+export type IMAGE = Z.infer<typeof SpecificAttributes.IMAGE>
+export type MULTISELECT = Z.infer<typeof SpecificAttributes.MULTISELECT>
+export type SIMPLESELECT = Z.infer<typeof SpecificAttributes.SIMPLESELECT>
+export type DATE = Z.infer<typeof SpecificAttributes.DATE>
+export type PRICE = Z.infer<typeof SpecificAttributes.PRICE>
 
 
-const FamilyAttribute = Z.object({
-    attribute: Code,
-    requiredChannels: Z.array(Code)
-})
+export interface FamilyAttribute {
+    attribute: string
+    requiredChannels: string[]
+}
 
-export const FamilyVariant = Z.object({
-    code: Code,
-    label: Label,
-    axes: Z.array(Code),
-    attributes: Z.array(Code).default([])
-})
-export type FamilyVariant = Z.infer<typeof FamilyVariant>
+export interface FamilyVariant{
+    code: string
+    label: string
+    axes: string[]
+    attributes: string[]
+}
 
-export const Family = Z.object({
-    code: Code,
-    label: Label,
-    attributeAsLabel: Z.string().default(RESERVED_ID_ATTRIBUTE_CODE),
-    attributeAsImage: Z.string().optional(),
-    attributes: Z.array(FamilyAttribute).default([]),
-    variants: Z.array(FamilyVariant).default([])
-})
-export type Family = Z.infer<typeof Family>
+export interface Family {
+    code: string
+    label: string
+    attributeAsLabel: string
+    attributeAsImage?: string
+    attributes: FamilyAttribute[]
+    variants: FamilyVariant[]
+}
 
+export interface AttributeOption {
+    code: string
+    options: SelectOption[]
+}
 
-export const GroupType = Z.object({
-    code: Code,
-    label: Label
-})
-export type GroupType = Z.infer<typeof GroupType>
-
-export const Group = Z.object({
-    code: Code,
-    type: Code,
-    label: Label
-})
-export type Group = Z.infer<typeof Group>

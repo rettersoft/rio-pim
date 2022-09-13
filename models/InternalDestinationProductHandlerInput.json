@@ -1,0 +1,20 @@
+{
+  "type": "object",
+  "properties": {
+    "productInstanceId": {
+      "type": "string"
+    },
+    "product": {
+      "type": "object"
+    },
+    "method": {
+      "title": "ElasticProductHandlerMethod",
+      "type": "string",
+      "enum": ["CREATE", "UPDATE", "DELETE"]
+    }
+  },
+  "required": [
+    "productInstanceId",
+    "method"
+  ]
+}

@@ -3,6 +3,7 @@ import {Classes, CreateAccountInput} from "./rio";
 import {v4 as uuidv4} from 'uuid';
 import CatalogSettings = Classes.CatalogSettings;
 import System = Classes.System;
+import InternalDestination = Classes.InternalDestination;
 
 
 export interface AccountStateData extends CreateAccountInput {
@@ -19,7 +20,7 @@ export async function authorizer(data: AccountData): Promise<Response> {
     const isDeveloper = data.context.identity === "developer"
     switch (data.context.methodName) {
         case 'createAccount':
-            if(isDeveloper) return {statusCode: 200}
+            if (isDeveloper) return {statusCode: 200}
             break
     }
     return {statusCode: 401};
@@ -50,6 +51,8 @@ export async function createAccount(data: AccountData<CreateAccountInput>): Prom
 
     let catalogSettings;
     let system;
+    let productManager;
+    let internalDestination;
 
     try {
         await CatalogSettings.getInstance({body: {accountId}})
@@ -65,12 +68,28 @@ export async function createAccount(data: AccountData<CreateAccountInput>): Prom
         system = "FAIL - " + e.toString()
     }
 
+    try {
+        await Classes.ProductManager.getInstance({body: {accountId}})
+        productManager = "DONE"
+    } catch (e) {
+        productManager = "FAIL - " + e.toString()
+    }
+
+    try {
+        await InternalDestination.getInstance({body: {accountId}})
+        internalDestination = "DONE"
+    } catch (e) {
+        internalDestination = "FAIL - " + e.toString()
+    }
+
     data.response = {
         statusCode: 200,
         body: {
             accountId,
             catalogSettings,
-            system
+            system,
+            productManager,
+            internalDestination
         }
     }
 
