@@ -1,10 +1,11 @@
-import {Data, Response} from "@retter/rdk";
+import RDK, {Data, Response} from "@retter/rdk";
 import {AccountIDInput, Classes} from "./rio";
 import {Client} from "@elastic/elasticsearch";
 import {Env} from "./env";
 import axios from "axios";
 import Product = Classes.Product;
 import _ from "lodash";
+const rdk = new RDK();
 const client = new Client({
     cloud: {
         id: Env.get("ELASTIC_CLOUD_ID")
@@ -117,6 +118,9 @@ export async function createProduct(data: ProductManagerData): Promise<ProductMa
     }
 
     data.state.private.productsSKUList.push(data.request.body.sku)
+
+    const accountId = data.context.instanceId.split("-").shift()
+    await rdk.incrementMemory({key: `product#metric#${accountId + "-" + data.request.body.family}`, value: 1})
 
     return data
 }

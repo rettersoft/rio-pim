@@ -248,6 +248,10 @@ export async function destroy(data: ProductData): Promise<ProductData> {
         workers.push(rdk.deleteFile({filename: savedImage}))
     }
     await Promise.all(workers)
+
+    const accountId = data.context.instanceId.split("-").shift()
+    await rdk.incrementMemory({key: `product#metric#${accountId + "-" + data.state.private.product.family}`, value: -1})
+
     await sendToElastic({
         instanceId: data.context.instanceId,
         method: ElasticProductHandlerMethod.Delete

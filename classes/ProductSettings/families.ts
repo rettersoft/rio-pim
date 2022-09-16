@@ -8,6 +8,9 @@ import {
     RESERVED_ID_ATTRIBUTE_CODE
 } from "./attributes.repository";
 import {ALLOWED_AXE_TYPES} from "./families.repository";
+import RDK from "@retter/rdk";
+
+const rdk = new RDK();
 
 
 //TODO check product relationships for all methods
@@ -100,7 +103,19 @@ export async function deleteFamily(data: ProductSettingsData): Promise<ProductSe
         return data
     }
 
-    //TODO check product membership
+    const accountId = data.context.instanceId.split("-").shift()
+    const metricMemory = await rdk.getMemory({key: `product#metric#${accountId + "-" + result.data}`})
+    if (result.success) {
+        if (metricMemory.data && parseInt(metricMemory.data) > 0) {
+            data.response = {
+                statusCode: 400,
+                body: {
+                    message: "You can not delete! This family have a product."
+                }
+            }
+            return data
+        }
+    }
 
     data.state.public.families = data.state.public.families.filter(f => f.code !== result.data)
     data.state.public.updateToken = randomString()
@@ -236,8 +251,8 @@ export async function toggleRequiredStatusFamilyAttribute(data: ProductSettingsD
         return data
     }
 
-    const attributeProperty = data.state.public.attributes.find(a=>a.code === attributeCodeResult.data)
-    if(!attributeProperty){
+    const attributeProperty = data.state.public.attributes.find(a => a.code === attributeCodeResult.data)
+    if (!attributeProperty) {
         data.response = {
             statusCode: 400,
             body: {
@@ -247,7 +262,7 @@ export async function toggleRequiredStatusFamilyAttribute(data: ProductSettingsD
         return data
     }
 
-    if(!attributeProperty.scopable){
+    if (!attributeProperty.scopable) {
         data.response = {
             statusCode: 400,
             body: {
@@ -317,7 +332,7 @@ export async function removeAttributeFromFamily(data: ProductSettingsData): Prom
         return data
     }
 
-    if(isAxisAttribute(attributeCodeResult.data, data)){
+    if (isAxisAttribute(attributeCodeResult.data, data)) {
         data.response = {
             statusCode: 400,
             body: {
@@ -327,7 +342,7 @@ export async function removeAttributeFromFamily(data: ProductSettingsData): Prom
         return data
     }
 
-    if(isFamilyAttributeLabel(attributeCodeResult.data, data)){
+    if (isFamilyAttributeLabel(attributeCodeResult.data, data)) {
         data.response = {
             statusCode: 400,
             body: {
