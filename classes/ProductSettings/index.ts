@@ -68,16 +68,12 @@ export async function authorizer(data: ProductSettingsData): Promise<Response> {
         "updateGroup",
         "deleteGroup",
         "addProductToGroup",
+        "getProductSettings"
     ].includes(data.context.methodName)) {
         return {statusCode: 200}
     }
 
     switch (data.context.methodName) {
-        case 'getProductSettingsForProduct':
-            if (data.context.identity === "Product" || isDeveloper) {
-                return {statusCode: 200}
-            }
-            break
         case 'STATE':
             if (isDeveloper) return {statusCode: 200}
             break
@@ -132,7 +128,7 @@ export async function getState(data: ProductSettingsData): Promise<Response> {
     return {statusCode: 200, body: data.state};
 }
 
-export async function getProductSettingsForProduct(data: ProductSettingsData): Promise<ProductSettingsData> {
+export async function getProductSettings(data: ProductSettingsData): Promise<ProductSettingsData> {
     data.response = {
         statusCode: 200,
         body: {

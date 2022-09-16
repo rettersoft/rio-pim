@@ -102,6 +102,6 @@ methods:
     handler: groups.addProductToGroup
 
 
-  - method: getProductSettingsForProduct
+  - method: getProductSettings
     type: READ
-    handler: index.getProductSettingsForProduct
+    handler: index.getProductSettings

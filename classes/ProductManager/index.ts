@@ -1,9 +1,10 @@
-import RDK, {Data, Response} from "@retter/rdk";
+import {Data, Response} from "@retter/rdk";
 import {AccountIDInput, Classes} from "./rio";
 import {Client} from "@elastic/elasticsearch";
 import {Env} from "./env";
 import axios from "axios";
 import Product = Classes.Product;
+import _ from "lodash";
 const client = new Client({
     cloud: {
         id: Env.get("ELASTIC_CLOUD_ID")
@@ -36,7 +37,8 @@ export async function authorizer(data: ProductManagerData): Promise<Response> {
     if ([
         "getProductList",
         "createProduct",
-        "deleteProduct"
+        "deleteProduct",
+        "getProductsSKUList"
     ].includes(data.context.methodName)) {
         return {statusCode: 200}
     }
@@ -156,5 +158,18 @@ export async function deleteProduct(data: ProductManagerData): Promise<ProductMa
         }
     }
 
+    return data
+}
+
+export async function getProductsSKUList(data: ProductManagerData): Promise<ProductManagerData> {
+    const list = _.slice(data.state.private.productsSKUList, data.request.body.pageFrom, data.request.body.pageFrom + data.request.body.pageSize)
+
+    data.response = {
+        statusCode: 200,
+        body: {
+            totalProducts: data.state.private.productsSKUList.length,
+            productsSKUList: list
+        }
+    }
     return data
 }

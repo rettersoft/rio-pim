@@ -10,6 +10,10 @@ methods:
     type: READ
     handler: index.getProductList
 
+  - method: getProductsSKUList
+    type: READ
+    handler: index.getProductsSKUList
+
   - method: createProduct
     type: WRITE
     handler: index.createProduct

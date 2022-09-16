@@ -1,0 +1,32 @@
+init:
+  handler: index.init
+  inputModel: AccountIDInput
+getState: index.getState
+authorizer: index.authorizer
+getInstanceId: index.getInstanceId
+methods:
+
+  - method: generateApiKey
+    type: WRITE
+    handler: index.generateApiKey
+
+  - method: deleteApiKey
+    type: WRITE
+    handler: index.deleteApiKey
+
+  - method: listApiKeys
+    type: READ
+    handler: index.listApiKeys
+
+
+  - method: getProducts
+    type: READ
+    handler: api.getProducts
+
+  - method: getProductSettings
+    type: READ
+    handler: api.getProductSettings
+
+  - method: getCatalogSettings
+    type: READ
+    handler: api.getCatalogSettings

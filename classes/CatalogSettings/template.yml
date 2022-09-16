@@ -32,3 +32,8 @@ methods:
   - method: deleteChannel
     type: WRITE
     handler: channels.deleteChannel
+
+
+  - method: getCatalogSettings
+    type: READ
+    handler: index.getCatalogSettings

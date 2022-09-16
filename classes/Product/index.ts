@@ -112,7 +112,7 @@ export async function getState(data: ProductData): Promise<Response> {
 
 export async function getProduct(data: ProductData): Promise<ProductData> {
     const accountId = data.context.instanceId.split("-").shift()
-    const getProductsSettingsResult = await new Classes.ProductSettings(accountId).getProductSettingsForProduct()
+    const getProductsSettingsResult = await new Classes.ProductSettings(accountId).getProductSettings()
     if (getProductsSettingsResult.statusCode >= 400) {
         data.response = {
             statusCode: 400,
@@ -172,7 +172,7 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
     }
     const accountId = data.context.instanceId.split("-").shift()
 
-    const getProductsSettingsResult = await new Classes.ProductSettings(accountId).getProductSettingsForProduct()
+    const getProductsSettingsResult = await new Classes.ProductSettings(accountId).getProductSettings()
     if (getProductsSettingsResult.statusCode >= 400) {
         data.response = {
             statusCode: 400,
@@ -298,7 +298,7 @@ export async function uploadTempImage(data: ProductData): Promise<ProductData> {
     }
 
     const accountId = data.context.instanceId.split("-").shift()
-    const getProductsSettingsResult = await new Classes.ProductSettings(accountId).getProductSettingsForProduct()
+    const getProductsSettingsResult = await new Classes.ProductSettings(accountId).getProductSettings()
     if (getProductsSettingsResult.statusCode >= 400) {
         data.response = {
             statusCode: 400,

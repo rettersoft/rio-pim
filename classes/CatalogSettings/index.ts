@@ -18,7 +18,7 @@ export async function authorizer(data: CatalogSettingsData): Promise<Response> {
     const isDeveloper = data.context.identity === "developer"
 
     if ([
-        "addCategory", "removeCategory", "updateCategory", "toggleCurrency", "toggleLocale", "upsertChannel", "deleteChannel"
+        "addCategory", "removeCategory", "updateCategory", "toggleCurrency", "toggleLocale", "upsertChannel", "deleteChannel", "getCatalogSettings"
     ].includes(data.context.methodName)) {
         return {statusCode: 200}
     }
@@ -75,4 +75,18 @@ export async function init(data: CatalogSettingsData): Promise<CatalogSettingsDa
 
 export async function getState(data: CatalogSettingsData): Promise<Response> {
     return {statusCode: 200, body: data.state};
+}
+
+
+export async function getCatalogSettings(data: CatalogSettingsData): Promise<CatalogSettingsData> {
+    data.response= {
+        statusCode: 200,
+        body: {
+            categories: data.state.public.categories,
+            enabledCurrencies: data.state.public.enabledCurrencies,
+            enabledLocales: data.state.public.enabledLocales,
+            channels: data.state.public.channels,
+        }
+    }
+    return data
 }

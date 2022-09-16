@@ -53,6 +53,7 @@ export async function createAccount(data: AccountData<CreateAccountInput>): Prom
     let system;
     let productManager;
     let internalDestination;
+    let api;
 
     try {
         await CatalogSettings.getInstance({body: {accountId}})
@@ -82,6 +83,13 @@ export async function createAccount(data: AccountData<CreateAccountInput>): Prom
         internalDestination = "FAIL - " + e.toString()
     }
 
+    try {
+        await Classes.API.getInstance({body: {accountId}})
+        api = "DONE"
+    } catch (e) {
+        api = "FAIL - " + e.toString()
+    }
+
     data.response = {
         statusCode: 200,
         body: {
@@ -89,7 +97,8 @@ export async function createAccount(data: AccountData<CreateAccountInput>): Prom
             catalogSettings,
             system,
             productManager,
-            internalDestination
+            internalDestination,
+            api
         }
     }
 
