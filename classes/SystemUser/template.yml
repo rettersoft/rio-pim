@@ -13,3 +13,7 @@ methods:
     inputModel: ValidateEmailOtpInput
     type: WRITE
     handler: index.validateEmailOtp
+
+  - method: getUser
+    type: READ
+    handler: index.getUser

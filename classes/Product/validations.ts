@@ -17,7 +17,7 @@ import {
     TEXTAREA
 } from "./models";
 import RDK from "@retter/rdk"
-import {getProductAttributeSortedSetKeyMap} from "./sorted-sets";
+import {getProductAttributeSortedSetKeyMap} from "./keysets";
 
 const rdk = new RDK()
 

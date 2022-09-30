@@ -2,7 +2,6 @@ export interface Envs {
     ELASTIC_CLOUD_ID: string
     ELASTIC_CLOUD_USERNAME: string
     ELASTIC_CLOUD_PASSWORD: string
-    INTERNAL_API_KEY: string
 }
 
 export class Env {

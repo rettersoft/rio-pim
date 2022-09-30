@@ -4,29 +4,6 @@ export const Code = Z.string().min(1).max(100).regex(new RegExp(/^([A-Za-z0-9_])
 export const ProductCategoryCode = Z.string().min(1).max(500).regex(new RegExp(/^([A-Za-z0-9_#])*$/g))
 
 
-export const ProductAttributeData = Z.object({
-    scope: Code.optional(),
-    locale: Code.optional(),
-    value: Z.any()
-})
-
-export const ProductAttribute = Z.object({
-    code: Code,
-    data: Z.array(ProductAttributeData).default([])
-})
-export type ProductAttribute = Z.infer<typeof ProductAttribute>
-
-export const Product = Z.object({
-    sku: Z.string().max(255).min(1).regex(new RegExp("^([A-Za-z0-9_])*$", "g")),
-    family: Code,
-    enabled: Z.boolean().default(false),
-    groups: Z.array(Code).default([]),
-    categories: Z.array(ProductCategoryCode).default([]),
-    attributes: Z.array(ProductAttribute).default([])
-})
-export type Product = Z.infer<typeof Product>
-
-
 /**
  *  Product settings models
  */
@@ -142,6 +119,52 @@ export type MULTISELECT = Z.infer<typeof SpecificAttributes.MULTISELECT>
 export type SIMPLESELECT = Z.infer<typeof SpecificAttributes.SIMPLESELECT>
 export type DATE = Z.infer<typeof SpecificAttributes.DATE>
 export type PRICE = Z.infer<typeof SpecificAttributes.PRICE>
+
+
+export const ProductAttributeData = Z.object({
+    scope: Code.optional(),
+    locale: Code.optional(),
+    value: Z.any()
+})
+
+export const ProductAttribute = Z.object({
+    code: Code,
+    data: Z.array(ProductAttributeData).default([])
+})
+export type ProductAttribute = Z.infer<typeof ProductAttribute>
+
+export const Product = Z.object({
+    sku: Z.string().max(255).min(1).regex(new RegExp("^([A-Za-z0-9_])*$", "g")),
+    family: Code,
+    enabled: Z.boolean().default(false),
+    groups: Z.array(Code).default([]),
+    categories: Z.array(ProductCategoryCode).default([]),
+    attributes: Z.array(ProductAttribute).default([])
+})
+export type Product = Z.infer<typeof Product>
+
+export const DataType = Z.enum([
+    "PRODUCT",
+    "PRODUCT_MODEL"
+])
+export type DataType = Z.infer<typeof DataType>
+
+export const ProductModel = Z.object({
+    code: Code,
+    family: Code,
+    variant: Code,
+    categories: Z.array(ProductCategoryCode).default([]),
+    attributes: Z.array(ProductAttribute).default([])
+})
+export type ProductModel = Z.infer<typeof ProductModel>
+
+
+export const AxeValueItem = Z.object({
+    axe: Code,
+    value: Z.string()
+})
+export const AxesValuesList = Z.array(AxeValueItem)
+export type AxesValuesList = Z.infer<typeof AxesValuesList>
 
 
 export interface FamilyAttribute {

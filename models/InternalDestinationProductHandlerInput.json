@@ -4,7 +4,7 @@
     "productInstanceId": {
       "type": "string"
     },
-    "product": {
+    "source": {
       "type": "object"
     },
     "method": {

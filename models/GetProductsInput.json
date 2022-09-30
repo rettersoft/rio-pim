@@ -1,0 +1,36 @@
+{
+  "type": "object",
+  "properties": {
+    "pageFrom": {
+      "type": "number",
+      "minimum": 0,
+      "default": 0
+    },
+    "pageSize": {
+      "type": "number",
+      "minimum": 0,
+      "default": 50
+    },
+    "filters": {
+      "type": "object",
+      "properties": {
+        "family": {
+          "type": "string"
+        },
+        "parent": {
+          "type": "string"
+        },
+        "variant": {
+          "type": "string"
+        },
+        "dataType": {
+          "type": "string",
+          "enum": [
+            "PRODUCT",
+            "PRODUCT_MODEL"
+          ]
+        }
+      }
+    }
+  }
+}

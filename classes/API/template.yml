@@ -20,6 +20,7 @@ methods:
 
 
   - method: getProducts
+    inputModel: GetProductsInput
     type: READ
     handler: api.getProducts
 

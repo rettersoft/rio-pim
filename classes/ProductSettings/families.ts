@@ -8,9 +8,8 @@ import {
     RESERVED_ID_ATTRIBUTE_CODE
 } from "./attributes.repository";
 import {ALLOWED_AXE_TYPES} from "./families.repository";
-import RDK from "@retter/rdk";
-
-const rdk = new RDK();
+import {Classes} from "./rio";
+import API = Classes.API;
 
 
 //TODO check product relationships for all methods
@@ -103,18 +102,17 @@ export async function deleteFamily(data: ProductSettingsData): Promise<ProductSe
         return data
     }
 
-    const accountId = data.context.instanceId.split("-").shift()
-    const metricMemory = await rdk.getMemory({key: `product#metric#${accountId + "-" + result.data}`})
-    if (result.success) {
-        if (metricMemory.data && parseInt(metricMemory.data) > 0) {
-            data.response = {
-                statusCode: 400,
-                body: {
-                    message: "You can not delete! This family have a product."
-                }
+    const api = await API.getInstance({instanceId: data.context.instanceId})
+    const response = await api.getProducts({pageSize: 1, filter: {family: result.data}})
+
+    if (response.body.totalProducts > 0) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "You can not delete! This family have a product."
             }
-            return data
         }
+        return data
     }
 
     data.state.public.families = data.state.public.families.filter(f => f.code !== result.data)
@@ -458,6 +456,19 @@ export async function deleteVariant(data: ProductSettingsData): Promise<ProductS
             statusCode: 404,
             body: {
                 message: "Family not found!"
+            }
+        }
+        return data
+    }
+
+    const api = await API.getInstance({instanceId: data.context.instanceId})
+    const response = await api.getProducts({pageSize: 1, filter: {family: familyCodeResult.data, variant: familyVariantCodeResult.data}})
+
+    if (response.body.totalProducts > 0) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "You can not delete! This family variant have a product."
             }
         }
         return data

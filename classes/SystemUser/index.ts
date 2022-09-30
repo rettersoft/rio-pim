@@ -8,6 +8,7 @@ import AWS from "aws-sdk"
 const rdk = new RDK()
 
 interface SystemUserPrivateState {
+    accountId: string
     email: string
     createdAt: string
     roles: string[]
@@ -17,13 +18,24 @@ interface SystemUserPrivateState {
 export type SystemUserData<Input = any, Output = any> = Data<Input, Output, any, SystemUserPrivateState>
 
 export async function authorizer(data: SystemUserData): Promise<Response> {
+    const isDeveloper = data.context.identity === "developer"
+
+    if (isDeveloper) {
+        return {statusCode: 200}
+    }
+
     switch (data.context.methodName) {
+        case 'getUser':
+            if (data.context.identity === "system_user") {
+                return {statusCode: 200}
+            }
+            break
         case 'sendEmailOtp':
         case 'validateEmailOtp':
         case 'GET':
             return {statusCode: 200}
         case 'INIT':
-            if (data.context.identity === "AccountManager") {
+            if (data.context.identity === "AccountManager" || isDeveloper) {
                 return {statusCode: 200}
             }
             break
@@ -37,6 +49,7 @@ export async function getInstanceId(data: SystemUserData<SystemUserInitInput>): 
 
 export async function init(data: SystemUserData<SystemUserInitInput>): Promise<SystemUserData> {
     data.state.private = {
+        accountId: data.request.body.accountId,
         createdAt: new Date().toISOString(),
         email: data.request.body.userEmail,
         emailOtp: '',
@@ -54,6 +67,19 @@ async function generateToken(userId: string, email: string): Promise<string> {
         identity: 'system_user', userId, claims: {email}
     })
     return tokenResult.data.customToken
+}
+
+export async function getUser(data: SystemUserData<ValidateEmailOtpInput>): Promise<SystemUserData> {
+    data.response = {
+        statusCode: 200,
+        body: {
+            accountId: data.state.private.accountId,
+            email: data.state.private.email,
+            createdAt: data.state.private.createdAt,
+            roles: data.state.private.roles,
+        }
+    }
+    return data
 }
 
 export async function validateEmailOtp(data: SystemUserData<ValidateEmailOtpInput>): Promise<SystemUserData> {

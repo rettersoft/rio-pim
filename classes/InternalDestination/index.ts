@@ -58,19 +58,19 @@ export async function getState(data: InternalDestinationData): Promise<Response>
 export async function productHandler(data: InternalDestinationData<InternalDestinationProductHandlerInput>): Promise<InternalDestinationData>{
     switch (data.request.body.method) {
         case ElasticProductHandlerMethod.Create:
-            if(!data.request.body.product) throw new Error("Product can not be null!")
+            if(!data.request.body.source) throw new Error("Product can not be null!")
             await client.create({
                 index: ELASTIC_INDEX_PREFIX + "-" + data.context.instanceId,
                 id: data.request.body.productInstanceId,
-                document: data.request.body.product
+                document: data.request.body.source
             })
             break
         case ElasticProductHandlerMethod.Update:
-            if(!data.request.body.product) throw new Error("Product can not be null!")
+            if(!data.request.body.source) throw new Error("Product can not be null!")
             await client.update({
                 index: ELASTIC_INDEX_PREFIX + "-" + data.context.instanceId,
                 id: data.request.body.productInstanceId,
-                doc: data.request.body.product
+                doc: data.request.body.source
             })
             break
         case ElasticProductHandlerMethod.Delete:

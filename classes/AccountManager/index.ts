@@ -51,7 +51,6 @@ export async function createAccount(data: AccountData<CreateAccountInput>): Prom
 
     let catalogSettings;
     let system;
-    let productManager;
     let internalDestination;
     let api;
 
@@ -67,13 +66,6 @@ export async function createAccount(data: AccountData<CreateAccountInput>): Prom
         system = "DONE"
     } catch (e) {
         system = "FAIL - " + e.toString()
-    }
-
-    try {
-        await Classes.ProductManager.getInstance({body: {accountId}})
-        productManager = "DONE"
-    } catch (e) {
-        productManager = "FAIL - " + e.toString()
     }
 
     try {
@@ -96,7 +88,6 @@ export async function createAccount(data: AccountData<CreateAccountInput>): Prom
             accountId,
             catalogSettings,
             system,
-            productManager,
             internalDestination,
             api
         }

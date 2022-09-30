@@ -1,58 +1,34 @@
 import {APIData} from "./index";
-import {Classes} from "./rio";
+import {Classes, GetProductsInput} from "./rio";
+import {ElasticHelper} from "./elastic";
+import {SearchTotalHits} from "@elastic/elasticsearch/lib/api/types";
 
 
-export async function getProducts(data: APIData): Promise<APIData> {
-    if(!checkApiKey(data)){
-        data.response = {
-            statusCode: 401,
-            body: {
-                message: "Access Denied!"
-            }
-        }
-        return data
-    }
-
+export async function getProducts(data: APIData<GetProductsInput>): Promise<APIData> {
     const accountId = data.context.instanceId.split("-").shift()
+    const elasticHelper = new ElasticHelper(accountId)
 
-    const pageFrom = parseInt(data.request.body.pageFrom ) || 0
-    const pageSize = parseInt(data.request.body.pageSize) || 10
-
-    const productSKUList = await (new Classes.ProductManager(accountId).getProductsSKUList({
-        pageFrom,
-        pageSize
-    }))
-
-    const workers: Promise<any>[] = []
-
-    for (const productSKUListElement of productSKUList.body.productsSKUList as string[]) {
-        workers.push(new Classes.Product(accountId + "-" + productSKUListElement).getProduct())
-    }
-
-    const productsResult = await Promise.all(workers)
+    const result = await elasticHelper.getProducts(data.request.body)
 
     data.response = {
         statusCode: 200,
         body: {
-            pageFrom,
-            pageSize,
-            totalProducts: productSKUList.body.totalProducts,
-            products: productsResult.map(pr => pr.body)
+            filters: data.request.body?.filters,
+            pageFrom: data.request.body?.pageFrom,
+            pageSize: data.request.body?.pageSize,
+            totalProducts: (result.hits.total as SearchTotalHits).value,
+            products: result.hits.hits.map(hit => {
+                return {
+                    score: hit._score,
+                    source: hit._source
+                }
+            })
         }
     }
     return data
 }
 
 export async function getProductSettings(data: APIData): Promise<APIData> {
-    if(!checkApiKey(data)){
-        data.response = {
-            statusCode: 401,
-            body: {
-                message: "Access Denied!"
-            }
-        }
-        return data
-    }
 
     const accountId = data.context.instanceId.split("-").shift()
 
@@ -69,15 +45,6 @@ export async function getProductSettings(data: APIData): Promise<APIData> {
 }
 
 export async function getCatalogSettings(data: APIData): Promise<APIData> {
-    if(!checkApiKey(data)){
-        data.response = {
-            statusCode: 401,
-            body: {
-                message: "Access Denied!"
-            }
-        }
-        return data
-    }
 
     const accountId = data.context.instanceId.split("-").shift()
 
@@ -90,10 +57,4 @@ export async function getCatalogSettings(data: APIData): Promise<APIData> {
         }
     }
     return data
-}
-
-
-
-function checkApiKey(data: APIData): boolean{
-    return data.request.headers?.apikey && data.state.private.apiKeys.findIndex(a => a.apiKey === data.request.headers.apikey) !== -1;
 }
