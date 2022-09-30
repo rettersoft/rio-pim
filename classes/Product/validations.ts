@@ -17,7 +17,7 @@ import {
     TEXTAREA
 } from "./models";
 import RDK from "@retter/rdk"
-import {getProductAttributeSortedSetKeyMap} from "./keysets";
+import {getProductAttributeKeyMap} from "./keysets";
 
 const rdk = new RDK()
 
@@ -33,7 +33,7 @@ export async function validateProductUniqueAttributes(attributes: ProductAttribu
             }
             if (typeof attribute.data[0].value !== "string") throw new Error("Unique attribute should be string!")
             const val = attribute.data[0].value
-            const sortSetResult = await rdk.getFromSortedSet(getProductAttributeSortedSetKeyMap({
+            const sortSetResult = await rdk.readDatabase(getProductAttributeKeyMap({
                 accountId,
                 attributeValue: val,
                 attributeCode: attribute.code
