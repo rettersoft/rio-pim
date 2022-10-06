@@ -103,7 +103,7 @@ export async function deleteFamily(data: ProductSettingsData): Promise<ProductSe
     }
 
     const api = await API.getInstance({instanceId: data.context.instanceId})
-    const response = await api.getProducts({pageSize: 1, filter: {family: result.data}})
+    const response = await api.getProducts({pageSize: 1, filters: {family: result.data}})
 
     if (response.body.totalProducts > 0) {
         data.response = {
@@ -462,7 +462,7 @@ export async function deleteVariant(data: ProductSettingsData): Promise<ProductS
     }
 
     const api = await API.getInstance({instanceId: data.context.instanceId})
-    const response = await api.getProducts({pageSize: 1, filter: {family: familyCodeResult.data, variant: familyVariantCodeResult.data}})
+    const response = await api.getProducts({pageSize: 1, filters: {family: familyCodeResult.data, variant: familyVariantCodeResult.data}})
 
     if (response.body.totalProducts > 0) {
         data.response = {
@@ -544,6 +544,13 @@ export async function updateVariant(data: ProductSettingsData): Promise<ProductS
     data.state.public.families[fIndex].variants[fvIndex].label = result.data.label
 
     data.state.public.updateToken = randomString()
+
+    return data
+}
+
+
+export async function listProductVariants(data: ProductSettingsData): Promise<ProductSettingsData> {
+    // TODO get created product variants
 
     return data
 }

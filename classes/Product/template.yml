@@ -28,3 +28,7 @@ methods:
   - method: getUploadedImage
     type: WRITE
     handler: index.getUploadedImage
+
+  - method: deleteInstance
+    type: WRITE
+    handler: index.deleteInstance

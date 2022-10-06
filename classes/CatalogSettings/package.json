@@ -2,7 +2,7 @@
   "name": "catalog-settings",
   "version": "1.0.0",
   "dependencies": {
-    "@retter/rdk": "1.3.0",
+    "@retter/rdk": "1.3.8",
     "zod": "^3.17.10"
   }
 }

@@ -1,5 +1,16 @@
 import RDK, {Data, Response} from "@retter/rdk";
-import {AttributeTypes, AxesValuesList, Code, DataType, FamilyVariant, IMAGE, Product, ProductModel} from "./models";
+import {
+    AttributeOption,
+    AttributeTypes,
+    AxesValuesList,
+    BaseAttribute,
+    Code,
+    DataType,
+    FamilyVariant,
+    IMAGE,
+    Product,
+    ProductModel
+} from "./models";
 import {checkUpdateToken, getProductRemovedImages, randomString} from "./helpers";
 import {Classes, ElasticProductHandlerMethod} from "./rio";
 import {validateProductAttributes, validateProductUniqueAttributes} from "./validations";
@@ -7,14 +18,14 @@ import {Env} from "./env";
 import {Buffer} from "buffer";
 import {v4 as uuidv4} from 'uuid';
 import mime from "mime-types";
-import InternalDestination = Classes.InternalDestination;
 import {getProductAttributeKeyMap, getProductAxeKeyMap} from "./keysets";
+import {checkUserRole} from "./middleware";
+import InternalDestination = Classes.InternalDestination;
 
 const rdk = new RDK()
 
 export interface ProductPrivateState {
-    product?: Product
-    productModel?: ProductModel
+    dataSource?: Product | ProductModel
     dataType: DataType
     parent?: string
     axesValues?: AxesValuesList
@@ -33,36 +44,30 @@ export interface ImageResponse {
 
 export type ProductData<Input = any, Output = any> = Data<Input, Output, any, ProductPrivateState>
 
+
+export interface GetProductOutputData{
+    dataType: DataType,
+    parent: string
+    data: ProductData | ProductModel
+    updateToken: string
+    meta: {
+        createdAt: string
+        updatedAt: string
+        updateToken: string
+    }
+}
+
 export async function authorizer(data: ProductData): Promise<Response> {
     const isDeveloper = data.context.identity === "developer"
 
-    if (data.context.identity === "system_user") {
-        try {
-            const result = await (await Classes.SystemUser.getInstance({instanceId: data.context.userId})).getUser()
-            if (result.statusCode >= 400 || result.body.accountId !== data.request.body.accountId) {
-                return {
-                    statusCode: 403,
-                    body: {
-                        message: "Permission Denied!"
-                    }
-                }
-            }
-        } catch (e) {
-            return {
-                statusCode: 403,
-                body: {
-                    message: "Permission Denied!"
-                }
-            }
-        }
-    }
 
     if ([
         "getProduct",
         "updateProduct",
         "uploadTempImage",
         "deleteUploadedTempImage",
-        "getUploadedImage"
+        "getUploadedImage",
+        "deleteInstance"
     ].includes(data.context.methodName)) {
         return {statusCode: 200}
     }
@@ -76,13 +81,9 @@ export async function authorizer(data: ProductData): Promise<Response> {
         case 'STATE':
             if (isDeveloper) return {statusCode: 200}
             break
+        case 'DESTROY':
         case 'GET':
             return {statusCode: 200}
-        case 'DESTROY':
-            if (Env.get("INTERNAL_API_KEY") === data.request.queryStringParams.apiKey) {
-                return {statusCode: 200}
-            }
-            break
         case 'INIT':
             if (data.context.identity === "system_user" || isDeveloper) {
                 return {statusCode: 200}
@@ -120,7 +121,7 @@ export async function getInstanceId(data: ProductData): Promise<string> {
         if (!productData.sku) throw new Error("Product sku is not defined!")
         productId = productData.sku
     } else if (dataTypeResult.data === DataType.Enum.PRODUCT_MODEL) {
-        if (!productData.sku) throw new Error("Product model code is not defined!")
+        if (!productData.code) throw new Error("Product model code is not defined!")
         productId = productData.code
     } else {
         throw new Error("Invalid data type error!")
@@ -135,6 +136,8 @@ export async function getInstanceId(data: ProductData): Promise<string> {
 }
 
 export async function init(data: ProductData): Promise<ProductData> {
+    await checkUserRole(data)
+
     const dataTypeResult = DataType.safeParse(data.request.body.dataType)
 
     if (dataTypeResult.success === false) {
@@ -164,7 +167,40 @@ export async function init(data: ProductData): Promise<ProductData> {
     let source: Product | ProductModel;
 
     if (dataTypeResult.data === DataType.Enum.PRODUCT) {
-        const dataResult = Product.safeParse(data.request.body.data)
+
+        let getProductOutput: GetProductOutputData | undefined
+
+        const hasParent = data.request.body.parent !== undefined
+        const parentResult = Code.safeParse(data.request.body.parent)
+        if (hasParent && parentResult.success === false) {
+            data.response = {
+                statusCode: 400,
+                body: {
+                    message: "Invalid parent!",
+                    error: parentResult.error
+                }
+            }
+            return data
+        }else if(hasParent && parentResult.success){
+            const getProductResult = await new Classes.Product(accountId + "-" + parentResult.data).getProduct()
+            if (getProductResult.statusCode >= 400) {
+                data.response = {
+                    statusCode: getProductResult.statusCode,
+                    body: getProductResult.body
+                }
+                return data
+            }
+            getProductOutput = getProductResult.body
+        }
+
+        let checkData: Product = data.request.body.data
+        if(hasParent && getProductOutput){
+            checkData = {
+                ...checkData,
+                family: (getProductOutput.data as ProductModel).family
+            }
+        }
+        const dataResult = Product.safeParse(checkData)
         if (dataResult.success === false) {
             data.response = {
                 statusCode: 400,
@@ -178,18 +214,10 @@ export async function init(data: ProductData): Promise<ProductData> {
 
         source = dataResult.data
 
-        const parent = data.request.body.parent
-        if (parent && parent !== "") {
-            const getProductResult = await new Classes.Product(parent).getProduct()
-            if (getProductResult.statusCode >= 400) {
-                data.response = {
-                    statusCode: getProductResult.statusCode,
-                    body: getProductResult.body
-                }
-                return data
-            }
 
-            const parentData = getProductResult.body.data as ProductModel
+        if (hasParent && parentResult.success && getProductOutput) {
+
+            const parentData = getProductOutput.data as ProductModel
 
             const variant: FamilyVariant | undefined = getProductsSettingsResult.body.productSettings.families.find(family => family.code === parentData.family)?.variants.find(variant => variant.code === parentData.variant)
 
@@ -217,6 +245,22 @@ export async function init(data: ProductData): Promise<ProductData> {
                 }
             }
 
+            for (const datum of axesValuesResult.data) {
+                if(!variant.axes.includes(datum.axe)){
+                    throw new Error(`Unsupported axe value! (${datum.axe})`)
+                } else {
+                    const axeProperty: BaseAttribute = getProductsSettingsResult.body.productSettings.attributes.find(attr=>attr.code === datum.axe)
+                    if(!axeProperty){
+                        throw new Error("Axe attribute property not found!")
+                    }
+                    if(axeProperty.type === AttributeTypes.Enum.SIMPLESELECT){
+                        const selectOptions: AttributeOption = getProductsSettingsResult.body.productSettings.attributeOptions.find(opt=>opt.code === datum.axe)
+                        if(!selectOptions) throw new Error("Simple select axe property options not found!")
+                        if(!selectOptions.options.find(so=>so.code===datum.value)) throw new Error("Invalid simple select axe value!")
+                    }
+                }
+            }
+
             for (const parentAttribute of parentData.attributes) {
                 if (dataResult.data.attributes.findIndex(a => a.code === parentAttribute) !== -1) {
                     throw new Error("You can not use parent attribute in a variant!")
@@ -225,7 +269,7 @@ export async function init(data: ProductData): Promise<ProductData> {
 
             const axesSet = await rdk.readDatabase(getProductAxeKeyMap({
                 accountId,
-                productModelCode: parent,
+                productModelCode: parentResult.data,
                 axesValues: axesValuesResult.data
             }))
             if (axesSet.success) {
@@ -241,16 +285,16 @@ export async function init(data: ProductData): Promise<ProductData> {
             await rdk.writeToDatabase({
                 data: {}, ...getProductAxeKeyMap({
                     accountId,
-                    productModelCode: parent,
+                    productModelCode: parentResult.data,
                     axesValues: axesValuesResult.data
                 })
             })
 
             data.state.private.axesValues = axesValuesResult.data
-            data.state.private.parent = parent
+            data.state.private.parent = parentResult.data
         }
 
-        data.state.private.product = dataResult.data
+        data.state.private.dataSource = dataResult.data
         data.state.private.dataType = DataType.Enum.PRODUCT
 
     } else if (dataTypeResult.data === DataType.Enum.PRODUCT_MODEL) {
@@ -268,7 +312,7 @@ export async function init(data: ProductData): Promise<ProductData> {
 
         source = dataResult.data
 
-        data.state.private.productModel = dataResult.data
+        data.state.private.dataSource = dataResult.data
         data.state.private.dataType = DataType.Enum.PRODUCT_MODEL
 
     } else {
@@ -302,7 +346,7 @@ export async function getState(data: ProductData): Promise<Response> {
     return {statusCode: 200, body: data.state};
 }
 
-export async function getProduct(data: ProductData): Promise<ProductData> {
+export async function getProduct(data: ProductData): Promise<ProductData<any, GetProductOutputData>> {
     const accountId = data.context.instanceId.split("-").shift()
     const getProductsSettingsResult = await new Classes.ProductSettings(accountId).getProductSettings()
     if (getProductsSettingsResult.statusCode >= 400) {
@@ -314,7 +358,7 @@ export async function getProduct(data: ProductData): Promise<ProductData> {
         }
         return data
     }
-    const family = getProductsSettingsResult.body.productSettings.families.find(f => f.code === data.state.private.product.family)
+    const family = getProductsSettingsResult.body.productSettings.families.find(f => f.code === data.state.private.dataSource.family)
 
     if (!family) {
         data.response = {
@@ -326,7 +370,7 @@ export async function getProduct(data: ProductData): Promise<ProductData> {
         return data
     }
 
-    const sourceData = data.state.private.dataType === DataType.Enum.PRODUCT ? data.state.private.product : data.state.private.productModel
+    const sourceData = data.state.private.dataSource
     sourceData.attributes = sourceData.attributes.filter(pa => family.attributes.find(fa => fa.attribute === pa.code))
 
     data.response = {
@@ -346,6 +390,7 @@ export async function getProduct(data: ProductData): Promise<ProductData> {
 }
 
 export async function updateProduct(data: ProductData): Promise<ProductData> {
+    await checkUserRole(data)
     checkUpdateToken(data)
 
     const dataTypeResult = DataType.safeParse(data.request.body.dataType)
@@ -378,7 +423,7 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
 
     if (dataTypeResult.data === DataType.Enum.PRODUCT) {
         const dataResult = Product.safeParse({
-            ...data.state.private.product,
+            ...data.state.private.dataSource,
             categories: data.request.body.data.categories,
             attributes: data.request.body.data.attributes,
             enabled: data.request.body.data.enabled
@@ -397,14 +442,14 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
 
         source = dataResult.data
 
-        data.state.private.product = dataResult.data
+        data.state.private.dataSource = dataResult.data
         data.state.private.dataType = DataType.Enum.PRODUCT
 
     } else if (dataTypeResult.data === DataType.Enum.PRODUCT_MODEL) {
         const dataResult = ProductModel.safeParse({
-            ...data.state.private.productModel,
-            categories: data.request.body.categories,
-            attributes: data.request.body.attributes,
+            ...data.state.private.dataSource,
+            categories: data.request.body.data.categories,
+            attributes: data.request.body.data.attributes,
         })
         if (dataResult.success === false) {
             data.response = {
@@ -427,7 +472,7 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
 
     await validateProductUniqueAttributes(source.attributes, getProductsSettingsResult.body.productSettings.attributes, accountId)
 
-    const removedImages = getProductRemovedImages(source.attributes, data.state.private.product.attributes, getProductsSettingsResult.body.productSettings.attributes)
+    const removedImages = getProductRemovedImages(source.attributes, data.state.private.dataSource.attributes, getProductsSettingsResult.body.productSettings.attributes)
 
     //remove images
     const removeImageWorkers = []
@@ -472,7 +517,7 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
         source: {
             parent: data.state.private.parent,
             dataType: data.state.private.dataType,
-            data: data.state.private.product,
+            data: data.state.private.dataSource,
             meta: {
                 createdAt: data.state.private.createdAt,
                 updatedAt: data.state.private.updatedAt
@@ -480,6 +525,15 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
         },
     })
 
+    return data
+}
+
+export async function deleteInstance(data: ProductData): Promise<ProductData> {
+    await checkUserRole(data)
+    await rdk.deleteInstance({
+        classId: "Product",
+        instanceId: data.context.instanceId
+    })
     return data
 }
 
@@ -494,10 +548,10 @@ export async function destroy(data: ProductData): Promise<ProductData> {
 
     switch (data.state.private.dataType) {
         case DataType.Enum.PRODUCT:
-            source = data.state.private.product
+            source = data.state.private.dataSource
             break
         case DataType.Enum.PRODUCT_MODEL:
-            source = data.state.private.productModel
+            source = data.state.private.dataSource
             break
         default:
             throw new Error("Invalid data type!")

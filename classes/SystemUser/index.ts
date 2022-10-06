@@ -24,9 +24,11 @@ export async function authorizer(data: SystemUserData): Promise<Response> {
         return {statusCode: 200}
     }
 
+    const isInstanceOwner = data.context.instanceId === data.context.userId
+
     switch (data.context.methodName) {
         case 'getUser':
-            if (data.context.identity === "system_user") {
+            if (isInstanceOwner || data.context.identity === "Product") {
                 return {statusCode: 200}
             }
             break
@@ -69,7 +71,7 @@ async function generateToken(userId: string, email: string): Promise<string> {
     return tokenResult.data.customToken
 }
 
-export async function getUser(data: SystemUserData<ValidateEmailOtpInput>): Promise<SystemUserData> {
+export async function getUser(data: SystemUserData): Promise<SystemUserData> {
     data.response = {
         statusCode: 200,
         body: {

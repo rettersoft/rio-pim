@@ -31,7 +31,7 @@ export class ElasticHelper {
 
         if (props && props.filters) {
             if (props.filters.family) query.bool.must.push({match: {"data.family": props.filters.family}})
-            if (props.filters.parent) query.bool.must.push({match: {"data.parent": props.filters.parent}})
+            if (props.filters.parent) query.bool.must.push({match: {"parent": props.filters.parent}})
             if (props.filters.variant) query.bool.must.push({match: {"data.variant": props.filters.variant}})
             if (props.filters.dataType) query.bool.must.push({match: {"dataType": props.filters.parent}})
         }

@@ -1,4 +1,5 @@
 import {AttributeTypes, BaseAttribute, ProductAttribute} from "./models";
+import {ProductData} from "./index";
 
 
 export function randomString(l = 10) {
@@ -11,8 +12,8 @@ export function randomString(l = 10) {
 }
 
 
-export function checkUpdateToken(data: any) {
-    if (data.state.public.updateToken !== data.request.body.updateToken) {
+export function checkUpdateToken(data: ProductData) {
+    if (data.state.private.updateToken !== data.request.body.updateToken) {
         throw new Error("Invalid update token. Please, refresh your page and try again!")
     }
 }
@@ -23,8 +24,6 @@ export function getProductRemovedImages(requestAttributes: ProductAttribute[], s
     for (const stateAttribute of stateAttributes) {
         const attributeProperty = attributeProperties.find(ap => ap.code === stateAttribute.code)
         if (attributeProperty && attributeProperty.type === AttributeTypes.Enum.IMAGE) {
-            let prevVal;
-            let val;
             if (attributeProperty.scopable && attributeProperty.localizable) {
                 stateAttribute.data.forEach(stateData => {
                     requestAttributes.find(ra => ra.code === stateAttribute.code)?.data.forEach(requestData => {
