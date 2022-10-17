@@ -1,0 +1,27 @@
+init:
+  handler: index.init
+  inputModel: AccountIDInput
+getState: index.getState
+getInstanceId: index.getInstanceId
+authorizer: index.authorizer
+methods:
+
+  - method: upsertImportProfile
+    type: WRITE
+    handler: index.upsertImportProfile
+
+  - method: deleteImportProfile
+    type: WRITE
+    handler: index.deleteImportProfile
+
+  - method: getImportProfiles
+    type: READ
+    handler: index.getImportProfiles
+
+  - method: getImportProfileExecutions
+    type: READ
+    handler: index.getImportProfileExecutions
+
+  - method: startImport
+    type: WRITE
+    handler: index.startImport

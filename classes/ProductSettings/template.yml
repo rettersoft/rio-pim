@@ -4,6 +4,8 @@ init:
 getState: index.getState
 authorizer: index.authorizer
 getInstanceId: index.getInstanceId
+dependencies:
+  - ConstantsPackage
 methods:
   - method: addAttributeGroup
     type: WRITE

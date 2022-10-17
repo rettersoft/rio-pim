@@ -3,6 +3,8 @@ getState: index.getState
 getInstanceId: index.getInstanceId
 authorizer: index.authorizer
 destroy: index.destroy
+dependencies:
+  - MiddlewarePackage
 methods:
 
   - method: getProduct

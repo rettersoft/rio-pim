@@ -1,6 +1,6 @@
 import Z from "zod"
-import {Locales} from "./consts";
 import {RESERVED_ID_ATTRIBUTE_CODE} from "./attributes.repository";
+import {Locales} from "ConstantsPackage";
 
 export const Locale = Z.string().refine((val) => Locales.findIndex(l => l.id === val) !== -1,
     "Invalid locale value!")

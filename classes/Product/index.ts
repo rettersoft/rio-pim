@@ -19,8 +19,9 @@ import {Buffer} from "buffer";
 import {v4 as uuidv4} from 'uuid';
 import mime from "mime-types";
 import {getProductAttributeKeyMap, getProductAxeKeyMap} from "./keysets";
-import {checkUserRole} from "./middleware";
+import {MiddlewarePackage} from "MiddlewarePackage";
 import InternalDestination = Classes.InternalDestination;
+const middleware = new MiddlewarePackage()
 
 const rdk = new RDK()
 
@@ -136,7 +137,9 @@ export async function getInstanceId(data: ProductData): Promise<string> {
 }
 
 export async function init(data: ProductData): Promise<ProductData> {
-    await checkUserRole(data)
+    const accountId = data.context.instanceId.split("-").shift()
+
+    await middleware.checkUserRole({accountId, userId: data.context.userId, identity: data.context.identity})
 
     const dataTypeResult = DataType.safeParse(data.request.body.dataType)
 
@@ -150,8 +153,6 @@ export async function init(data: ProductData): Promise<ProductData> {
         }
         return data
     }
-
-    const accountId = data.context.instanceId.split("-").shift()
 
     const getProductsSettingsResult = await new Classes.ProductSettings(accountId).getProductSettings()
     if (getProductsSettingsResult.statusCode >= 400) {
@@ -390,7 +391,10 @@ export async function getProduct(data: ProductData): Promise<ProductData<any, Ge
 }
 
 export async function updateProduct(data: ProductData): Promise<ProductData> {
-    await checkUserRole(data)
+    const accountId = data.context.instanceId.split("-").shift()
+
+    await middleware.checkUserRole({accountId, userId: data.context.userId, identity: data.context.identity})
+
     checkUpdateToken(data)
 
     const dataTypeResult = DataType.safeParse(data.request.body.dataType)
@@ -405,8 +409,6 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
         }
         return data
     }
-
-    const accountId = data.context.instanceId.split("-").shift()
 
     const getProductsSettingsResult = await new Classes.ProductSettings(accountId).getProductSettings()
     if (getProductsSettingsResult.statusCode >= 400) {
@@ -529,7 +531,10 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
 }
 
 export async function deleteInstance(data: ProductData): Promise<ProductData> {
-    await checkUserRole(data)
+    const accountId = data.context.instanceId.split("-").shift()
+
+    await middleware.checkUserRole({accountId, userId: data.context.userId, identity: data.context.identity})
+
     await rdk.deleteInstance({
         classId: "Product",
         instanceId: data.context.instanceId

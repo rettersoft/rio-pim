@@ -1,0 +1,33 @@
+init:
+  handler: index.init
+  inputModel: AccountIDInput
+getState: index.getState
+getInstanceId: index.getInstanceId
+authorizer: index.authorizer
+dependencies:
+  - ConstantsPackage
+methods:
+
+  - method: upsertExportProfile
+    type: WRITE
+    handler: index.upsertExportProfile
+
+  - method: deleteExportProfile
+    type: WRITE
+    handler: index.deleteExportProfile
+
+  - method: getExportProfiles
+    type: READ
+    handler: index.getExportProfiles
+
+  - method: executeExport
+    type: QUEUED_WRITE
+    handler: index.executeExport
+
+  - method: getExportProfileExecutions
+    type: READ
+    handler: index.getExportProfileExecutions
+
+  - method: getExportedFile
+    type: READ
+    handler: index.getExportedFile

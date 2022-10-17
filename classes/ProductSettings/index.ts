@@ -12,15 +12,6 @@ import {
 } from "./models";
 import {RESERVED_ID_ATTRIBUTE_CODE} from "./attributes.repository";
 import {RESERVED_ATTRIBUTE_GROUP_CODE} from "./attribute-groups.repository";
-import {
-    addProductToGroup,
-    createGroup,
-    createGroupType,
-    deleteGroup,
-    deleteGroupType,
-    updateGroup,
-    updateGroupType
-} from "./groups";
 
 
 export interface AttributeOption {
@@ -136,6 +127,9 @@ export async function getProductSettings(data: ProductSettingsData): Promise<Pro
                 attributes: data.state.public.attributes,
                 attributeOptions: data.state.public.attributeOptions,
                 families: data.state.public.families,
+                attributeGroups: data.state.public.attributeGroups,
+                groupTypes: data.state.public.groupTypes,
+                groups: data.state.public.groups
             },
         }
     }
