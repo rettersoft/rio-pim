@@ -1,6 +1,6 @@
 import {Client} from "@elastic/elasticsearch";
-import {DataType} from "../Product/models";
 import {Env} from "./env";
+import {GetProductsInput} from "./rio";
 
 const client = new Client({
     cloud: {
@@ -22,7 +22,10 @@ export class ElasticHelper {
         this._index = ELASTIC_INDEX_PREFIX + "-" + accountId
     }
 
-    async getProducts(props?: { pageSize?: number, pageFrom?: number, filters?: { family?: string, parent?: string, variant?: string, dataType?: DataType } }) {
+    async getProducts(props?: GetProductsInput) {
+        const pageFrom = props?.pageFrom || 0
+        const pageSize = props?.pageSize || 50
+
         const query = {
             bool: {
                 must: []
@@ -33,15 +36,31 @@ export class ElasticHelper {
             if (props.filters.family) query.bool.must.push({match: {"data.family": props.filters.family}})
             if (props.filters.parent) query.bool.must.push({match: {"parent": props.filters.parent}})
             if (props.filters.variant) query.bool.must.push({match: {"data.variant": props.filters.variant}})
-            if (props.filters.dataType) query.bool.must.push({match: {"dataType": props.filters.parent}})
+            if (props.filters.dataType) query.bool.must.push({match: {"dataType": props.filters.dataType}})
         }
 
-        return await client.search({
+        if (props && props.searchText) {
+            query.bool.must.push({
+                query_string: {
+                    default_field: "data.sku",
+                    query: props.searchText,
+                    default_operator: "AND"
+                }
+            })
+        }
+
+        const result = await client.search({
             index: this._index,
-            from: props?.pageFrom,
-            size: props?.pageSize,
+            from: pageFrom,
+            size: pageSize,
             query,
         })
+
+        return {
+            from: pageFrom,
+            size: pageSize,
+            result
+        }
     }
 
 }

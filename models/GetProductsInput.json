@@ -3,13 +3,14 @@
   "properties": {
     "pageFrom": {
       "type": "number",
-      "minimum": 0,
-      "default": 0
+      "minimum": 0
     },
     "pageSize": {
       "type": "number",
-      "minimum": 0,
-      "default": 50
+      "minimum": 0
+    },
+    "searchText": {
+      "type": "string"
     },
     "filters": {
       "type": "object",
