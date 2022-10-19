@@ -22,7 +22,7 @@ import {
     getAllProductModels,
     getAllProducts,
     getCatalogSettings,
-    getCurrentExecution,
+    getCurrentExecution, getExecutionsByJobCode,
     getExportFileName,
     getJobFromDB,
     getJobPartKey,
@@ -94,56 +94,56 @@ export async function init(data: ExportData): Promise<ExportData> {
     data.state.private = {
         profiles: [
             {
-                code: "attribute_export",
+                code: "attribute_export_xlsx",
                 job: ExportJobs.Enum.attribute_export,
                 label: "Attributes Export XLSX",
                 connector: ExportConnectors.Enum.xlsx,
                 createdAt: new Date()
             },
             {
-                code: "attribute_group_export",
+                code: "attribute_group_export_xlsx",
                 job: ExportJobs.Enum.attribute_group_export,
                 label: "Attribute Groups Export XLSX",
                 connector: ExportConnectors.Enum.xlsx,
                 createdAt: new Date()
             },
             {
-                code: "attribute_option_export",
+                code: "attribute_option_export_xlsx",
                 job: ExportJobs.Enum.attribute_option_export,
                 label: "Attribute Options Export XLSX",
                 connector: ExportConnectors.Enum.xlsx,
                 createdAt: new Date()
             },
             {
-                code: "category_export",
+                code: "category_export_xlsx",
                 job: ExportJobs.Enum.category_export,
                 label: "Categories Export XLSX",
                 connector: ExportConnectors.Enum.xlsx,
                 createdAt: new Date()
             },
             {
-                code: "group_export",
+                code: "group_export_xlsx",
                 job: ExportJobs.Enum.group_export,
                 label: "Groups Export XLSX",
                 connector: ExportConnectors.Enum.xlsx,
                 createdAt: new Date()
             },
             {
-                code: "group_type_export",
+                code: "group_type_export_xlsx",
                 job: ExportJobs.Enum.group_type_export,
                 label: "Group Types Export XLSX",
                 connector: ExportConnectors.Enum.xlsx,
                 createdAt: new Date()
             },
             {
-                code: "family_export",
+                code: "family_export_xlsx",
                 job: ExportJobs.Enum.family_export,
                 label: "Families Export XLSX",
                 connector: ExportConnectors.Enum.xlsx,
                 createdAt: new Date()
             },
             {
-                code: "family_variant_export",
+                code: "family_variant_export_xlsx",
                 job: ExportJobs.Enum.family_variant_export,
                 label: "Family Variants Export XLSX",
                 connector: ExportConnectors.Enum.xlsx,
@@ -151,56 +151,56 @@ export async function init(data: ExportData): Promise<ExportData> {
             },
 
             {
-                code: "attribute_export",
+                code: "attribute_export_csv",
                 job: ExportJobs.Enum.attribute_export,
                 label: "Attributes Export CSV",
                 connector: ExportConnectors.Enum.csv,
                 createdAt: new Date()
             },
             {
-                code: "attribute_group_export",
+                code: "attribute_group_export_csv",
                 job: ExportJobs.Enum.attribute_group_export,
                 label: "Attribute Groups Export CSV",
                 connector: ExportConnectors.Enum.csv,
                 createdAt: new Date()
             },
             {
-                code: "attribute_option_export",
+                code: "attribute_option_export_csv",
                 job: ExportJobs.Enum.attribute_option_export,
                 label: "Attribute Options Export CSV",
                 connector: ExportConnectors.Enum.csv,
                 createdAt: new Date()
             },
             {
-                code: "category_export",
+                code: "category_export_csv",
                 job: ExportJobs.Enum.category_export,
                 label: "Categories Export CSV",
                 connector: ExportConnectors.Enum.csv,
                 createdAt: new Date()
             },
             {
-                code: "group_export",
+                code: "group_export_csv",
                 job: ExportJobs.Enum.group_export,
                 label: "Groups Export CSV",
                 connector: ExportConnectors.Enum.csv,
                 createdAt: new Date()
             },
             {
-                code: "group_type_export",
+                code: "group_type_export_csv",
                 job: ExportJobs.Enum.group_type_export,
                 label: "Group Types Export CSV",
                 connector: ExportConnectors.Enum.csv,
                 createdAt: new Date()
             },
             {
-                code: "family_export",
+                code: "family_export_csv",
                 job: ExportJobs.Enum.family_export,
                 label: "Families Export CSV",
                 connector: ExportConnectors.Enum.csv,
                 createdAt: new Date()
             },
             {
-                code: "family_variant_export",
+                code: "family_variant_export_csv",
                 job: ExportJobs.Enum.family_variant_export,
                 label: "Family Variants Export CSV",
                 connector: ExportConnectors.Enum.csv,
@@ -383,10 +383,7 @@ export async function deleteExportProfile(data: ExportData): Promise<ExportData>
         return data
     }
 
-    const results = await rdk.queryDatabase({
-        partKey: getJobPartKey(data.context.instanceId, codeResult.data),
-        reverse: true
-    })
+    const executions = await getExecutionsByJobCode(data.context.instanceId, codeResult.data)
 
     const currentExecution = await getCurrentExecution()
     if(currentExecution && currentExecution.code === codeResult.data){
@@ -394,12 +391,12 @@ export async function deleteExportProfile(data: ExportData): Promise<ExportData>
     }
 
     try {
-        if (results.success && results.data) {
+        if (executions.length) {
             const workers = []
-            results.data.items.forEach((item: { partKey: string, sortKey: string, data: Job }) => {
-                workers.push(rdk.removeFromDatabase({partKey: item.partKey, sortKey: item.sortKey}))
-                workers.push(rdk.deleteFile({filename: getExportFileName(data.context.instanceId, item.data.code, item.data.uid, item.data.connector)}))
-            })
+            for (const execution of executions) {
+                workers.push(rdk.removeFromDatabase({partKey: getJobPartKey(data.context.instanceId, execution.code), sortKey: execution.uid}))
+                workers.push(rdk.deleteFile({filename: getExportFileName(data.context.instanceId, execution.code, execution.uid, execution.connector)}))
+            }
             await Promise.all(workers)
         }
     } catch (e) {
@@ -821,15 +818,7 @@ export async function getExportProfileExecutions(data: ExportData): Promise<Expo
         return data
     }
 
-    const results = await rdk.queryDatabase({
-        partKey: getJobPartKey(data.context.instanceId, codeResult.data)
-    })
-
-    let executions = []
-
-    if (results.success && results.data.items && results.data.items.length) {
-        executions = results.data.items.map(i => i.data)
-    }
+    let executions = await getExecutionsByJobCode(data.context.instanceId, codeResult.data)
 
     data.response = {
         statusCode: 200,

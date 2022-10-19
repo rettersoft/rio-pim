@@ -443,7 +443,6 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
         }
 
         source = dataResult.data
-
         data.state.private.dataSource = dataResult.data
         data.state.private.dataType = DataType.Enum.PRODUCT
 
@@ -465,6 +464,8 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
         }
 
         source = dataResult.data
+        data.state.private.dataSource = dataResult.data
+        data.state.private.dataType = DataType.Enum.PRODUCT_MODEL
 
     } else {
         throw new Error("Invalid data type!")

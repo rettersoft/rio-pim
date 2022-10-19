@@ -74,13 +74,13 @@ export async function getAllProducts(accountId: string): Promise<ProductItem[]> 
     let next = true
     while (next) {
         const res = await getProductsFromAPI(accountId, products.length)
-        if(!res || !res.products || res.products.length === 0){
-            next= false
-        }else{
+        if (!res || !res.products || res.products.length === 0) {
+            next = false
+        } else {
             products = [...products, ...res.products]
         }
     }
-    return products.map(p=>p.source)
+    return products.map(p => p.source)
 }
 
 async function getProductsFromAPI(accountId: string, pageFrom = 0): Promise<{
@@ -102,13 +102,13 @@ export async function getAllProductModels(accountId: string): Promise<ProductMod
     let next = true
     while (next) {
         const res = await getProductModelsFromAPI(accountId, products.length)
-        if(!res || !res.products || res.products.length === 0){
-            next= false
-        }else{
+        if (!res || !res.products || res.products.length === 0) {
+            next = false
+        } else {
             products = [...products, ...res.products]
         }
     }
-    return products.map(p=>p.source)
+    return products.map(p => p.source)
 }
 
 async function getProductModelsFromAPI(accountId: string, pageFrom = 0): Promise<{
@@ -117,7 +117,7 @@ async function getProductModelsFromAPI(accountId: string, pageFrom = 0): Promise
     totalProducts: number
     products: object[]
 }> {
-    const res = await new Classes.API(accountId).getProducts( {pageFrom, filters: {dataType: DataType.ProductModel}})
+    const res = await new Classes.API(accountId).getProducts({pageFrom, filters: {dataType: DataType.ProductModel}})
     if (res.statusCode >= 400) {
         throw new Error("Product get error!")
     }
@@ -130,11 +130,23 @@ export async function getCatalogSettings(accountId: string): Promise<{
     enabledCurrencies: string[]
     enabledLocales: string[]
     channels: any[]
-}>{
+}> {
     const result = await new Classes.CatalogSettings(accountId).getCatalogSettings()
-    if(result.statusCode>=400){
+    if (result.statusCode >= 400) {
         throw new Error("Catalog settings error!")
     }
 
     return result.body
+}
+
+export async function getExecutionsByJobCode(accountId: string, jobCode: string): Promise<Job[] | undefined> {
+    const results = await rdk.queryDatabase({
+        partKey: getJobPartKey(accountId, jobCode)
+    })
+
+    if (results.success && results.data.items && results.data.items.length) {
+        return results.data.items.map(i => i.data)
+    } else {
+        return undefined
+    }
 }
