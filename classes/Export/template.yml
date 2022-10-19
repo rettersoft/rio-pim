@@ -20,6 +20,10 @@ methods:
     type: READ
     handler: index.getExportProfiles
 
+  - method: startExport
+    type: READ
+    handler: index.startExport
+
   - method: executeExport
     type: QUEUED_WRITE
     handler: index.executeExport
@@ -31,3 +35,7 @@ methods:
   - method: getExportedFile
     type: READ
     handler: index.getExportedFile
+
+  - method: getExecution
+    type: READ
+    handler: index.getExecution

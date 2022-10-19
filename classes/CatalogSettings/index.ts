@@ -2,7 +2,6 @@ import {Data, Response} from "@retter/rdk";
 import {randomString} from "./helpers";
 import {AccountIDInput} from "./rio";
 import {Category, Channel} from "./models";
-import {addCategory, removeCategory, updateCategory} from "./categories";
 
 export interface CatalogSettingsPublicState {
     categories: Category[]

@@ -43,6 +43,7 @@ export const GlobalProductModelExportSettings = Z.object({
     withHeader: Z.boolean().default(true),
     content: ExportProfileContent
 })
+export type GlobalProductModelExportSettings = Z.infer<typeof GlobalProductModelExportSettings>
 
 export const GlobalProductExportSettings = GlobalProductModelExportSettings.extend({})
 
@@ -92,6 +93,7 @@ export const Job = Z.object({
     total: Z.number().min(0).optional(),
     processed: Z.number().min(0),
     failed: Z.number().min(0),
+    failReason: Z.string().optional(),
     startedAt: Z.preprocess((arg) => {
         if (typeof arg === "string") return new Date(arg)
     }, Z.date()),
@@ -119,4 +121,62 @@ export interface AttributeOptionItem {
 export interface AttributeOption {
     code: string
     options: AttributeOptionItem[]
+}
+
+interface ProductAttributeItem {
+    scope: string
+    locale: string
+    value: any
+}
+
+export interface ProductItem {
+    parent?: string
+    dataType: string
+    data: {
+        sku: string
+        family: string
+        enabled: boolean
+        attributes: { code: string, data: ProductAttributeItem[] }[]
+        categories: any[]
+        groups: any[]
+    }
+    meta: {
+        createdAt: string,
+        updatedAt: string
+    }
+}
+
+
+export interface ProductModelItem {
+    dataType: string
+    data: {
+        code: string
+        family: string
+        variant: string
+        attributes: { code: string, data: ProductAttributeItem[] }[]
+        categories: any[]
+    }
+    meta: {
+        createdAt: string,
+        updatedAt: string
+    }
+}
+
+
+export interface AttributeSettings {
+    code: string
+    type: "TEXT" | "TEXTAREA" | "BOOLEAN" | "IDENTIFIER" | "NUMBER" | "IMAGE" | "MULTISELECT" | "SIMPLESELECT" | "DATE" | "PRICE"
+    group: string
+    localizable: boolean
+    scopable: boolean
+    isLocaleSpecific: boolean
+    availableLocales: string[]
+    isUnique: boolean
+}
+
+
+export interface Category {
+    code: string
+    label: { locale: string, value: string }[]
+    subCategories: Category[]
 }

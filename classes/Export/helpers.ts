@@ -1,10 +1,11 @@
 import * as XLSX from "xlsx";
 import RDK from "@retter/rdk";
-import {Job} from "./models";
+import {Job, ProductItem, ProductModelItem} from "./models";
+import {Classes, DataType} from "./rio";
 
 const rdk = new RDK();
 const JOB_PART_KEY_PREFIX = "ExportJob"
-const EXECUTION_LOCK_KEY = "EXPORT_EXECUTION"
+const EXECUTION_LOCK_KEY = "EXPORT_EXECUTION_TASK"
 
 
 export function getJobPartKey(accountId: string, profileCode: string) {
@@ -57,7 +58,7 @@ export async function getJobFromDB(accountId: string, jobCode: string, jobId: st
         partKey: getJobPartKey(accountId, jobCode), sortKey: jobId
     })
     if (resp.success) {
-        return resp.data
+        return resp.data.data
     } else {
         return undefined
     }
@@ -65,4 +66,75 @@ export async function getJobFromDB(accountId: string, jobCode: string, jobId: st
 
 export function getExportFileName(accountId: string, jobCode: string, jobId: string, connector: string) {
     return [accountId, jobCode, jobId].join('-') + '.' + connector
+}
+
+
+export async function getAllProducts(accountId: string): Promise<ProductItem[]> {
+    let products = []
+    let next = true
+    while (next) {
+        const res = await getProductsFromAPI(accountId, products.length)
+        if(!res || !res.products || res.products.length === 0){
+            next= false
+        }else{
+            products = [...products, ...res.products]
+        }
+    }
+    return products.map(p=>p.source)
+}
+
+async function getProductsFromAPI(accountId: string, pageFrom = 0): Promise<{
+    pageFrom: null
+    pageSize: null
+    totalProducts: number
+    products: object[]
+}> {
+    const res = await new Classes.API(accountId).getProducts({pageFrom, filters: {dataType: DataType.Product}})
+    if (res.statusCode >= 400) {
+        throw new Error("Product get error!")
+    }
+    return res.body
+}
+
+
+export async function getAllProductModels(accountId: string): Promise<ProductModelItem[]> {
+    let products = []
+    let next = true
+    while (next) {
+        const res = await getProductModelsFromAPI(accountId, products.length)
+        if(!res || !res.products || res.products.length === 0){
+            next= false
+        }else{
+            products = [...products, ...res.products]
+        }
+    }
+    return products.map(p=>p.source)
+}
+
+async function getProductModelsFromAPI(accountId: string, pageFrom = 0): Promise<{
+    pageFrom: null
+    pageSize: null
+    totalProducts: number
+    products: object[]
+}> {
+    const res = await new Classes.API(accountId).getProducts( {pageFrom, filters: {dataType: DataType.ProductModel}})
+    if (res.statusCode >= 400) {
+        throw new Error("Product get error!")
+    }
+    return res.body
+}
+
+
+export async function getCatalogSettings(accountId: string): Promise<{
+    categories: any[]
+    enabledCurrencies: string[]
+    enabledLocales: string[]
+    channels: any[]
+}>{
+    const result = await new Classes.CatalogSettings(accountId).getCatalogSettings()
+    if(result.statusCode>=400){
+        throw new Error("Catalog settings error!")
+    }
+
+    return result.body
 }
