@@ -1,6 +1,15 @@
 import {AttributeTypes, BaseAttribute, ProductAttribute} from "./models";
 import {ProductData} from "./index";
+import {getProductAttributeKeyMap} from "./keysets";
+import {GetProductsSettingsResult} from "./classes-repository";
+import RDK from "@retter/rdk";
 
+const rdk = new RDK();
+
+
+export function getProductClassAccountId(data: ProductData) {
+    return data.context.instanceId.split("-").shift()
+}
 
 export function randomString(l = 10) {
     const chars = "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuopasdfghjklizxcvbnm0987654321"
@@ -16,6 +25,53 @@ export function checkUpdateToken(data: ProductData) {
     if (data.state.private.updateToken !== data.request.body.updateToken) {
         throw new Error("Invalid update token. Please, refresh your page and try again!")
     }
+}
+
+export async function finalizeProductOperation(data: ProductData, requestAttributes: ProductAttribute[] = [], productSettings: GetProductsSettingsResult) {
+    const attachedImages = await attachUploadedProductImages(requestAttributes, productSettings)
+    for (const attachedImage of attachedImages) {
+        data.state.private.tempImages = data.state.private.tempImages.filter(ti => ti !== attachedImage)
+        if (!data.state.private.savedImages.includes(attachedImage)) {
+            data.state.private.savedImages.push(attachedImage)
+        }
+    }
+
+    const removedImages = getProductRemovedImages(requestAttributes, (data.state.private.dataSource?.attributes || []), productSettings.attributes)
+    if (removedImages.length) {
+        //remove images
+        const removeImageWorkers = []
+        removedImages.forEach(ri => {
+            removeImageWorkers.push(rdk.deleteFile({filename: ri}))
+        })
+        await Promise.all(removeImageWorkers)
+    }
+
+    for (const requestAttribute of requestAttributes) {
+        const attributeProperty = productSettings.attributes.find(a => a.code === requestAttribute.code)
+        //save unique attributes to db
+        if (attributeProperty.isUnique && requestAttribute.data && requestAttribute.data.length && requestAttribute.data[0].value) {
+            await rdk.writeToDatabase({
+                data: {}, ...getProductAttributeKeyMap({
+                    accountId: getProductClassAccountId(data),
+                    attributeCode: requestAttribute.code,
+                    attributeValue: requestAttribute.data[0].value
+                })
+            })
+        }
+    }
+}
+
+export async function attachUploadedProductImages(requestProductAttributes: ProductAttribute[], productSettings: GetProductsSettingsResult):
+    Promise<string[]> {
+    const attachedImages: string[] = []
+    for (const attribute of requestProductAttributes) {
+        const attributeProperty = productSettings.attributes.find(ap => ap.code === attribute.code)
+        if (attributeProperty.type === AttributeTypes.Enum.IMAGE) {
+            const image = attribute.data.find(d => d.value !== undefined)?.value
+            if (image) attachedImages.push(image)
+        }
+    }
+    return attachedImages
 }
 
 

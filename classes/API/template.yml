@@ -4,6 +4,8 @@ init:
 getState: index.getState
 authorizer: index.authorizer
 getInstanceId: index.getInstanceId
+dependencies:
+  - MiddlewarePackage
 methods:
 
   - method: generateApiKey
@@ -31,3 +33,11 @@ methods:
   - method: getCatalogSettings
     type: READ
     handler: api.getCatalogSettings
+
+  - method: upsertProduct
+    type: WRITE
+    handler: api.upsertProduct
+
+  - method: deleteProduct
+    type: WRITE
+    handler: api.deleteProduct

@@ -1,0 +1,43 @@
+{
+  "type": "object",
+  "properties": {
+    "eventDocumentId": {
+      "type": "string"
+    },
+    "eventType": {
+      "title": "WebhookEventType",
+      "type": "string",
+      "enum": [
+        "PRODUCT",
+        "PRODUCT_MODEL",
+        "FAMILIES",
+        "ATTRIBUTE_GROUPS",
+        "ATTRIBUTES",
+        "ATTRIBUTE_OPTIONS",
+        "GROUPS",
+        "GROUP_TYPES",
+        "CATEGORIES",
+        "CHANNELS",
+        "CURRENCIES",
+        "LOCALES"
+      ]
+    },
+    "eventOperation": {
+      "title": "WebhookEventOperation",
+      "type": "string",
+      "enum": [
+        "CREATE",
+        "UPDATE",
+        "DELETE"
+      ]
+    },
+    "eventDocument": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "eventDocumentId",
+    "eventType",
+    "eventOperation"
+  ]
+}

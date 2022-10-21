@@ -139,7 +139,7 @@ export const Product = Z.object({
     enabled: Z.boolean().default(false),
     groups: Z.array(Code).default([]),
     categories: Z.array(ProductCategoryCode).default([]),
-    attributes: Z.array(ProductAttribute).default([])
+    attributes: Z.array(ProductAttribute).optional()
 })
 export type Product = Z.infer<typeof Product>
 
@@ -154,7 +154,7 @@ export const ProductModel = Z.object({
     family: Code,
     variant: Code,
     categories: Z.array(ProductCategoryCode).default([]),
-    attributes: Z.array(ProductAttribute).default([])
+    attributes: Z.array(ProductAttribute).optional()
 })
 export type ProductModel = Z.infer<typeof ProductModel>
 
@@ -193,3 +193,7 @@ export interface AttributeOption {
     options: SelectOption[]
 }
 
+export type Label = {
+    locale: string
+    value: string
+}[]

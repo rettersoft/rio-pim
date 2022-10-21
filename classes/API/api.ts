@@ -2,11 +2,16 @@ import {APIData} from "./index";
 import {Classes, GetProductsInput} from "./rio";
 import {ElasticHelper} from "./elastic";
 import {SearchTotalHits} from "@elastic/elasticsearch/lib/api/types";
+import RDK from "@retter/rdk";
+import {checkUserRoleIfUser} from "./middleware";
+
+const rdk = new RDK();
 
 
 export async function getProducts(data: APIData<GetProductsInput>): Promise<APIData> {
-    const accountId = data.context.instanceId.split("-").shift()
-    const elasticHelper = new ElasticHelper(accountId)
+    await checkUserRoleIfUser(data)
+
+    const elasticHelper = new ElasticHelper(data.context.instanceId)
 
     const response = await elasticHelper.getProducts(data.request.body)
 
@@ -29,10 +34,9 @@ export async function getProducts(data: APIData<GetProductsInput>): Promise<APID
 }
 
 export async function getProductSettings(data: APIData): Promise<APIData> {
+    await checkUserRoleIfUser(data)
 
-    const accountId = data.context.instanceId.split("-").shift()
-
-    const getProductsSettingsResult = await new Classes.ProductSettings(accountId).getProductSettings()
+    const getProductsSettingsResult = await new Classes.ProductSettings(data.context.instanceId).getProductSettings()
 
     data.response = {
         statusCode: 200,
@@ -45,10 +49,9 @@ export async function getProductSettings(data: APIData): Promise<APIData> {
 }
 
 export async function getCatalogSettings(data: APIData): Promise<APIData> {
+    await checkUserRoleIfUser(data)
 
-    const accountId = data.context.instanceId.split("-").shift()
-
-    const catalogSettingsResult = await (new Classes.CatalogSettings(accountId).getCatalogSettings())
+    const catalogSettingsResult = await (new Classes.CatalogSettings(data.context.instanceId).getCatalogSettings())
 
     data.response = {
         statusCode: 200,
@@ -56,5 +59,36 @@ export async function getCatalogSettings(data: APIData): Promise<APIData> {
             catalogSettings: catalogSettingsResult.body
         }
     }
+    return data
+}
+
+export async function upsertProduct(data: APIData): Promise<APIData> {
+    await checkUserRoleIfUser(data)
+
+    const productInstance = await Classes.Product.getInstance({
+        body: {...data.request.body, accountId: data.context.instanceId}
+    })
+
+    if (!productInstance.isNewInstance) {
+        await productInstance.updateProduct({...data.request.body, accountId: data.context.instanceId})
+    }
+
+    return data
+}
+
+export async function deleteProduct(data: APIData): Promise<APIData> {
+    const id = data.request.body.id
+    if (!id && id === "") {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "'id' required!"
+            }
+        }
+        return data
+    }
+
+    await rdk.deleteInstance({instanceId: `${data.context.instanceId}-${id}`, classId: 'Product'})
+
     return data
 }

@@ -6,7 +6,15 @@ getInstanceId: index.getInstanceId
 authorizer: index.authorizer
 methods:
 
-  - method: productHandler
-    inputModel: InternalDestinationProductHandlerInput
+  - method: eventHandler
+    inputModel: InternalDestinationEventHandlerInput
     type: QUEUED_WRITE
-    handler: index.productHandler
+    handler: index.eventHandler
+
+  - method: upsertWebhook
+    type: WRITE
+    handler: index.upsertWebhook
+
+  - method: getWebhook
+    type: READ
+    handler: index.getWebhook

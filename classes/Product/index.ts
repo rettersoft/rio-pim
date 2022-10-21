@@ -1,26 +1,18 @@
 import RDK, {Data, Response} from "@retter/rdk";
-import {
-    AttributeOption,
-    AttributeTypes,
-    AxesValuesList,
-    BaseAttribute,
-    Code,
-    DataType,
-    FamilyVariant,
-    IMAGE,
-    Product,
-    ProductModel
-} from "./models";
-import {checkUpdateToken, getProductRemovedImages, randomString} from "./helpers";
-import {Classes, ElasticProductHandlerMethod} from "./rio";
-import {validateProductAttributes, validateProductUniqueAttributes} from "./validations";
+import {AttributeTypes, AxesValuesList, Code, DataType, IMAGE, Product, ProductModel} from "./models";
+import {checkUpdateToken, finalizeProductOperation, getProductClassAccountId, randomString} from "./helpers";
+import {Classes, InternalDestinationEventHandlerInput, WebhookEventOperation, WebhookEventType} from "./rio";
 import {Env} from "./env";
 import {Buffer} from "buffer";
 import {v4 as uuidv4} from 'uuid';
 import mime from "mime-types";
-import {getProductAttributeKeyMap, getProductAxeKeyMap} from "./keysets";
+import {getProductAttributeKeyMap} from "./keysets";
 import {MiddlewarePackage} from "MiddlewarePackage";
+import {ModelsRepository} from "./models-repository";
+import {checkProduct, checkProductModel, checkProductModelVariant, checkVariantAxesForInit} from "./validations";
+import {ClassesRepository} from "./classes-repository";
 import InternalDestination = Classes.InternalDestination;
+
 const middleware = new MiddlewarePackage()
 
 const rdk = new RDK()
@@ -46,10 +38,10 @@ export interface ImageResponse {
 export type ProductData<Input = any, Output = any> = Data<Input, Output, any, ProductPrivateState>
 
 
-export interface GetProductOutputData{
+export interface GetProductOutputData {
     dataType: DataType,
     parent: string
-    data: ProductData | ProductModel
+    data: Product | ProductModel
     updateToken: string
     meta: {
         createdAt: string
@@ -60,7 +52,6 @@ export interface GetProductOutputData{
 
 export async function authorizer(data: ProductData): Promise<Response> {
     const isDeveloper = data.context.identity === "developer"
-
 
     if ([
         "getProduct",
@@ -137,198 +128,72 @@ export async function getInstanceId(data: ProductData): Promise<string> {
 }
 
 export async function init(data: ProductData): Promise<ProductData> {
-    const accountId = data.context.instanceId.split("-").shift()
+    const accountId = getProductClassAccountId(data)
 
-    await middleware.checkUserRole({accountId, userId: data.context.userId, identity: data.context.identity})
-
-    const dataTypeResult = DataType.safeParse(data.request.body.dataType)
-
-    if (dataTypeResult.success === false) {
-        data.response = {
-            statusCode: 400,
-            body: {
-                message: "Model validation error!",
-                error: dataTypeResult.error
-            }
-        }
-        return data
+    if (data.context.identity !== "API") {
+        await middleware.checkUserRole({accountId, userId: data.context.userId, identity: data.context.identity})
     }
 
-    const getProductsSettingsResult = await new Classes.ProductSettings(accountId).getProductSettings()
-    if (getProductsSettingsResult.statusCode >= 400) {
-        data.response = {
-            statusCode: 400,
-            body: {
-                message: "Product settings error!"
-            }
-        }
-        return data
-    }
+    const dataType = ModelsRepository.getDataType(data.request.body.dataType)
+
+    const productSettings = await ClassesRepository.getProductsSettings(accountId)
 
     let source: Product | ProductModel;
 
-    if (dataTypeResult.data === DataType.Enum.PRODUCT) {
-
-        let getProductOutput: GetProductOutputData | undefined
-
-        const hasParent = data.request.body.parent !== undefined
-        const parentResult = Code.safeParse(data.request.body.parent)
-        if (hasParent && parentResult.success === false) {
-            data.response = {
-                statusCode: 400,
-                body: {
-                    message: "Invalid parent!",
-                    error: parentResult.error
-                }
-            }
-            return data
-        }else if(hasParent && parentResult.success){
-            const getProductResult = await new Classes.Product(accountId + "-" + parentResult.data).getProduct()
-            if (getProductResult.statusCode >= 400) {
-                data.response = {
-                    statusCode: getProductResult.statusCode,
-                    body: getProductResult.body
-                }
-                return data
-            }
-            getProductOutput = getProductResult.body
-        }
-
-        let checkData: Product = data.request.body.data
-        if(hasParent && getProductOutput){
-            checkData = {
-                ...checkData,
-                family: (getProductOutput.data as ProductModel).family
-            }
-        }
-        const dataResult = Product.safeParse(checkData)
-        if (dataResult.success === false) {
-            data.response = {
-                statusCode: 400,
-                body: {
-                    message: "Model validation error!",
-                    error: dataResult.error
-                }
-            }
-            return data
-        }
-
-        source = dataResult.data
-
-
-        if (hasParent && parentResult.success && getProductOutput) {
-
-            const parentData = getProductOutput.data as ProductModel
-
-            const variant: FamilyVariant | undefined = getProductsSettingsResult.body.productSettings.families.find(family => family.code === parentData.family)?.variants.find(variant => variant.code === parentData.variant)
-
-            if (!variant) {
-                throw new Error("Variant not found!")
-            }
-
-            const axesValuesResult = AxesValuesList.safeParse(data.request.body.axesValues)
-
-            if (axesValuesResult.success === false) {
-                data.response = {
-                    statusCode: 400,
-                    body: {
-                        message: "Model validation error!",
-                        error: axesValuesResult.error
-                    }
-                }
-                return data
-            }
-
-            for (const axe of variant.axes) {
-                const axeVal = axesValuesResult.data.find(d => d.axe === axe)?.value
-                if (axeVal === undefined || axeVal === "") {
-                    throw new Error(`Axe value required! (${axe})`)
-                }
-            }
-
-            for (const datum of axesValuesResult.data) {
-                if(!variant.axes.includes(datum.axe)){
-                    throw new Error(`Unsupported axe value! (${datum.axe})`)
-                } else {
-                    const axeProperty: BaseAttribute = getProductsSettingsResult.body.productSettings.attributes.find(attr=>attr.code === datum.axe)
-                    if(!axeProperty){
-                        throw new Error("Axe attribute property not found!")
-                    }
-                    if(axeProperty.type === AttributeTypes.Enum.SIMPLESELECT){
-                        const selectOptions: AttributeOption = getProductsSettingsResult.body.productSettings.attributeOptions.find(opt=>opt.code === datum.axe)
-                        if(!selectOptions) throw new Error("Simple select axe property options not found!")
-                        if(!selectOptions.options.find(so=>so.code===datum.value)) throw new Error("Invalid simple select axe value!")
-                    }
-                }
-            }
-
-            for (const parentAttribute of parentData.attributes) {
-                if (dataResult.data.attributes.findIndex(a => a.code === parentAttribute) !== -1) {
-                    throw new Error("You can not use parent attribute in a variant!")
-                }
-            }
-
-            const axesSet = await rdk.readDatabase(getProductAxeKeyMap({
-                accountId,
-                productModelCode: parentResult.data,
-                axesValues: axesValuesResult.data
-            }))
-            if (axesSet.success) {
-                data.response = {
-                    statusCode: 400,
-                    body: {
-                        message: "These axes are already in use!"
-                    }
-                }
-                return data
-            }
-
-            await rdk.writeToDatabase({
-                data: {}, ...getProductAxeKeyMap({
+    switch (dataType) {
+        case DataType.Enum.PRODUCT:
+            if (data.request.body.parent !== undefined) {
+                const checkSum = await checkProductModelVariant({
                     accountId,
-                    productModelCode: parentResult.data,
-                    axesValues: axesValuesResult.data
+                    axesValues: data.request.body.axesValues,
+                    data: data.request.body.data,
+                    parent: data.request.body.parent,
+                    productSettings
                 })
-            })
 
-            data.state.private.axesValues = axesValuesResult.data
-            data.state.private.parent = parentResult.data
-        }
+                await checkVariantAxesForInit({
+                    accountId,
+                    axesValues: data.request.body.axesValues,
+                    childProduct: checkSum.childProduct,
+                    parentProductModel: checkSum.parentProduct,
+                    productSettings
+                })
 
-        data.state.private.dataSource = dataResult.data
-        data.state.private.dataType = DataType.Enum.PRODUCT
-
-    } else if (dataTypeResult.data === DataType.Enum.PRODUCT_MODEL) {
-        const dataResult = ProductModel.safeParse(data.request.body.data)
-        if (dataResult.success === false) {
-            data.response = {
-                statusCode: 400,
-                body: {
-                    message: "Model validation error!",
-                    error: dataResult.error
-                }
+                source = checkSum.childProduct
+                data.state.private.parent = data.request.body.parent
+            } else {
+                source = await checkProduct({
+                    accountId,
+                    data: data.request.body.data,
+                    productSettings
+                })
             }
-            return data
-        }
-
-        source = dataResult.data
-
-        data.state.private.dataSource = dataResult.data
-        data.state.private.dataType = DataType.Enum.PRODUCT_MODEL
-
-    } else {
-        throw new Error("Invalid data type!")
+            break
+        case DataType.Enum.PRODUCT_MODEL:
+            source = await checkProductModel({
+                accountId,
+                data: data.request.body.data,
+                productSettings
+            })
+            break
+        default:
+            throw new Error("Invalid data type!")
     }
 
+    await finalizeProductOperation(data, source.attributes, productSettings)
+
+    data.state.private.dataSource = source
+    data.state.private.dataType = dataType
     data.state.private.tempImages = []
     data.state.private.savedImages = []
     data.state.private.createdAt = new Date().toISOString()
     data.state.private.updatedAt = new Date().toISOString()
     data.state.private.updateToken = randomString()
 
-    await sendToElastic({
+    await sendProductEvent({
         instanceId: data.context.instanceId,
-        method: ElasticProductHandlerMethod.Create,
+        method: WebhookEventOperation.Create,
+        type: data.state.private.dataType === DataType.Enum.PRODUCT ? WebhookEventType.Product : WebhookEventType.ProductModel,
         source: {
             parent: data.state.private.parent,
             dataType: data.state.private.dataType,
@@ -348,7 +213,8 @@ export async function getState(data: ProductData): Promise<Response> {
 }
 
 export async function getProduct(data: ProductData): Promise<ProductData<any, GetProductOutputData>> {
-    const accountId = data.context.instanceId.split("-").shift()
+    const accountId = getProductClassAccountId(data)
+
     const getProductsSettingsResult = await new Classes.ProductSettings(accountId).getProductSettings()
     if (getProductsSettingsResult.statusCode >= 400) {
         data.response = {
@@ -372,7 +238,7 @@ export async function getProduct(data: ProductData): Promise<ProductData<any, Ge
     }
 
     const sourceData = data.state.private.dataSource
-    sourceData.attributes = sourceData.attributes.filter(pa => family.attributes.find(fa => fa.attribute === pa.code))
+    sourceData.attributes = (sourceData.attributes || []).filter(pa => family.attributes.find(fa => fa.attribute === pa.code))
 
     data.response = {
         statusCode: 200,
@@ -391,132 +257,57 @@ export async function getProduct(data: ProductData): Promise<ProductData<any, Ge
 }
 
 export async function updateProduct(data: ProductData): Promise<ProductData> {
-    const accountId = data.context.instanceId.split("-").shift()
-
-    await middleware.checkUserRole({accountId, userId: data.context.userId, identity: data.context.identity})
+    const accountId = getProductClassAccountId(data)
 
     checkUpdateToken(data)
 
-    const dataTypeResult = DataType.safeParse(data.request.body.dataType)
+    await middleware.checkUserRole({accountId, userId: data.context.userId, identity: data.context.identity})
 
-    if (dataTypeResult.success === false) {
-        data.response = {
-            statusCode: 400,
-            body: {
-                message: "Model validation error!",
-                error: dataTypeResult.error
-            }
-        }
-        return data
-    }
+    const dataType = ModelsRepository.getDataType(data.request.body.dataType)
 
-    const getProductsSettingsResult = await new Classes.ProductSettings(accountId).getProductSettings()
-    if (getProductsSettingsResult.statusCode >= 400) {
-        data.response = {
-            statusCode: 400,
-            body: {
-                message: "Product settings error!"
-            }
-        }
-        return data
-    }
+    const productSettings = await ClassesRepository.getProductsSettings(accountId)
 
     let source: Product | ProductModel;
 
-    if (dataTypeResult.data === DataType.Enum.PRODUCT) {
-        const dataResult = Product.safeParse({
-            ...data.state.private.dataSource,
-            categories: data.request.body.data.categories,
-            attributes: data.request.body.data.attributes,
-            enabled: data.request.body.data.enabled
-        })
-
-        if (dataResult.success === false) {
-            data.response = {
-                statusCode: 400,
-                body: {
-                    message: "Model validation error!",
-                    error: dataResult.error
-                }
-            }
-            return data
-        }
-
-        source = dataResult.data
-        data.state.private.dataSource = dataResult.data
-        data.state.private.dataType = DataType.Enum.PRODUCT
-
-    } else if (dataTypeResult.data === DataType.Enum.PRODUCT_MODEL) {
-        const dataResult = ProductModel.safeParse({
-            ...data.state.private.dataSource,
-            categories: data.request.body.data.categories,
-            attributes: data.request.body.data.attributes,
-        })
-        if (dataResult.success === false) {
-            data.response = {
-                statusCode: 400,
-                body: {
-                    message: "Model validation error!",
-                    error: dataResult.error
-                }
-            }
-            return data
-        }
-
-        source = dataResult.data
-        data.state.private.dataSource = dataResult.data
-        data.state.private.dataType = DataType.Enum.PRODUCT_MODEL
-
-    } else {
-        throw new Error("Invalid data type!")
-    }
-
-    await validateProductAttributes(source.family, source.attributes, getProductsSettingsResult.body.productSettings)
-
-    await validateProductUniqueAttributes(source.attributes, getProductsSettingsResult.body.productSettings.attributes, accountId)
-
-    const removedImages = getProductRemovedImages(source.attributes, data.state.private.dataSource.attributes, getProductsSettingsResult.body.productSettings.attributes)
-
-    //remove images
-    const removeImageWorkers = []
-    removedImages.forEach(ri => {
-        removeImageWorkers.push(rdk.deleteFile({filename: ri}))
-    })
-    await Promise.all(removeImageWorkers)
-
-    for (const attribute of source.attributes) {
-        const attributeProperty = getProductsSettingsResult.body.productSettings.attributes.find(ap => ap.code === attribute.code)
-
-        if (attributeProperty.type === AttributeTypes.Enum.IMAGE) {
-            const attachedImages = attribute.data.filter(d => d.value !== undefined).map(d => {
-                return d.value
-            })
-
-            //activate images
-            attachedImages.forEach(ai => {
-                data.state.private.tempImages = data.state.private.tempImages.filter(ti => ti !== ai)
-                if (!data.state.private.savedImages) data.state.private.savedImages = []
-                data.state.private.savedImages.push(ai)
-            })
-        }
-
-        if (attributeProperty.isUnique && attribute.data && attribute.data.length && attribute.data[0].value) {
-            await rdk.writeToDatabase({
-                data: {}, ...getProductAttributeKeyMap({
+    switch (dataType) {
+        case DataType.Enum.PRODUCT:
+            if (data.request.body.parent) {
+                const checkSum = await checkProductModelVariant({
                     accountId,
-                    attributeCode: attribute.code,
-                    attributeValue: attribute.data[0].value
+                    axesValues: data.request.body.axesValues,
+                    data: {...data.state.private.dataSource, ...data.request.body.data},
+                    parent: data.request.body.parent,
+                    productSettings
                 })
+                source = checkSum.childProduct
+            } else {
+                source = await checkProduct({
+                    accountId,
+                    data: {...data.state.private.dataSource, ...data.request.body.data},
+                    productSettings
+                })
+            }
+            break
+        case DataType.Enum.PRODUCT_MODEL:
+            source = await checkProductModel({
+                accountId,
+                data: {...data.state.private.dataSource, ...data.request.body.data},
+                productSettings
             })
-        }
+            break
+        default:
+            throw new Error("Invalid data type!")
     }
+
+    await finalizeProductOperation(data, source.attributes, productSettings)
 
     data.state.private.updateToken = randomString()
     data.state.private.updatedAt = new Date().toISOString()
 
-    await sendToElastic({
+    await sendProductEvent({
         instanceId: data.context.instanceId,
-        method: ElasticProductHandlerMethod.Update,
+        method: WebhookEventOperation.Update,
+        type: data.state.private.dataType === DataType.Enum.PRODUCT ? WebhookEventType.Product : WebhookEventType.ProductModel,
         source: {
             parent: data.state.private.parent,
             dataType: data.state.private.dataType,
@@ -590,28 +381,32 @@ export async function destroy(data: ProductData): Promise<ProductData> {
         }
     }
 
-    await sendToElastic({
+    await sendProductEvent({
         instanceId: data.context.instanceId,
-        method: ElasticProductHandlerMethod.Delete
+        method: WebhookEventOperation.Delete,
+        type: data.state.private.dataType === DataType.Enum.PRODUCT ? WebhookEventType.Product : WebhookEventType.ProductModel
     })
     return data
 }
 
-async function sendToElastic(props: {
+async function sendProductEvent(props: {
     instanceId: string,
     source?: {
         parent?: string,
         dataType: DataType,
         data: Product | ProductModel, meta: { createdAt: string, updatedAt: string }
     },
-    method: ElasticProductHandlerMethod
+    method: WebhookEventOperation,
+    type: WebhookEventType
 }) {
     try {
-        await new InternalDestination(props.instanceId.split("-").shift()).productHandler({
-            productInstanceId: props.instanceId,
-            method: props.method,
-            source: props.source,
-        })
+        const event: InternalDestinationEventHandlerInput = {
+            eventDocument: props.source,
+            eventDocumentId: props.instanceId,
+            eventOperation: props.method,
+            eventType: props.type
+        }
+        await new InternalDestination(props.instanceId.split("-").shift()).eventHandler(event)
     } catch (e) {
     }
 

@@ -19,6 +19,25 @@ export type SystemUserData<Input = any, Output = any> = Data<Input, Output, any,
 
 export async function authorizer(data: SystemUserData): Promise<Response> {
     const isDeveloper = data.context.identity === "developer"
+    let canGetUser = false
+
+    if ([
+        "AccountManager",
+        "CatalogSettings",
+        "Export",
+        "Import",
+        "InternalDestination",
+        "Product",
+        "ProductSettings",
+        "System",
+        "SystemUser"
+    ]) {
+        if (data.context.identity === "Product" && data.context.instanceId === data.context.userId.split("-").shift()) {
+            canGetUser = true
+        } else {
+            canGetUser = true
+        }
+    }
 
     if (isDeveloper) {
         return {statusCode: 200}
@@ -28,7 +47,7 @@ export async function authorizer(data: SystemUserData): Promise<Response> {
 
     switch (data.context.methodName) {
         case 'getUser':
-            if (isInstanceOwner || data.context.identity === "Product") {
+            if (isInstanceOwner || canGetUser) {
                 return {statusCode: 200}
             }
             break

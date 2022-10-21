@@ -1,34 +1,41 @@
 import {Data, Response} from "@retter/rdk";
-import {AccountIDInput, ElasticProductHandlerMethod, InternalDestinationProductHandlerInput} from "./rio";
-import {Client} from "@elastic/elasticsearch";
-import {Env} from "./env";
-const client = new Client({
-    cloud:{
-        id: Env.get("ELASTIC_CLOUD_ID")
-    },
-    auth: {
-        username: Env.get("ELASTIC_CLOUD_USERNAME"),
-        password: Env.get("ELASTIC_CLOUD_PASSWORD")
-    }
-})
+import {AccountIDInput, InternalDestinationEventHandlerInput} from "./rio";
+import {Webhook} from "./models";
+import {sendToElastic, sendWebhookEvent} from "./helpers";
+import {v4 as uuidv4} from "uuid"
 
-const ELASTIC_INDEX_PREFIX = "search"
 
 export interface InternalDestinationPrivateState {
+    webhook: Webhook
 }
 
 export type InternalDestinationData<Input = any, Output = any> = Data<Input, Output, any, InternalDestinationPrivateState>
 
 export async function authorizer(data: InternalDestinationData): Promise<Response> {
     const isDeveloper = data.context.identity === "developer"
+    let canSendEvent = false
+
+    if (["Product", "CatalogSettings", "ProductSettings"].includes(data.context.identity)) {
+        if (data.context.identity === "Product" && data.context.userId.split("-").shift() === data.context.instanceId) {
+            canSendEvent = true
+        } else {
+            canSendEvent = true
+        }
+    }
 
     if ([
-        "productHandler"
+        "getWebhook",
+        "upsertWebhook"
     ].includes(data.context.methodName)) {
         return {statusCode: 200}
     }
 
     switch (data.context.methodName) {
+        case 'eventHandler':
+            if (canSendEvent) {
+                return {statusCode: 200}
+            }
+            break
         case 'STATE':
             if (isDeveloper) return {statusCode: 200}
             break
@@ -48,6 +55,13 @@ export async function getInstanceId(data: InternalDestinationData<AccountIDInput
 }
 
 export async function init(data: InternalDestinationData): Promise<InternalDestinationData> {
+    let webhook: Webhook = {
+        apiKey: uuidv4().replace(new RegExp("-", "g"), ""),
+        enabled: true,
+    };
+    data.state.private = {
+        webhook
+    }
     return data
 }
 
@@ -55,32 +69,38 @@ export async function getState(data: InternalDestinationData): Promise<Response>
     return {statusCode: 200, body: data.state};
 }
 
-export async function productHandler(data: InternalDestinationData<InternalDestinationProductHandlerInput>): Promise<InternalDestinationData>{
-    switch (data.request.body.method) {
-        case ElasticProductHandlerMethod.Create:
-            if(!data.request.body.source) throw new Error("Product can not be null!")
-            await client.create({
-                index: ELASTIC_INDEX_PREFIX + "-" + data.context.instanceId,
-                id: data.request.body.productInstanceId,
-                document: data.request.body.source
-            })
-            break
-        case ElasticProductHandlerMethod.Update:
-            if(!data.request.body.source) throw new Error("Product can not be null!")
-            await client.update({
-                index: ELASTIC_INDEX_PREFIX + "-" + data.context.instanceId,
-                id: data.request.body.productInstanceId,
-                doc: data.request.body.source
-            })
-            break
-        case ElasticProductHandlerMethod.Delete:
-            await client.delete({
-                index: ELASTIC_INDEX_PREFIX + "-" + data.context.instanceId,
-                id: data.request.body.productInstanceId,
-            })
-            break
-        default:
-            throw new Error("Invalid handler method!")
+export async function eventHandler(data: InternalDestinationData<InternalDestinationEventHandlerInput>): Promise<InternalDestinationData> {
+    await Promise.all([
+        sendWebhookEvent(data.state.private.webhook, data.request.body),
+        sendToElastic(data.request.body, data.context.instanceId)
+    ])
+    return data
+}
+
+export async function upsertWebhook(data: InternalDestinationData): Promise<InternalDestinationData> {
+    const webhookData = Webhook.safeParse(data.request.body.webhook)
+    if (webhookData.success === false) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: 'Model validation failed!',
+                error: webhookData.error
+            }
+        }
+        return data
+    }
+
+    data.state.private.webhook = webhookData.data
+
+    return data
+}
+
+export async function getWebhook(data: InternalDestinationData): Promise<InternalDestinationData> {
+    data.response = {
+        statusCode: 200,
+        body: {
+            webhook: data.state.private.webhook
+        }
     }
     return data
 }

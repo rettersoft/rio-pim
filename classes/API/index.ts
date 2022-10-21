@@ -20,17 +20,30 @@ export async function authorizer(data: APIData): Promise<Response> {
         "generateApiKey",
         "deleteApiKey",
         "listApiKeys",
-        "getProducts",
-        "getProductSettings",
-        "getCatalogSettings",
     ].includes(data.context.methodName)) {
         return {statusCode: 200}
     }
 
-    if([
-
-    ].includes(data.context.methodName)){
-        if (data.state.private.apiKeys.findIndex(a => a.apiKey === data.request.headers?.apiKey) !== -1) {
+    if ([
+        "getProducts",
+        "getProductSettings",
+        "getCatalogSettings",
+        "upsertProduct",
+        "deleteProduct",
+    ].includes(data.context.methodName)) {
+        if ((data.state.private.apiKeys || []).findIndex(a => a.apiKey === data.request.headers["x-pim-api-key"]) !== -1) {
+            return {statusCode: 200}
+        } else if ([
+            "AccountManager",
+            "CatalogSettings",
+            "Export",
+            "Import",
+            "InternalDestination",
+            "Product",
+            "ProductSettings",
+            "System",
+            "SystemUser"
+        ]) {
             return {statusCode: 200}
         } else {
             return {statusCode: 401}

@@ -5,72 +5,48 @@ import {
     BOOLEAN,
     DATE,
     Family,
+    FamilyVariant,
     IDENTIFIER,
     IMAGE,
     MULTISELECT,
     NUMBER,
     PimValidationRules,
     PRICE,
+    Product,
     ProductAttribute,
+    ProductModel,
     SIMPLESELECT,
     TEXT,
     TEXTAREA
 } from "./models";
 import RDK from "@retter/rdk"
-import {getProductAttributeKeyMap} from "./keysets";
+import {getProductAttributeKeyMap, getProductAxeKeyMap} from "./keysets";
+import {ClassesRepository, GetProductsSettingsResult} from "./classes-repository";
+import {ModelsRepository} from "./models-repository";
 
 const rdk = new RDK()
 
-export async function validateProductUniqueAttributes(attributes: ProductAttribute[], attributeProperties: BaseAttribute[], accountId: string) {
-    for (const attribute of attributes) {
-        const attributeProperty = attributeProperties.find(ap => ap.code === attribute.code)
-        if (!attributeProperty) throw new Error(`Attribute property not found! (${attribute.code})`)
+export async function validateProductAttributes(props: { productFamily: string, productAttributes: ProductAttribute[], accountId: string, productSettings: GetProductsSettingsResult }) {
 
-        if (attributeProperty.isUnique) {
-            if (attribute.data.length > 1) throw new Error("Unique attribute data should only have one value!")
-            if (attribute.data[0].locale !== undefined || attribute.data[0].scope !== undefined) {
-                throw new Error("Unique attribute should not be scopable or localizable!")
-            }
-            if (typeof attribute.data[0].value !== "string") throw new Error("Unique attribute should be string!")
-            const val = attribute.data[0].value
-            const sortSetResult = await rdk.readDatabase(getProductAttributeKeyMap({
-                accountId,
-                attributeValue: val,
-                attributeCode: attribute.code
-            }))
-            if (sortSetResult.success) {
-                throw new Error("This unique attribute value already taken!")
-            }
-        }
-    }
-
-}
-
-export async function validateProductAttributes(productFamily: string, productAttributes: ProductAttribute[], productSettings: {
-    attributes: BaseAttribute[],
-    attributeOptions: AttributeOption[],
-    families: Family[]
-}) {
-
-    const familyData: Family = productSettings.families.find(f => f.code === productFamily)
+    const familyData: Family = props.productSettings.families.find(f => f.code === props.productFamily)
     if (!familyData) throw new Error("Product family not found!")
 
     for (const familyAttribute of familyData.attributes) {
-        const productAttribute: ProductAttribute | undefined = productAttributes.find(pa => pa.code === familyAttribute.attribute)
+        const productAttribute: ProductAttribute | undefined = props.productAttributes.find(pa => pa.code === familyAttribute.attribute)
 
-        const attributeProperty = productSettings.attributes.find(ap => ap.code === familyAttribute.attribute)
+        const attributeProperty = props.productSettings.attributes.find(ap => ap.code === familyAttribute.attribute)
         if (!attributeProperty) throw new Error(`Attribute property not found! (${familyAttribute.attribute})`)
 
         if (familyAttribute.requiredChannels && familyAttribute.requiredChannels.length) {
             for (const requiredChannel of familyAttribute.requiredChannels) {
-                if (!productAttribute || (productAttribute.data.find(d => d.scope === requiredChannel) || {}).value === undefined ||
+                if (!productAttribute || !productAttribute.data || (productAttribute.data.find(d => d.scope === requiredChannel) || {}).value === undefined ||
                     (productAttribute.data.find(d => d.scope === requiredChannel) || {}).value === "") {
-                    throw new Error(`${productAttribute.code} is required in this channel! (${requiredChannel})`)
+                    throw new Error(`${familyAttribute.attribute} is required in this channel! (${requiredChannel})`)
                 }
             }
         }
 
-        if(!productAttribute) continue
+        if (!productAttribute) continue
 
 
         if (attributeProperty.scopable === false) {
@@ -273,4 +249,173 @@ export async function validateProductAttributes(productFamily: string, productAt
 
     }
 
+    // validate product unique attributes
+    for (const attribute of props.productAttributes) {
+        const attributeProperty = props.productSettings.attributes.find(ap => ap.code === attribute.code)
+        if (!attributeProperty) throw new Error(`Attribute property not found! (${attribute.code})`)
+
+        if (attributeProperty.isUnique) {
+            if (attribute.data.length > 1) throw new Error("Unique attribute data should only have one value!")
+            if (attribute.data[0].locale !== undefined || attribute.data[0].scope !== undefined) {
+                throw new Error("Unique attribute should not be scopable or localizable!")
+            }
+            if (typeof attribute.data[0].value !== "string") throw new Error("Unique attribute should be string!")
+            const val = attribute.data[0].value
+            const sortSetResult = await rdk.readDatabase(getProductAttributeKeyMap({
+                accountId: props.accountId,
+                attributeValue: val,
+                attributeCode: attribute.code
+            }))
+            if (sortSetResult.success) {
+                throw new Error("This unique attribute value already taken!")
+            }
+        }
+    }
+
+}
+
+
+/**
+ * check product
+ * @param props
+ */
+export async function checkProduct(props: { data: any, accountId: string, productSettings: GetProductsSettingsResult }): Promise<Product> {
+    const product = ModelsRepository.getProduct(props.data)
+
+    const productFamily = props.productSettings.families.find(f => f.code === product.family)
+    if (!productFamily) {
+        throw new Error("Product family not found!")
+    }
+
+    if (product.attributes !== undefined) {
+        await validateProductAttributes({
+            accountId: props.accountId,
+            productAttributes: product.attributes,
+            productFamily: product.family,
+            productSettings: props.productSettings
+        })
+    }
+
+    return product
+}
+
+/**
+ * check product Model
+ * @param props
+ */
+export async function checkProductModel(props: { data: any, accountId: string, productSettings: GetProductsSettingsResult }): Promise<ProductModel> {
+    const productModel = ModelsRepository.getProductModel(props.data)
+
+    const productModelFamily = props.productSettings.families.find(f => f.code === productModel.family)
+    if (!productModelFamily) {
+        throw new Error("Product family not found!")
+    }
+
+    const productModelVariant = productModelFamily.variants.find(v => v.code === productModel.variant)
+    if (!productModelVariant) {
+        throw new Error("Product family variant not found!")
+    }
+
+    if (productModel.attributes !== undefined) {
+        await validateProductAttributes({
+            accountId: props.accountId,
+            productAttributes: productModel.attributes,
+            productFamily: productModel.family,
+            productSettings: props.productSettings
+        })
+    }
+
+    return productModel
+}
+
+/**
+ * check product model variant
+ * @param props
+ */
+export async function checkProductModelVariant(props: {
+    data: any, accountId: string, parent?: string, axesValues: any[],
+    productSettings: GetProductsSettingsResult
+}): Promise<{ parentProduct: ProductModel, childProduct: Product }> {
+    if (!props.parent) {
+        throw new Error("Parent field is required!")
+    }
+
+    const parentProduct = await ClassesRepository.getProduct<ProductModel>(props.accountId, props.parent)
+
+    const parentProductFamilySettings = props.productSettings.families.find(f => f.code === parentProduct.data.family)
+    if (!parentProductFamilySettings) {
+        throw new Error("Parent product family not found!")
+    }
+
+    const parentProductFamilyVariantSettings = parentProductFamilySettings.variants.find(v => v.code === parentProduct.data.variant)
+    if (!parentProductFamilyVariantSettings) {
+        throw new Error("Parent product family variant not found!")
+    }
+
+    // overwrite given data family by parent product
+    props.data.family = parentProduct.data.family
+
+    const product = ModelsRepository.getProduct(props.data)
+
+    await validateProductAttributes({
+        accountId: props.accountId,
+        productAttributes: product.attributes,
+        productFamily: product.family,
+        productSettings: props.productSettings
+    })
+
+    return {
+        childProduct: product,
+        parentProduct: parentProduct.data
+    }
+}
+
+/**
+ * check product model variant axes for INIT
+ * @param props
+ */
+export async function checkVariantAxesForInit(props: {
+    accountId: string, axesValues: any[], parentProductModel: ProductModel, childProduct: Product,
+    productSettings: GetProductsSettingsResult
+}): Promise<void> {
+    const axesValues = ModelsRepository.getAxesValuesList(props.axesValues)
+
+    const variantSettings: FamilyVariant = props.productSettings.families.find(f => f.code === props.parentProductModel.family).variants.find(v => v.code === props.parentProductModel.variant)
+
+    for (const axe of variantSettings.axes) {
+        const axeVal = axesValues.find(d => d.axe === axe)?.value
+        if (axeVal === undefined || axeVal === "") {
+            throw new Error(`Axe value required! (${axe})`)
+        }
+    }
+
+    for (const axeValue of axesValues) {
+        if (!variantSettings.axes.includes(axeValue.axe)) {
+            throw new Error(`Unsupported axe! (${axeValue.axe})`)
+        } else {
+            const axeProperty: BaseAttribute = props.productSettings.attributes.find(attr => attr.code === axeValue.axe)
+            if (!axeProperty) {
+                throw new Error("Axe attribute property not found!")
+            }
+            if (axeProperty.type === AttributeTypes.Enum.SIMPLESELECT) {
+                const selectOptions: AttributeOption | undefined = props.productSettings.attributeOptions.find(opt => opt.code === axeValue.axe)
+                if (!selectOptions?.options.find(so => so.code === axeValue.value)) throw new Error("Invalid axe value!")
+            }
+        }
+    }
+
+    for (const parentAttribute of props.parentProductModel.attributes) {
+        if (props.childProduct.attributes.findIndex(a => a.code === parentAttribute.code) !== -1) {
+            throw new Error(`You can not use parent attribute in a variant! (${parentAttribute.code})`)
+        }
+    }
+
+    const axesSet = await rdk.readDatabase(getProductAxeKeyMap({
+        accountId: props.accountId,
+        productModelCode: props.parentProductModel.code,
+        axesValues
+    }))
+    if (axesSet.success) {
+        throw new Error("These axes are already in use!")
+    }
 }
