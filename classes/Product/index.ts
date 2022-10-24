@@ -1,6 +1,12 @@
 import RDK, {Data, Response} from "@retter/rdk";
 import {AttributeTypes, AxesValuesList, Code, DataType, IMAGE, Product, ProductModel} from "./models";
-import {checkUpdateToken, finalizeProductOperation, getProductClassAccountId, randomString} from "./helpers";
+import {
+    checkUpdateToken,
+    finalizeProductOperation,
+    getAttributeAsLabelValue,
+    getProductClassAccountId,
+    randomString
+} from "./helpers";
 import {Classes, InternalDestinationEventHandlerInput, WebhookEventOperation, WebhookEventType} from "./rio";
 import {Env} from "./env";
 import {Buffer} from "buffer";
@@ -195,6 +201,7 @@ export async function init(data: ProductData): Promise<ProductData> {
         method: WebhookEventOperation.Create,
         type: data.state.private.dataType === DataType.Enum.PRODUCT ? WebhookEventType.Product : WebhookEventType.ProductModel,
         source: {
+            axesValues: dataType === DataType.Enum.PRODUCT && data.request.body.parent ? data.request.body.axesValues : [],
             parent: data.state.private.parent,
             dataType: data.state.private.dataType,
             data: source,
@@ -301,6 +308,7 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
 
     await finalizeProductOperation(data, source.attributes, productSettings)
 
+    data.state.private.dataSource = source
     data.state.private.updateToken = randomString()
     data.state.private.updatedAt = new Date().toISOString()
 
@@ -392,6 +400,7 @@ export async function destroy(data: ProductData): Promise<ProductData> {
 async function sendProductEvent(props: {
     instanceId: string,
     source?: {
+        axesValues?: AxesValuesList,
         parent?: string,
         dataType: DataType,
         data: Product | ProductModel, meta: { createdAt: string, updatedAt: string }

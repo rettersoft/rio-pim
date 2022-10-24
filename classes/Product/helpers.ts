@@ -1,4 +1,4 @@
-import {AttributeTypes, BaseAttribute, ProductAttribute} from "./models";
+import {AttributeTypes, BaseAttribute, Product, ProductAttribute} from "./models";
 import {ProductData} from "./index";
 import {getProductAttributeKeyMap} from "./keysets";
 import {GetProductsSettingsResult} from "./classes-repository";
@@ -108,4 +108,16 @@ export function getProductRemovedImages(requestAttributes: ProductAttribute[], s
         }
     }
     return removedImages
+}
+
+export function getAttributeAsLabelValue(product: Product, productSettings: GetProductsSettingsResult): string | undefined {
+    const familySettings = productSettings.families.find(f => f.code === product.family)
+    if (familySettings) {
+        const attr = product.attributes.find(attr => attr.code === familySettings.attributeAsLabel)
+        if (attr && attr.data && attr.data.length) {
+            const definedAttValue = attr.data.find(d => d.value !== undefined && d.value !== "")
+            if (definedAttValue) return definedAttValue.value
+        }
+    }
+    return undefined
 }
