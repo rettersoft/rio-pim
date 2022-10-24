@@ -1,9 +1,7 @@
 import {Data, Response} from "@retter/rdk";
-import {Classes, CreateAccountInput} from "./rio";
-import {v4 as uuidv4} from 'uuid';
-import CatalogSettings = Classes.CatalogSettings;
-import System = Classes.System;
-import InternalDestination = Classes.InternalDestination;
+import {CreateAccountInput} from "./rio";
+import {ClassInits} from "./class-inits";
+import {generateAccountId} from "./helpers";
 
 
 export interface AccountStateData extends CreateAccountInput {
@@ -18,9 +16,24 @@ export type AccountData<Input = any, Output = any> = Data<Input, Output, any, Ac
 
 export async function authorizer(data: AccountData): Promise<Response> {
     const isDeveloper = data.context.identity === "developer"
+
+    if (isDeveloper) {
+        return {statusCode: 200}
+    }
+
     switch (data.context.methodName) {
         case 'createAccount':
             if (isDeveloper) return {statusCode: 200}
+            break
+        case 'STATE':
+            if (isDeveloper) return {statusCode: 200}
+            break
+        case 'GET':
+            return {statusCode: 200}
+        case 'INIT':
+            if (isDeveloper) {
+                return {statusCode: 200}
+            }
             break
     }
     return {statusCode: 401};
@@ -42,54 +55,30 @@ export async function getInstanceId(data: AccountData): Promise<string> {
 }
 
 export async function createAccount(data: AccountData<CreateAccountInput>): Promise<AccountData> {
-    const accountId = uuidv4().replace(new RegExp(/-/, 'g'), '')
+    const accountId = generateAccountId()
     const Account: AccountStateData = {
         ...data.request.body,
         accountId
     }
     data.state.private.accounts.push(Account)
 
-    let catalogSettings;
-    let system;
-    let internalDestination;
-    let api;
+    const classInits = new ClassInits(accountId)
 
-    try {
-        await CatalogSettings.getInstance({body: {accountId}})
-        catalogSettings = "DONE"
-    } catch (e) {
-        catalogSettings = "FAIL - " + e.toString()
-    }
+    classInits.add({_class: "System", body: {rootEmail: data.request.body.rootEmail}})
+    classInits.add({_class: "CatalogSettings"})
+    classInits.add({_class: "ProductSettings"})
+    classInits.add({_class: "Import"})
+    classInits.add({_class: "Export"})
+    classInits.add({_class: "API"})
+    classInits.add({_class: "InternalDestination"})
 
-    try {
-        await System.getInstance({body: {accountId, rootEmail: data.request.body.rootEmail}})
-        system = "DONE"
-    } catch (e) {
-        system = "FAIL - " + e.toString()
-    }
-
-    try {
-        await InternalDestination.getInstance({body: {accountId}})
-        internalDestination = "DONE"
-    } catch (e) {
-        internalDestination = "FAIL - " + e.toString()
-    }
-
-    try {
-        await Classes.API.getInstance({body: {accountId}})
-        api = "DONE"
-    } catch (e) {
-        api = "FAIL - " + e.toString()
-    }
+    const results = await classInits.run()
 
     data.response = {
         statusCode: 200,
         body: {
             accountId,
-            catalogSettings,
-            system,
-            internalDestination,
-            api
+            results
         }
     }
 

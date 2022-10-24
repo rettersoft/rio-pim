@@ -1,6 +1,7 @@
 import {ProductSettingsData} from "./index";
-import {checkUpdateToken, randomString} from "./helpers";
+import {checkUpdateToken, randomString, sendEvent} from "./helpers";
 import {Code, Group, GroupType} from "./models";
+import {WebhookEventOperation, WebhookEventType} from "./rio";
 
 
 export async function createGroupType(data: ProductSettingsData): Promise<ProductSettingsData>{
@@ -32,6 +33,13 @@ export async function createGroupType(data: ProductSettingsData): Promise<Produc
 
     data.state.public.groupTypes.push(result.data)
     data.state.public.updateToken = randomString()
+
+    await sendEvent(data.context.instanceId, {
+        eventDocument: result.data,
+        eventDocumentId: data.context.instanceId + "-" + result.data.code,
+        eventOperation: WebhookEventOperation.Create,
+        eventType: WebhookEventType.GroupType
+    })
 
     return data
 }
@@ -67,6 +75,13 @@ export async function updateGroupType(data: ProductSettingsData): Promise<Produc
     data.state.public.groupTypes[gtIndex].label = result.data.label
     data.state.public.updateToken = randomString()
 
+    await sendEvent(data.context.instanceId, {
+        eventDocument: result.data,
+        eventDocumentId: data.context.instanceId + "-" + result.data.code,
+        eventOperation: WebhookEventOperation.Update,
+        eventType: WebhookEventType.GroupType
+    })
+
     return data
 }
 
@@ -89,6 +104,12 @@ export async function deleteGroupType(data: ProductSettingsData): Promise<Produc
 
     data.state.public.groupTypes = data.state.public.groupTypes.filter(gt=>gt.code !== groupTypeCodeResult.data)
     data.state.public.updateToken = randomString()
+
+    await sendEvent(data.context.instanceId, {
+        eventDocumentId: data.context.instanceId + "-" + groupTypeCodeResult.data,
+        eventOperation: WebhookEventOperation.Delete,
+        eventType: WebhookEventType.GroupType
+    })
 
     return data
 }
@@ -133,6 +154,13 @@ export async function createGroup(data: ProductSettingsData): Promise<ProductSet
     data.state.public.groups.push(result.data)
     data.state.public.updateToken = randomString()
 
+    await sendEvent(data.context.instanceId, {
+        eventDocument: result.data,
+        eventDocumentId: data.context.instanceId + "-" + result.data.code,
+        eventOperation: WebhookEventOperation.Create,
+        eventType: WebhookEventType.Group
+    })
+
     return data
 }
 
@@ -167,6 +195,13 @@ export async function updateGroup(data: ProductSettingsData): Promise<ProductSet
     data.state.public.groups[gIndex].label = result.data.label
     data.state.public.updateToken = randomString()
 
+    await sendEvent(data.context.instanceId, {
+        eventDocument: result.data,
+        eventDocumentId: data.context.instanceId + "-" + result.data.code,
+        eventOperation: WebhookEventOperation.Update,
+        eventType: WebhookEventType.Group
+    })
+
     return data
 }
 
@@ -189,6 +224,12 @@ export async function deleteGroup(data: ProductSettingsData): Promise<ProductSet
 
     data.state.public.groups = data.state.public.groups.filter(gt=>gt.code !== groupCodeResult.data)
     data.state.public.updateToken = randomString()
+
+    await sendEvent(data.context.instanceId, {
+        eventDocumentId: data.context.instanceId + "-" + groupCodeResult.data,
+        eventOperation: WebhookEventOperation.Update,
+        eventType: WebhookEventType.Group
+    })
 
     return data
 }

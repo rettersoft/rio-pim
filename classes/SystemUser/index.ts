@@ -56,7 +56,7 @@ export async function authorizer(data: SystemUserData): Promise<Response> {
         case 'GET':
             return {statusCode: 200}
         case 'INIT':
-            if (data.context.identity === "AccountManager" || isDeveloper) {
+            if (data.context.identity === "System" || isDeveloper) {
                 return {statusCode: 200}
             }
             break

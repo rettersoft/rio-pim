@@ -1,6 +1,7 @@
 import {CatalogSettingsData} from "./index";
-import {checkUpdateToken, randomString} from "./helpers";
+import {checkUpdateToken, randomString, sendEvent} from "./helpers";
 import {Currencies} from "./consts";
+import {WebhookEventOperation, WebhookEventType} from "./rio";
 
 
 export async function toggleCurrency(data: CatalogSettingsData): Promise<CatalogSettingsData> {
@@ -36,6 +37,13 @@ export async function toggleCurrency(data: CatalogSettingsData): Promise<Catalog
         data.state.public.enabledCurrencies.push(currencyId)
     }
     data.state.public.updateToken = randomString()
+
+    await sendEvent(data.context.instanceId, {
+        eventDocument: data.state.public.enabledCurrencies,
+        eventDocumentId: data.context.instanceId + "-" + "CURRENCIES",
+        eventOperation: WebhookEventOperation.Update,
+        eventType: WebhookEventType.Currencies
+    })
 
     return data
 }

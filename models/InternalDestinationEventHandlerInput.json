@@ -10,14 +10,14 @@
       "enum": [
         "PRODUCT",
         "PRODUCT_MODEL",
-        "FAMILIES",
-        "ATTRIBUTE_GROUPS",
-        "ATTRIBUTES",
-        "ATTRIBUTE_OPTIONS",
-        "GROUPS",
-        "GROUP_TYPES",
-        "CATEGORIES",
-        "CHANNELS",
+        "FAMILY",
+        "ATTRIBUTE_GROUP",
+        "ATTRIBUTE",
+        "ATTRIBUTE_OPTION",
+        "GROUP",
+        "GROUP_TYPE",
+        "CATEGORY",
+        "CHANNEL",
         "CURRENCIES",
         "LOCALES"
       ]

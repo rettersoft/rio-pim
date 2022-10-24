@@ -1,5 +1,5 @@
 import {ProductSettingsData} from "./index";
-import {checkUpdateToken, randomString} from "./helpers";
+import {checkUpdateToken, randomString, sendEvent} from "./helpers";
 import {Code, Family, FamilyVariant} from "./models";
 import {
     getAttribute,
@@ -8,7 +8,7 @@ import {
     RESERVED_ID_ATTRIBUTE_CODE
 } from "./attributes.repository";
 import {ALLOWED_AXE_TYPES} from "./families.repository";
-import {Classes} from "./rio";
+import {Classes, WebhookEventOperation, WebhookEventType} from "./rio";
 import API = Classes.API;
 
 
@@ -48,6 +48,13 @@ export async function createFamily(data: ProductSettingsData): Promise<ProductSe
     data.state.public.families.push(result.data)
     data.state.public.updateToken = randomString()
 
+    await sendEvent(data.context.instanceId, {
+        eventDocument: result.data,
+        eventDocumentId: data.context.instanceId + "-" + result.data.code,
+        eventOperation: WebhookEventOperation.Create,
+        eventType: WebhookEventType.Family
+    })
+
     return data
 }
 
@@ -84,6 +91,13 @@ export async function updateFamily(data: ProductSettingsData): Promise<ProductSe
 
     data.state.public.updateToken = randomString()
 
+    await sendEvent(data.context.instanceId, {
+        eventDocument: result.data,
+        eventDocumentId: data.context.instanceId + "-" + result.data.code,
+        eventOperation: WebhookEventOperation.Update,
+        eventType: WebhookEventType.Family
+    })
+
     return data
 }
 
@@ -117,6 +131,13 @@ export async function deleteFamily(data: ProductSettingsData): Promise<ProductSe
 
     data.state.public.families = data.state.public.families.filter(f => f.code !== result.data)
     data.state.public.updateToken = randomString()
+
+    await sendEvent(data.context.instanceId, {
+        eventDocumentId: data.context.instanceId + "-" + result.data,
+        eventOperation: WebhookEventOperation.Delete,
+        eventType: WebhookEventType.Family
+    })
+
     return data
 }
 
@@ -185,6 +206,14 @@ export async function addAttributeToFamily(data: ProductSettingsData): Promise<P
     })
 
     data.state.public.updateToken = randomString()
+
+    await sendEvent(data.context.instanceId, {
+        eventDocument: data.state.public.families[familyIndex],
+        eventDocumentId: data.context.instanceId + "-" + data.state.public.families[familyIndex].code,
+        eventOperation: WebhookEventOperation.Update,
+        eventType: WebhookEventType.Family
+    })
+
     return data
 }
 
@@ -278,6 +307,13 @@ export async function toggleRequiredStatusFamilyAttribute(data: ProductSettingsD
     }
     data.state.public.updateToken = randomString()
 
+    await sendEvent(data.context.instanceId, {
+        eventDocument: data.state.public.families[familyIndex],
+        eventDocumentId: data.context.instanceId + "-" + data.state.public.families[familyIndex].code,
+        eventOperation: WebhookEventOperation.Update,
+        eventType: WebhookEventType.Family
+    })
+
     return data
 }
 
@@ -356,6 +392,14 @@ export async function removeAttributeFromFamily(data: ProductSettingsData): Prom
     }
 
     data.state.public.updateToken = randomString()
+
+    await sendEvent(data.context.instanceId, {
+        eventDocument: data.state.public.families[familyIndex],
+        eventDocumentId: data.context.instanceId + "-" + data.state.public.families[familyIndex].code,
+        eventOperation: WebhookEventOperation.Update,
+        eventType: WebhookEventType.Family
+    })
+
     return data
 }
 
@@ -419,6 +463,14 @@ export async function addVariant(data: ProductSettingsData): Promise<ProductSett
 
     data.state.public.families[fIndex].variants.push(result.data)
     data.state.public.updateToken = randomString()
+
+    await sendEvent(data.context.instanceId, {
+        eventDocument: data.state.public.families[fIndex],
+        eventDocumentId: data.context.instanceId + "-" + data.state.public.families[fIndex].code,
+        eventOperation: WebhookEventOperation.Update,
+        eventType: WebhookEventType.Family
+    })
+
     return data
 }
 
@@ -479,6 +531,14 @@ export async function deleteVariant(data: ProductSettingsData): Promise<ProductS
             .filter(fv => fv.code !== familyVariantCodeResult.data)
         data.state.public.updateToken = randomString()
     }
+
+    await sendEvent(data.context.instanceId, {
+        eventDocument: data.state.public.families[familyIndex],
+        eventDocumentId: data.context.instanceId + "-" + data.state.public.families[familyIndex].code,
+        eventOperation: WebhookEventOperation.Update,
+        eventType: WebhookEventType.Family
+    })
+
     return data
 }
 
@@ -544,6 +604,13 @@ export async function updateVariant(data: ProductSettingsData): Promise<ProductS
     data.state.public.families[fIndex].variants[fvIndex].label = result.data.label
 
     data.state.public.updateToken = randomString()
+
+    await sendEvent(data.context.instanceId, {
+        eventDocument: data.state.public.families[fIndex],
+        eventDocumentId: data.context.instanceId + "-" + data.state.public.families[fIndex].code,
+        eventOperation: WebhookEventOperation.Update,
+        eventType: WebhookEventType.Family
+    })
 
     return data
 }

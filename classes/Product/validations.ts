@@ -197,10 +197,8 @@ export async function validateProductAttributes(props: { productFamily: string, 
                 }
                 break
             case AttributeTypes.Enum.MULTISELECT:
-                const MULTISELECT: MULTISELECT = attributeProperty
                 break
             case AttributeTypes.Enum.SIMPLESELECT:
-                const SIMPLESELECT: SIMPLESELECT = attributeProperty
                 break
             case AttributeTypes.Enum.DATE:
                 const DATE: DATE = attributeProperty
@@ -357,12 +355,14 @@ export async function checkProductModelVariant(props: {
 
     const product = ModelsRepository.getProduct(props.data)
 
-    await validateProductAttributes({
-        accountId: props.accountId,
-        productAttributes: product.attributes,
-        productFamily: product.family,
-        productSettings: props.productSettings
-    })
+    if (product.attributes !== undefined) {
+        await validateProductAttributes({
+            accountId: props.accountId,
+            productAttributes: product.attributes,
+            productFamily: product.family,
+            productSettings: props.productSettings
+        })
+    }
 
     return {
         childProduct: product,

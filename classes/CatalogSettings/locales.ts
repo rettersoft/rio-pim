@@ -1,6 +1,7 @@
 import {CatalogSettingsData} from "./index";
-import {checkUpdateToken, randomString} from "./helpers";
+import {checkUpdateToken, randomString, sendEvent} from "./helpers";
 import {Locales} from "./consts";
+import {WebhookEventOperation, WebhookEventType} from "./rio";
 
 
 export async function toggleLocale(data: CatalogSettingsData): Promise<CatalogSettingsData> {
@@ -36,6 +37,13 @@ export async function toggleLocale(data: CatalogSettingsData): Promise<CatalogSe
         data.state.public.enabledLocales.push(localeId)
     }
     data.state.public.updateToken = randomString()
+
+    await sendEvent(data.context.instanceId, {
+        eventDocument: data.state.public.enabledLocales,
+        eventDocumentId: data.context.instanceId + "-" + "LOCALES",
+        eventOperation: WebhookEventOperation.Update,
+        eventType: WebhookEventType.Locales
+    })
 
     return data
 }

@@ -59,7 +59,7 @@ export async function sendWebhookEvent(webhook: Webhook, event: InternalDestinat
                 url = webhook.handlers.locales
                 break
             default:
-                console.error("Invalid webhook event type!")
+                console.warn("Invalid webhook event type!")
                 return false
         }
 
@@ -80,7 +80,7 @@ export async function sendWebhookEvent(webhook: Webhook, event: InternalDestinat
             status: response.status
         }))
     } catch (e) {
-        console.error(e)
+        console.warn(e)
     }
 }
 
@@ -111,12 +111,12 @@ export async function sendToElastic(event: InternalDestinationEventHandlerInput,
                     })
                     break
                 default:
-                    console.error("Invalid handler method!")
+                    console.warn("Invalid handler method!")
                     return false
             }
         }
     } catch (e) {
-        console.error(e)
+        console.warn(e)
     }
 }
 

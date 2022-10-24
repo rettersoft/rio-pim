@@ -1,5 +1,5 @@
 import {ProductSettingsData} from "./index";
-import {checkUpdateToken, randomString} from "./helpers";
+import {checkUpdateToken, randomString, sendEvent} from "./helpers";
 import {AttributeTypes, BaseAttribute, Code, Family, FamilyVariant, SelectOption, SpecificAttributes} from "./models";
 import {
     checkReservedIdAttribute,
@@ -8,6 +8,7 @@ import {
     isFamilyAttributeLabel,
     specificAttributeValidation
 } from "./attributes.repository";
+import {WebhookEventOperation, WebhookEventType} from "./rio";
 
 
 export async function createAttribute(data: ProductSettingsData): Promise<ProductSettingsData> {
@@ -76,6 +77,13 @@ export async function createAttribute(data: ProductSettingsData): Promise<Produc
 
     data.state.public.attributes.push(result.data)
     data.state.public.updateToken = randomString()
+
+    await sendEvent(data.context.instanceId, {
+        eventDocument: result.data,
+        eventDocumentId: data.context.instanceId + "-" + result.data.code,
+        eventOperation: WebhookEventOperation.Update,
+        eventType: WebhookEventType.Attribute
+    })
 
     return data
 }
@@ -148,6 +156,13 @@ export async function updateAttribute(data: ProductSettingsData): Promise<Produc
     data.state.public.attributes[aIndex] = result.data
     data.state.public.updateToken = randomString()
 
+    await sendEvent(data.context.instanceId, {
+        eventDocument: data.state.public.attributes[aIndex],
+        eventDocumentId: data.context.instanceId + "-" + data.state.public.attributes[aIndex].code,
+        eventOperation: WebhookEventOperation.Update,
+        eventType: WebhookEventType.Attribute
+    })
+
     return data
 }
 
@@ -202,6 +217,12 @@ export async function deleteAttribute(data: ProductSettingsData): Promise<Produc
     data.state.public.attributes = data.state.public.attributes.filter(a => a.code !== attributeCode)
     data.state.public.updateToken = randomString()
 
+    await sendEvent(data.context.instanceId, {
+        eventDocumentId: data.context.instanceId + "-" + attributeCode,
+        eventOperation: WebhookEventOperation.Delete,
+        eventType: WebhookEventType.Attribute
+    })
+
     return data
 }
 
@@ -234,21 +255,33 @@ export async function upsertSelectOption(data: ProductSettingsData): Promise<Pro
 
     const attributeOptionsIndex = data.state.public.attributeOptions.findIndex(ao => ao.code === attribute.code)
 
+    let webhookOperation: WebhookEventOperation;
+
     if (attributeOptionsIndex === -1) {
         data.state.public.attributeOptions.push({
             code: attribute.code,
             options: [result.data]
         })
+        webhookOperation = WebhookEventOperation.Create
     } else {
         const optionIndex = data.state.public.attributeOptions[attributeOptionsIndex].options.findIndex(o => o.code === result.data.code)
         if (optionIndex === -1) {
             data.state.public.attributeOptions[attributeOptionsIndex].options.push(result.data)
+            webhookOperation = WebhookEventOperation.Create
         } else {
             data.state.public.attributeOptions[attributeOptionsIndex].options[optionIndex] = result.data
+            webhookOperation = WebhookEventOperation.Update
         }
     }
 
     data.state.public.updateToken = randomString()
+
+    await sendEvent(data.context.instanceId, {
+        eventDocument: result.data,
+        eventDocumentId: [data.context.instanceId, attribute.code, result.data.code].join("-"),
+        eventOperation: webhookOperation,
+        eventType: WebhookEventType.AttributeOption
+    })
 
     return data
 }
@@ -293,5 +326,12 @@ export async function deleteSelectOption(data: ProductSettingsData): Promise<Pro
 
     data.state.public.attributeOptions[aoIndex].options = data.state.public.attributeOptions[aoIndex].options.filter(o => o.code !== attributeOptionCodeModel.data)
     data.state.public.updateToken = randomString()
+
+    await sendEvent(data.context.instanceId, {
+        eventDocumentId: [data.context.instanceId, attribute.code, attributeOptionCodeModel.data].join("-"),
+        eventOperation: WebhookEventOperation.Delete,
+        eventType: WebhookEventType.AttributeOption
+    })
+
     return data
 }

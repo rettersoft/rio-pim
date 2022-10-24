@@ -1,7 +1,8 @@
 import {ProductSettingsData} from "./index";
-import {checkUpdateToken, randomString} from "./helpers";
+import {checkUpdateToken, randomString, sendEvent} from "./helpers";
 import {AttributeGroup, BaseAttribute, Code} from "./models";
 import {checkReservedAttributeGroup, RESERVED_ATTRIBUTE_GROUP_CODE} from "./attribute-groups.repository";
+import {WebhookEventOperation, WebhookEventType} from "./rio";
 
 
 export async function addAttributeGroup(data: ProductSettingsData): Promise<ProductSettingsData> {
@@ -31,6 +32,13 @@ export async function addAttributeGroup(data: ProductSettingsData): Promise<Prod
 
     data.state.public.attributeGroups.push(result.data)
     data.state.public.updateToken = randomString()
+
+    await sendEvent(data.context.instanceId, {
+        eventDocument: result.data,
+        eventDocumentId: [data.context.instanceId, result.data.code].join("-"),
+        eventOperation: WebhookEventOperation.Create,
+        eventType: WebhookEventType.AttributeGroup
+    })
 
     return data
 }
@@ -67,6 +75,13 @@ export async function updateAttributeGroup(data: ProductSettingsData): Promise<P
     data.state.public.attributeGroups[agIndex] = result.data
     data.state.public.updateToken = randomString()
 
+    await sendEvent(data.context.instanceId, {
+        eventDocument: result.data,
+        eventDocumentId: [data.context.instanceId, result.data.code].join("-"),
+        eventOperation: WebhookEventOperation.Update,
+        eventType: WebhookEventType.AttributeGroup
+    })
+
     return data
 }
 
@@ -96,6 +111,12 @@ export async function deleteAttributeGroup(data: ProductSettingsData): Promise<P
 
     data.state.public.attributeGroups = data.state.public.attributeGroups.filter(ag => ag.code !== attributeGroupCodeModel.data)
     data.state.public.updateToken = randomString()
+
+    await sendEvent(data.context.instanceId, {
+        eventDocumentId: [data.context.instanceId, attributeGroupCodeModel.data].join("-"),
+        eventOperation: WebhookEventOperation.Delete,
+        eventType: WebhookEventType.AttributeGroup
+    })
 
     return data
 }
