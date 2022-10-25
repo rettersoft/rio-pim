@@ -17,9 +17,13 @@ export type SystemData<Input = any, Output = any> = Data<Input, Output, any, Sys
 export async function authorizer(data: SystemData): Promise<Response> {
     const isDeveloper = data.context.identity === "developer"
 
+    if (isDeveloper) return {statusCode: 200}
+
     switch (data.context.methodName) {
-        case 'STATE':
-            if (isDeveloper) return {statusCode: 200}
+        case 'DESTROY':
+            if(data.context.identity === "AccountManager"){
+                return {statusCode: 200}
+            }
             break
         case 'GET':
             return {statusCode: 200}

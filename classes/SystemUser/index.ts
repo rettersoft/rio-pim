@@ -51,6 +51,11 @@ export async function authorizer(data: SystemUserData): Promise<Response> {
                 return {statusCode: 200}
             }
             break
+        case 'DESTROY':
+            if(data.context.identity === "AccountManager"){
+                return {statusCode: 200}
+            }
+            break
         case 'sendEmailOtp':
         case 'validateEmailOtp':
         case 'GET':

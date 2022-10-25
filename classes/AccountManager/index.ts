@@ -1,7 +1,10 @@
-import {Data, Response} from "@retter/rdk";
+import RDK, {Data, Response} from "@retter/rdk";
 import {CreateAccountInput} from "./rio";
 import {ClassInits} from "./class-inits";
 import {generateAccountId} from "./helpers";
+import {ElasticHelper} from "./elastic";
+
+const rdk = new RDK();
 
 
 export interface AccountStateData extends CreateAccountInput {
@@ -22,9 +25,6 @@ export async function authorizer(data: AccountData): Promise<Response> {
     }
 
     switch (data.context.methodName) {
-        case 'createAccount':
-            if (isDeveloper) return {statusCode: 200}
-            break
         case 'STATE':
             if (isDeveloper) return {statusCode: 200}
             break
@@ -74,6 +74,9 @@ export async function createAccount(data: AccountData<CreateAccountInput>): Prom
 
     const results = await classInits.run()
 
+    const elasticHelper = new ElasticHelper(accountId);
+    await elasticHelper.createIndex()
+
     data.response = {
         statusCode: 200,
         body: {
@@ -82,5 +85,48 @@ export async function createAccount(data: AccountData<CreateAccountInput>): Prom
         }
     }
 
+    return data
+}
+
+export async function deleteAccount(data: AccountData): Promise<AccountData> {
+    const accountId = data.request.body.accountId
+    if (!accountId || accountId === "") {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "accountId is required!"
+            }
+        }
+        return data
+    }
+
+    await Promise.all([
+        rdk.deleteInstance({classId: "System", instanceId: accountId}),
+        rdk.deleteInstance({classId: "CatalogSettings", instanceId: accountId}),
+        rdk.deleteInstance({classId: "ProductSettings", instanceId: accountId}),
+        rdk.deleteInstance({classId: "Import", instanceId: accountId}),
+        rdk.deleteInstance({classId: "Export", instanceId: accountId}),
+        rdk.deleteInstance({classId: "API", instanceId: accountId}),
+        rdk.deleteInstance({classId: "InternalDestination", instanceId: accountId}),
+    ])
+
+    const productInstances: {success: boolean, data: {instanceIds: string[]}} = (await rdk.listInstanceIds({classId: "Product"})) as any
+
+    const elasticHelper = new ElasticHelper(accountId);
+    try {
+        await elasticHelper.deleteIndex()
+    } catch (e) {
+        if (!e.body || !e.body.error || e.body.error.type !== "index_not_found_exception") {
+            data.response = {
+                statusCode: 400,
+                body: {
+                    message: e.toString()
+                }
+            }
+            return data
+        }
+    }
+
+    data.state.private.accounts = data.state.private.accounts.filter(a => a.accountId !== accountId)
     return data
 }

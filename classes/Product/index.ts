@@ -1,12 +1,6 @@
 import RDK, {Data, Response} from "@retter/rdk";
 import {AttributeTypes, AxesValuesList, Code, DataType, IMAGE, Product, ProductModel} from "./models";
-import {
-    checkUpdateToken,
-    finalizeProductOperation,
-    getAttributeAsLabelValue,
-    getProductClassAccountId,
-    randomString
-} from "./helpers";
+import {checkUpdateToken, finalizeProductOperation, getProductClassAccountId, randomString} from "./helpers";
 import {Classes, InternalDestinationEventHandlerInput, WebhookEventOperation, WebhookEventType} from "./rio";
 import {Env} from "./env";
 import {Buffer} from "buffer";
@@ -343,6 +337,15 @@ export async function deleteInstance(data: ProductData): Promise<ProductData> {
 }
 
 export async function destroy(data: ProductData): Promise<ProductData> {
+
+    if (data.context.identity !== "AccountManager") {
+        const middlewarePackage = new MiddlewarePackage();
+        await middlewarePackage.checkUserRole({
+            accountId: getProductClassAccountId(data),
+            userId: data.context.userId,
+            identity: data.context.identity
+        })
+    }
     const workers: Array<Promise<any>> = []
     for (const savedImage of data.state.private.savedImages) {
         workers.push(rdk.deleteFile({filename: savedImage}))

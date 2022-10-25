@@ -36,6 +36,11 @@ export async function authorizer(data: InternalDestinationData): Promise<Respons
                 return {statusCode: 200}
             }
             break
+        case 'DESTROY':
+            if(data.context.identity === "AccountManager"){
+                return {statusCode: 200}
+            }
+            break
         case 'STATE':
             if (isDeveloper) return {statusCode: 200}
             break

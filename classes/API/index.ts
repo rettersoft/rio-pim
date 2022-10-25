@@ -51,6 +51,11 @@ export async function authorizer(data: APIData): Promise<Response> {
     }
 
     switch (data.context.methodName) {
+        case 'DESTROY':
+            if(data.context.identity === "AccountManager"){
+                return {statusCode: 200}
+            }
+            break
         case 'STATE':
             if (isDeveloper) return {statusCode: 200}
             break

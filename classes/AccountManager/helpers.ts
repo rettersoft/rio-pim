@@ -1,4 +1,4 @@
-import {v4 as uuidv4} from "uuid"
+import {customAlphabet} from "nanoid";
 
 export function randomString(l = 10) {
     const chars = "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuopasdfghjklizxcvbnm0987654321"
@@ -11,5 +11,7 @@ export function randomString(l = 10) {
 
 
 export function generateAccountId() {
-    return uuidv4().replace(new RegExp("-", "g"), "")
+    const alphabet = '346789abcdefghjkmnpqrtwxy';
+    const nanoid = customAlphabet(alphabet, 14);
+    return nanoid()
 }

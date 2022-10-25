@@ -7,3 +7,7 @@ methods:
     inputModel: CreateAccountInput
     type: WRITE
     handler: index.createAccount
+
+  - method: deleteAccount
+    type: WRITE
+    handler: index.deleteAccount
