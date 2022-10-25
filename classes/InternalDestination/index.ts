@@ -16,11 +16,12 @@ export async function authorizer(data: InternalDestinationData): Promise<Respons
     let canSendEvent = false
 
     if (["Product", "CatalogSettings", "ProductSettings"].includes(data.context.identity)) {
-        if (data.context.identity === "Product" && data.context.userId.split("-").shift() === data.context.instanceId) {
-            canSendEvent = true
-        } else {
-            canSendEvent = true
+        if (data.context.identity === "Product" && data.context.userId.split("-").shift() !== data.context.instanceId) {
+            return {statusCode: 401}
+        } else if (data.context.userId !== data.context.instanceId) {
+            return {statusCode: 401}
         }
+        canSendEvent = true
     }
 
     if ([
@@ -37,7 +38,7 @@ export async function authorizer(data: InternalDestinationData): Promise<Respons
             }
             break
         case 'DESTROY':
-            if(data.context.identity === "AccountManager"){
+            if (data.context.identity === "AccountManager") {
                 return {statusCode: 200}
             }
             break

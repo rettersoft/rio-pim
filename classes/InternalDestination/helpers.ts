@@ -28,32 +28,32 @@ export async function sendWebhookEvent(webhook: Webhook, event: InternalDestinat
             case WebhookEventType.Product:
                 url = webhook.handlers.product
                 break
-            case WebhookEventType.AttributeGroups:
-                url = webhook.handlers.attributeGroups
+            case WebhookEventType.AttributeGroup:
+                url = webhook.handlers.attributeGroup
                 break
-            case WebhookEventType.AttributeOptions:
-                url = webhook.handlers.attributeOptions
+            case WebhookEventType.AttributeOption:
+                url = webhook.handlers.attributeOption
                 break
-            case WebhookEventType.Attributes:
-                url = webhook.handlers.attributes
+            case WebhookEventType.Attribute:
+                url = webhook.handlers.attribute
                 break
-            case WebhookEventType.Categories:
-                url = webhook.handlers.categories
+            case WebhookEventType.Category:
+                url = webhook.handlers.category
                 break
-            case WebhookEventType.Channels:
-                url = webhook.handlers.channels
+            case WebhookEventType.Channel:
+                url = webhook.handlers.channel
                 break
             case WebhookEventType.Currencies:
                 url = webhook.handlers.currencies
                 break
-            case WebhookEventType.Families:
-                url = webhook.handlers.families
+            case WebhookEventType.Family:
+                url = webhook.handlers.family
                 break
-            case WebhookEventType.GroupTypes:
-                url = webhook.handlers.groupTypes
+            case WebhookEventType.GroupType:
+                url = webhook.handlers.groupType
                 break
-            case WebhookEventType.Groups:
-                url = webhook.handlers.groups
+            case WebhookEventType.Group:
+                url = webhook.handlers.group
                 break
             case WebhookEventType.Locales:
                 url = webhook.handlers.locales
