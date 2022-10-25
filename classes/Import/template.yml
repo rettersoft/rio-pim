@@ -23,5 +23,17 @@ methods:
     handler: index.getImportProfileExecutions
 
   - method: startImport
-    type: WRITE
+    type: READ
     handler: index.startImport
+
+  - method: executeImport
+    type: WRITE
+    handler: index.executeImport
+
+  - method: getExecution
+    type: READ
+    handler: index.getExecution
+
+  - method: getUploadedFile
+    type: READ
+    handler: index.getUploadedFile

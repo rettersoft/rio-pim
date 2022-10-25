@@ -81,10 +81,13 @@ export type JobStatus = Z.infer<typeof JobStatus>
 
 export const Job = Z.object({
     uid: Z.string().min(32).max(32),
+    code: Code,
+    connector: ImportConnectors,
     status: JobStatus,
-    total: Z.number().min(0),
+    total: Z.number().min(0).optional(),
     processed: Z.number().min(0),
     failed: Z.number().min(0),
+    failReason: Z.string().optional(),
     startedAt: Z.preprocess((arg) => {
         if (typeof arg === "string") return new Date(arg)
     }, Z.date()),

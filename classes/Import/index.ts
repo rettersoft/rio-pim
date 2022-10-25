@@ -1,19 +1,31 @@
-import {Data, Response} from "@retter/rdk";
-import {AccountIDInput} from "./rio";
+import RDK, {Data, Response} from "@retter/rdk";
+import {AccountIDInput, Classes} from "./rio";
 import {
     Code,
-    GlobalProductImportSettings, GlobalProductModelImportSettings,
+    GlobalProductImportSettings,
+    GlobalProductModelImportSettings,
     ImportConnectors,
     ImportJobs,
     ImportProfile,
+    Job,
     JobStatus,
     ProductImportCSVSettings,
     ProductImportXLSXSettings,
     ProductModelImportCSVSettings,
     ProductModelImportXLSXSettings
 } from "./models";
-import RDK from "@retter/rdk";
-import {getExecutionPartKey} from "./helpers";
+import {
+    generateJobId,
+    getCurrentExecution,
+    getExecutionsByJobCode,
+    getImportFileName,
+    getJobFromDB,
+    getJobPartKey,
+    lockExecution,
+    saveJobToDB,
+    unlockExecution
+} from "./helpers";
+
 const rdk = new RDK();
 
 export interface ImportPrivateState {
@@ -21,21 +33,13 @@ export interface ImportPrivateState {
 }
 
 export interface ImportPublicState {
-    runningJob?: {
-        code: string
-        startedAt: string
-        status: JobStatus
-        total: number
-        processed: number
-        failed: number
-    }
 }
 
 export type ImportData<Input = any, Output = any> = Data<Input, Output, ImportPublicState, ImportPrivateState>
 
 export async function authorizer(data: ImportData): Promise<Response> {
     const isDeveloper = data.context.identity === "developer"
-    const isThisClassInstance =  data.context.identity === 'Import' && data.context.userId === data.context.instanceId
+    const isThisClassInstance = data.context.identity === 'Import' && data.context.userId === data.context.instanceId
 
     if (isDeveloper) {
         return {statusCode: 200}
@@ -46,19 +50,22 @@ export async function authorizer(data: ImportData): Promise<Response> {
         "deleteImportProfile",
         "getImportProfiles",
         "getImportProfileExecutions",
-        "startImport"
+        "startImport",
+        "executeImport",
+        "getExecution",
+        "getUploadedFile",
     ].includes(data.context.methodName)) {
         return {statusCode: 200}
     }
 
     switch (data.context.methodName) {
         case 'executeImport':
-            if(isThisClassInstance){
+            if (isThisClassInstance) {
                 return {statusCode: 200}
             }
             break
         case 'DESTROY':
-            if(data.context.identity === "AccountManager"){
+            if (data.context.identity === "AccountManager") {
                 return {statusCode: 200}
             }
             break
@@ -226,13 +233,27 @@ export async function deleteImportProfile(data: ImportData): Promise<ImportData>
         return data
     }
 
-    const dbResults = await rdk.queryDatabase({
-        partKey: getExecutionPartKey(data.context.instanceId, codeResult.data),
-        reverse: true
-    })
+    const executions = await getExecutionsByJobCode(data.context.instanceId, codeResult.data)
 
-    if(dbResults && dbResults.data && dbResults.data.items){
-        //TODO delete execution
+    const currentExecution = await getCurrentExecution()
+    if (currentExecution && currentExecution.code === codeResult.data) {
+        await unlockExecution()
+    }
+
+    try {
+        if (executions.length) {
+            const workers = []
+            for (const execution of executions) {
+                workers.push(rdk.removeFromDatabase({
+                    partKey: getJobPartKey(data.context.instanceId, execution.code),
+                    sortKey: execution.uid
+                }))
+                workers.push(rdk.deleteFile({filename: getImportFileName(data.context.instanceId, execution.code, execution.uid, execution.connector)}))
+            }
+            await Promise.all(workers)
+        }
+    } catch (e) {
+        console.log(e)
     }
 
     data.state.private.profiles = data.state.private.profiles.filter(p => p.code !== codeResult.data)
@@ -274,63 +295,269 @@ export async function getImportProfileExecutions(data: ImportData): Promise<Impo
         return data
     }
 
-    const results = await rdk.queryDatabase({
-        partKey: getExecutionPartKey(data.context.instanceId, codeResult.data),
-        reverse: true
-    })
+    let executions = await getExecutionsByJobCode(data.context.instanceId, codeResult.data)
 
     data.response = {
         statusCode: 200,
         body: {
             profile,
-            executions: results.data
+            executions
         }
     }
     return data
 }
 
-export async function startImport(data: ImportData): Promise<ImportData> {
-    if(data.state.public.runningJob){
+
+export async function getExecution(data: ImportData): Promise<ImportData> {
+    const jobId = data.request.body.jobId
+    const jobCode = data.request.body.jobCode
+    if (!jobId || jobId === "") {
         data.response = {
             statusCode: 400,
             body: {
-                message: `Import execution already in use! (${data.state.public.runningJob.code})`
+                message: "Job id is required!",
+            }
+        }
+        return data
+    }
+    if (!jobCode || jobCode === "") {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Job code is required!",
             }
         }
         return data
     }
 
-    // TODO set file - update state -  call execute import
+
+    const result = await getJobFromDB(data.context.instanceId, jobCode, jobId)
+
+    if (!result) {
+        data.response = {
+            statusCode: 404,
+            body: {
+                message: "Job not found!"
+            }
+        }
+        return data
+    }
+
+    data.response = {
+        statusCode: 200,
+        body: result
+    }
+
+    return data
+}
+
+
+export async function startImport(data: ImportData): Promise<ImportData> {
+    const jobCode = Code.safeParse(data.request.body.code)
+    if (jobCode.success === false) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Model validation error!",
+                error: jobCode.error
+            }
+        }
+        return data
+    }
+
+    const currentExecution = await getCurrentExecution()
+
+    if (!!currentExecution) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Execution already in use!"
+            }
+        }
+        return data
+    }
+
+    const jobSettings = data.state.private.profiles.find(p => p.code === jobCode.data)
+    if (!jobSettings) {
+        throw new Error("Job settings not found!")
+    }
+
+    const job: Job = {
+        uid: generateJobId(),
+        status: JobStatus.Enum.RUNNING,
+        connector: jobSettings.connector,
+        code: jobCode.data,
+        startedAt: new Date(),
+        failed: 0,
+        processed: 0,
+    }
+
+    await lockExecution(job)
+    await saveJobToDB(job, data.context.instanceId)
+
+    await rdk.setFile({
+        filename: getImportFileName(data.context.instanceId, jobCode.data, job.uid, job.connector),
+        body: data.request.body.file
+    })
+
+    const result: any = await new Classes.Import(data.context.instanceId).executeImport()
+
+    if (result.statusCode >= 400) {
+        data.response = {
+            statusCode: result.statusCode,
+            body: result.body
+        }
+        job.status = JobStatus.Enum.FAILED
+        await saveJobToDB(job, data.context.instanceId)
+        await unlockExecution()
+        return data
+    }
+
+    data.response = {
+        statusCode: 200,
+        body: job
+    }
 
     return data
 }
 
 export async function executeImport(data: ImportData): Promise<ImportData> {
+    const job: Job = await getCurrentExecution()
 
-    const runningJonDetail = data.state.private.profiles.find(p=>p.code === data.state.public.runningJob.code)
-    if(!runningJonDetail){
-        data.state.public.runningJob = undefined
+    const jobSettings = data.state.private.profiles.find(p => p.code === job.code)
+    if (!jobSettings) {
+        throw new Error("Job settings not found!")
+    }
+
+    try {
+        const importFile = await rdk.getFile({filename: getImportFileName(data.context.instanceId, job.code, job.uid, job.connector)})
+        if (!importFile.success) {
+            throw new Error("Import file not found!")
+        }
+
+        //TODO get imported data as json object
+        switch (jobSettings.connector) {
+            case ImportConnectors.Enum.csv:
+                break
+            case ImportConnectors.Enum.xlsx:
+                break
+            default:
+                throw new Error("invalid job connector!")
+        }
+
+        switch (jobSettings.job) {
+            case ImportJobs.Enum.product_import:
+                break
+            case ImportJobs.Enum.product_model_import:
+                break
+            case ImportJobs.Enum.group_import:
+                break
+            case ImportJobs.Enum.category_import:
+                break
+            case ImportJobs.Enum.attribute_import:
+                break
+            case ImportJobs.Enum.attribute_option_import:
+                break
+            case ImportJobs.Enum.attribute_group_import:
+                break
+            case ImportJobs.Enum.family_import:
+                break
+            case ImportJobs.Enum.family_variant_import:
+                break
+            case ImportJobs.Enum.group_type_import:
+                break
+            default:
+                throw new Error("Invalid job!")
+        }
+
+
+        //TODO imports
+    } catch (e) {
+        job.processed = 0
+        job.failed = job.total
+        job.failReason = e.toString()
+        job.status = JobStatus.Enum.FAILED
+        job.finishedAt = new Date()
+
+        await saveJobToDB(job, data.context.instanceId)
+        await unlockExecution()
+
+        data.response = {
+            statusCode: 200,
+            body: {
+                status: "FAILED",
+                job,
+                message: e.toString()
+            }
+        }
+    }
+
+    return data
+}
+
+export async function getUploadedFile(data: ImportData): Promise<ImportData> {
+    const jobId = data.request.queryStringParams.jobId
+    const jobCode = data.request.queryStringParams.jobCode
+    if (!jobId || jobId === "") {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Job id is required!",
+            }
+        }
+        return data
+    }
+    if (!jobCode || jobCode === "") {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Job code is required!",
+            }
+        }
         return data
     }
 
-    //TODO import file
 
-    switch (data.state.public.runningJob.code) {
-        case ImportJobs.Enum.product_import:
-            break
-        case ImportJobs.Enum.product_model_import:
-            break
-        case ImportJobs.Enum.group_import:
-        case ImportJobs.Enum.category_import:
-        case ImportJobs.Enum.attribute_import:
-        case ImportJobs.Enum.attribute_option_import:
-        case ImportJobs.Enum.attribute_group_import:
-        case ImportJobs.Enum.family_import:
-        case ImportJobs.Enum.family_variant_import:
-        case ImportJobs.Enum.group_type_import:
-            break
-        default:
-            throw new Error("Invalid job!")
+    const jobSettings = data.state.private.profiles.find(p => p.code === jobCode)
+    if (!jobSettings) {
+        throw new Error("Job settings not found!")
+    }
+
+    const jobDetail = await getJobFromDB(data.context.instanceId, jobCode, jobId)
+
+    if (!jobDetail) {
+        data.response = {
+            statusCode: 404,
+            body: {
+                message: "Job detail not found!"
+            }
+        }
+        return data
+    }
+
+    const filename = getImportFileName(data.context.instanceId, jobCode, jobId, jobSettings.connector)
+
+    const file = await rdk.getFile({filename})
+
+    if (!file.success) {
+        data.response = {
+            statusCode: 404,
+            body: {
+                message: "File not found!"
+            }
+        }
+        return data
+    }
+
+    data.response = {
+        statusCode: 200,
+        isBase64Encoded: true,
+        body: file.data.toString("base64"),
+        headers: {
+            "Content-Type": jobSettings.connector === ImportConnectors.Enum.xlsx ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : "text/csv",
+            "Content-Disposition": `attachment; filename="${filename}"`
+        }
+
     }
 
     return data
