@@ -22,7 +22,7 @@ export function randomString(l = 10) {
 
 
 export function checkUpdateToken(data: ProductData) {
-    if (data.state.private.updateToken !== data.request.body.updateToken) {
+    if (data.context.identity !== "API" && data.state.private.updateToken !== data.request.body.updateToken) {
         throw new Error("Invalid update token. Please, refresh your page and try again!")
     }
 }

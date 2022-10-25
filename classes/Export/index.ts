@@ -509,9 +509,9 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
                 const products = await getAllProducts(data.context.instanceId)
                 const preparedData = []
                 products.forEach(product => {
-                    const productAttributeValues = {}
+                    const productAttributeValues = {};
 
-                    product.data.attributes.forEach((productAttribute) => {
+                    (product.data.attributes || []).forEach((productAttribute) => {
                         const attributeSettings: AttributeSettings = getProductsSettingsResult.body.productSettings.attributes.find(a => a.code === productAttribute.code)
                         const globalSettings: GlobalProductModelExportSettings = jobSettings.globalSettings
 
@@ -551,9 +551,9 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
                 const productModels = await getAllProductModels(data.context.instanceId)
                 const preparedDataForProductModel = []
                 productModels.forEach(productModel => {
-                    const productModelAttributeValues = {}
+                    const productModelAttributeValues = {};
 
-                    productModel.data.attributes.forEach(attribute => {
+                    (productModel.data.attributes || []).forEach(attribute => {
                         const attributeSettings: AttributeSettings = getProductsSettingsResult.body.productSettings.attributes.find(a => a.code === attribute)
                         const globalSettings: GlobalProductModelExportSettings = jobSettings.globalSettings
 

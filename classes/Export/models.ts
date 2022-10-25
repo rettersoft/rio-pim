@@ -136,7 +136,7 @@ export interface ProductItem {
         sku: string
         family: string
         enabled: boolean
-        attributes: { code: string, data: ProductAttributeItem[] }[]
+        attributes?: { code: string, data: ProductAttributeItem[] }[]
         categories: any[]
         groups: any[]
     }
@@ -153,7 +153,7 @@ export interface ProductModelItem {
         code: string
         family: string
         variant: string
-        attributes: { code: string, data: ProductAttributeItem[] }[]
+        attributes?: { code: string, data: ProductAttributeItem[] }[]
         categories: any[]
     }
     meta: {

@@ -8,14 +8,12 @@ import {
     FamilyVariant,
     IDENTIFIER,
     IMAGE,
-    MULTISELECT,
     NUMBER,
     PimValidationRules,
     PRICE,
     Product,
     ProductAttribute,
     ProductModel,
-    SIMPLESELECT,
     TEXT,
     TEXTAREA
 } from "./models";
@@ -356,6 +354,14 @@ export async function checkProductModelVariant(props: {
     const product = ModelsRepository.getProduct(props.data)
 
     if (product.attributes !== undefined) {
+        for (const productAttribute of product.attributes) {
+            if (parentProductFamilyVariantSettings.axes.find(a => a === productAttribute.code)) {
+                throw new Error(`You can not edit an axe in the attributes! (${productAttribute.code})`)
+            }
+            if (!parentProductFamilyVariantSettings.attributes.find(a => a === productAttribute.code)) {
+                throw new Error(`You can not edit common attributes in a variant! (${productAttribute.code})`)
+            }
+        }
         await validateProductAttributes({
             accountId: props.accountId,
             productAttributes: product.attributes,
@@ -401,12 +407,6 @@ export async function checkVariantAxesForInit(props: {
                 const selectOptions: AttributeOption | undefined = props.productSettings.attributeOptions.find(opt => opt.code === axeValue.axe)
                 if (!selectOptions?.options.find(so => so.code === axeValue.value)) throw new Error("Invalid axe value!")
             }
-        }
-    }
-
-    for (const parentAttribute of props.parentProductModel.attributes) {
-        if (props.childProduct.attributes.findIndex(a => a.code === parentAttribute.code) !== -1) {
-            throw new Error(`You can not use parent attribute in a variant! (${parentAttribute.code})`)
         }
     }
 

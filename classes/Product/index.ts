@@ -77,7 +77,7 @@ export async function authorizer(data: ProductData): Promise<Response> {
         case 'GET':
             return {statusCode: 200}
         case 'INIT':
-            if (data.context.identity === "system_user" || isDeveloper) {
+            if (isDeveloper || ["system_user", "API"].includes(data.context.identity)) {
                 return {statusCode: 200}
             }
             break
@@ -206,6 +206,17 @@ export async function init(data: ProductData): Promise<ProductData> {
         },
     })
 
+    data.response = {
+        statusCode: 200,
+        body: {
+            meta: {
+                createdAt: data.state.private.createdAt,
+                updatedAt: data.state.private.updatedAt,
+                updateToken: data.state.private.updateToken
+            }
+        }
+    }
+
     return data
 }
 
@@ -262,7 +273,9 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
 
     checkUpdateToken(data)
 
-    await middleware.checkUserRole({accountId, userId: data.context.userId, identity: data.context.identity})
+    if (data.context.identity !== "AccountManager" && data.context.identity !== "API") {
+        await middleware.checkUserRole({accountId, userId: data.context.userId, identity: data.context.identity})
+    }
 
     const dataType = ModelsRepository.getDataType(data.request.body.dataType)
 
@@ -321,6 +334,17 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
         },
     })
 
+    data.response = {
+        statusCode: 200,
+        body: {
+            meta: {
+                createdAt: data.state.private.createdAt,
+                updatedAt: data.state.private.updatedAt,
+                updateToken: data.state.private.updateToken
+            }
+        }
+    }
+
     return data
 }
 
@@ -338,14 +362,14 @@ export async function deleteInstance(data: ProductData): Promise<ProductData> {
 
 export async function destroy(data: ProductData): Promise<ProductData> {
 
-    if (data.context.identity !== "AccountManager") {
-        const middlewarePackage = new MiddlewarePackage();
-        await middlewarePackage.checkUserRole({
+    if (data.context.identity !== "AccountManager" && data.context.identity !== "API") {
+        await middleware.checkUserRole({
             accountId: getProductClassAccountId(data),
             userId: data.context.userId,
             identity: data.context.identity
         })
     }
+
     const workers: Array<Promise<any>> = []
     for (const savedImage of data.state.private.savedImages) {
         workers.push(rdk.deleteFile({filename: savedImage}))

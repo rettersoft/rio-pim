@@ -15,12 +15,11 @@ export async function authorizer(data: InternalDestinationData): Promise<Respons
     const isDeveloper = data.context.identity === "developer"
     let canSendEvent = false
 
-    if (["Product", "CatalogSettings", "ProductSettings"].includes(data.context.identity)) {
-        if (data.context.identity === "Product" && data.context.userId.split("-").shift() !== data.context.instanceId) {
-            return {statusCode: 401}
-        } else if (data.context.userId !== data.context.instanceId) {
-            return {statusCode: 401}
-        }
+    if (data.context.identity === "Product" && data.context.userId.split("-").shift() === data.context.instanceId) {
+        canSendEvent = true
+    }
+
+    if (["CatalogSettings", "ProductSettings"].includes(data.context.identity) && data.context.userId === data.context.instanceId) {
         canSendEvent = true
     }
 

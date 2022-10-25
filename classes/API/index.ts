@@ -31,28 +31,12 @@ export async function authorizer(data: APIData): Promise<Response> {
         "upsertProduct",
         "deleteProduct",
     ].includes(data.context.methodName)) {
-        if ((data.state.private.apiKeys || []).findIndex(a => a.apiKey === data.request.headers["x-pim-api-key"]) !== -1) {
-            return {statusCode: 200}
-        } else if ([
-            "AccountManager",
-            "CatalogSettings",
-            "Export",
-            "Import",
-            "InternalDestination",
-            "Product",
-            "ProductSettings",
-            "System",
-            "SystemUser"
-        ]) {
-            return {statusCode: 200}
-        } else {
-            return {statusCode: 401}
-        }
+        return {statusCode: 200}
     }
 
     switch (data.context.methodName) {
         case 'DESTROY':
-            if(data.context.identity === "AccountManager"){
+            if (data.context.identity === "AccountManager") {
                 return {statusCode: 200}
             }
             break
