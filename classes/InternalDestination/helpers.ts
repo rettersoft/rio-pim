@@ -71,7 +71,7 @@ export async function sendWebhookEvent(webhook: Webhook, event: InternalDestinat
             url,
             method: "post",
             headers: {
-                "x-pim-api-key": webhook.apiKey
+                "x-api-key": webhook.apiKey
             },
             data: event
         })

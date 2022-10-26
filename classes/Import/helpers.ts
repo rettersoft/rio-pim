@@ -16,17 +16,14 @@ export function generateJobId() {
     return Date.now().toString(36)
 }
 
-export async function json2XLSX(json: object[]): Promise<Buffer> {
-    const workbook = XLSX.utils.book_new()
-    const worksheet = XLSX.utils.json_to_sheet(json, {})
-    XLSX.utils.book_append_sheet(workbook, worksheet)
-    return XLSX.write(workbook, {type: "buffer"})
+export async function XLSX2Json(data: Buffer) {
+    const workbook = XLSX.read(data)
+    return XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]])
 }
 
-export async function json2CSV(json: object[]): Promise<Buffer> {
-    const worksheet = XLSX.utils.json_to_sheet(json, {})
-    const result = XLSX.utils.sheet_to_csv(worksheet, {})
-    return Buffer.from(result)
+export async function CSV2Json(data: Buffer) {
+    const workbook = XLSX.read(data)
+    return XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]])
 }
 
 export async function getCurrentExecution(): Promise<Job> {

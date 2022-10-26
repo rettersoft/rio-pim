@@ -22,7 +22,8 @@ import {
     getAllProductModels,
     getAllProducts,
     getCatalogSettings,
-    getCurrentExecution, getExecutionsByJobCode,
+    getCurrentExecution,
+    getExecutionsByJobCode,
     getExportFileName,
     getJobFromDB,
     getJobPartKey,
@@ -67,12 +68,12 @@ export async function authorizer(data: ExportData): Promise<Response> {
 
     switch (data.context.methodName) {
         case 'executeExport':
-            if(isThisClassInstance){
+            if (isThisClassInstance) {
                 return {statusCode: 200}
             }
             break
         case 'DESTROY':
-            if(data.context.identity === "AccountManager"){
+            if (data.context.identity === "AccountManager") {
                 return {statusCode: 200}
             }
             break
@@ -259,7 +260,7 @@ export async function upsertExportProfile(data: ExportData): Promise<ExportData>
                 }
                 return data
             }
-            if(result.data.globalSettings === undefined){
+            if (result.data.globalSettings === undefined) {
                 result.data.globalSettings = {
                     content: exportProfileContentResultForProduct.data
                 }
@@ -317,7 +318,7 @@ export async function upsertExportProfile(data: ExportData): Promise<ExportData>
                 }
                 return data
             }
-            if(result.data.globalSettings === undefined){
+            if (result.data.globalSettings === undefined) {
                 result.data.globalSettings = {
                     content: exportProfileContentResultForProductModel.data
                 }
@@ -391,7 +392,7 @@ export async function deleteExportProfile(data: ExportData): Promise<ExportData>
     const executions = await getExecutionsByJobCode(data.context.instanceId, codeResult.data)
 
     const currentExecution = await getCurrentExecution()
-    if(currentExecution && currentExecution.code === codeResult.data){
+    if (currentExecution && currentExecution.code === codeResult.data) {
         await unlockExecution()
     }
 
@@ -399,7 +400,10 @@ export async function deleteExportProfile(data: ExportData): Promise<ExportData>
         if (executions.length) {
             const workers = []
             for (const execution of executions) {
-                workers.push(rdk.removeFromDatabase({partKey: getJobPartKey(data.context.instanceId, execution.code), sortKey: execution.uid}))
+                workers.push(rdk.removeFromDatabase({
+                    partKey: getJobPartKey(data.context.instanceId, execution.code),
+                    sortKey: execution.uid
+                }))
                 workers.push(rdk.deleteFile({filename: getExportFileName(data.context.instanceId, execution.code, execution.uid, execution.connector)}))
             }
             await Promise.all(workers)
@@ -468,7 +472,7 @@ export async function startExport(data: ExportData): Promise<ExportData> {
 
     const result = await new Classes.Export(data.context.instanceId).executeExport()
 
-    if(result.statusCode>=400){
+    if (result.statusCode >= 400) {
         data.response = {
             statusCode: result.statusCode,
             body: result.body
@@ -517,19 +521,19 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
 
                         if (attributeSettings.localizable && attributeSettings.scopable) {
                             globalSettings.content.locales.forEach(locale => {
-                                productAttributeValues[`${productAttribute.code}-${globalSettings.content.channel}-${locale}`] =
+                                productAttributeValues[`attribute-${productAttribute.code}-${globalSettings.content.channel}-${locale}`] =
                                     productAttribute.data.find(d => d.locale === locale && d.scope === globalSettings.content.channel)?.value
                             })
                         } else if (attributeSettings.localizable && !attributeSettings.scopable) {
                             globalSettings.content.locales.forEach(locale => {
-                                productAttributeValues[`${productAttribute.code}-${locale}`] =
+                                productAttributeValues[`attribute-${productAttribute.code}-${locale}`] =
                                     productAttribute.data.find(d => d.locale === locale)?.value
                             })
                         } else if (!attributeSettings.localizable && attributeSettings.scopable) {
-                            productAttributeValues[`${productAttribute.code}-${globalSettings.content.channel}`] =
+                            productAttributeValues[`attribute-${productAttribute.code}-${globalSettings.content.channel}`] =
                                 productAttribute.data.find(d => d.scope === globalSettings.content.channel)?.value
                         } else {
-                            productAttributeValues[`${productAttribute.code}`] =
+                            productAttributeValues[`attribute-${productAttribute.code}`] =
                                 productAttribute.data.find(d => d.value !== undefined)?.value
                         }
                     })
@@ -559,19 +563,19 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
 
                         if (attributeSettings.localizable && attributeSettings.scopable) {
                             globalSettings.content.locales.forEach(locale => {
-                                productModelAttributeValues[`${attribute}-${globalSettings.content.channel}-${locale}`] =
+                                productModelAttributeValues[`attribute-${attribute}-${globalSettings.content.channel}-${locale}`] =
                                     attribute.data.find(d => d.locale === locale && d.scope === globalSettings.content.channel)?.value
                             })
                         } else if (attributeSettings.localizable && !attributeSettings.scopable) {
                             globalSettings.content.locales.forEach(locale => {
-                                productModelAttributeValues[`${attribute}-${locale}`] =
+                                productModelAttributeValues[`attribute-${attribute}-${locale}`] =
                                     attribute.data.find(d => d.locale === locale)?.value
                             })
                         } else if (!attributeSettings.localizable && attributeSettings.scopable) {
-                            productModelAttributeValues[`${attribute}-${globalSettings.content.channel}`] =
+                            productModelAttributeValues[`attribute-${attribute}-${globalSettings.content.channel}`] =
                                 attribute.data.find(d => d.scope === globalSettings.content.channel)?.value
                         } else {
-                            productModelAttributeValues[`${attribute}`] =
+                            productModelAttributeValues[`attribute-${attribute}`] =
                                 attribute.data.find(d => d.value !== undefined)?.value
                         }
                     })
@@ -626,7 +630,9 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
                             obj[`label-${al.locale}`] = al.value
                         })
                     }
-                    dat.push(obj)
+                    if(a.code !== "sku"){
+                        dat.push(obj)
+                    }
                 })
                 fileData = dat
                 job.total = fileData.length

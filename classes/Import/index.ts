@@ -1,20 +1,26 @@
 import RDK, {Data, Response} from "@retter/rdk";
 import {AccountIDInput, Classes} from "./rio";
 import {
-    Code,
+    AttributeGroupImportItem,
+    AttributeOptionImportItem,
+    BaseAttributeImportModel,
+    CategoryImportItem,
+    Code, FamilyImportItem, FamilyVariantImportItem,
     GlobalProductImportSettings,
-    GlobalProductModelImportSettings,
+    GlobalProductModelImportSettings, GroupImportItem, GroupTypeImportItem,
     ImportConnectors,
     ImportJobs,
     ImportProfile,
     Job,
     JobStatus,
     ProductImportCSVSettings,
+    ProductImportItem,
     ProductImportXLSXSettings,
-    ProductModelImportCSVSettings,
+    ProductModelImportCSVSettings, ProductModelImportItem,
     ProductModelImportXLSXSettings
 } from "./models";
 import {
+    CSV2Json,
     generateJobId,
     getCurrentExecution,
     getExecutionsByJobCode,
@@ -23,7 +29,8 @@ import {
     getJobPartKey,
     lockExecution,
     saveJobToDB,
-    unlockExecution
+    unlockExecution,
+    XLSX2Json
 } from "./helpers";
 
 const rdk = new RDK();
@@ -435,43 +442,121 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
             throw new Error("Import file not found!")
         }
 
-        //TODO get imported data as json object
+        let importData: any[] = [];
         switch (jobSettings.connector) {
             case ImportConnectors.Enum.csv:
+                importData = await CSV2Json(importFile.data)
                 break
             case ImportConnectors.Enum.xlsx:
+                importData = await XLSX2Json(importFile.data)
                 break
             default:
                 throw new Error("invalid job connector!")
         }
 
-        switch (jobSettings.job) {
-            case ImportJobs.Enum.product_import:
-                break
-            case ImportJobs.Enum.product_model_import:
-                break
-            case ImportJobs.Enum.group_import:
-                break
-            case ImportJobs.Enum.category_import:
-                break
-            case ImportJobs.Enum.attribute_import:
-                break
-            case ImportJobs.Enum.attribute_option_import:
-                break
-            case ImportJobs.Enum.attribute_group_import:
-                break
-            case ImportJobs.Enum.family_import:
-                break
-            case ImportJobs.Enum.family_variant_import:
-                break
-            case ImportJobs.Enum.group_type_import:
-                break
-            default:
-                throw new Error("Invalid job!")
+        job.total = importData.length
+
+        if (importData.length) {
+            switch (jobSettings.job) {
+                case ImportJobs.Enum.product_import:
+                    for (const item of importData) {
+                        const itemModel = ProductImportItem.safeParse(item)
+                        if (itemModel.success === false) {
+                            job.failed += 1
+                        }
+                    }
+                    break
+                case ImportJobs.Enum.product_model_import:
+                    for (const item of importData) {
+                        const itemModel = ProductModelImportItem.safeParse(item)
+                        if (itemModel.success === false) {
+                            job.failed += 1
+                        }
+                    }
+                    break
+                case ImportJobs.Enum.group_type_import:
+                    for (const item of importData) {
+                        const itemModel = GroupTypeImportItem.safeParse(item)
+                        if (itemModel.success === false) {
+                            job.failed += 1
+                        }
+                    }
+                    break
+                case ImportJobs.Enum.group_import:
+                    for (const item of importData) {
+                        const itemModel = GroupImportItem.safeParse(item)
+                        if (itemModel.success === false) {
+                            job.failed += 1
+                        }
+                    }
+                    break
+                case ImportJobs.Enum.category_import:
+                    for (const item of importData) {
+                        const itemModel = CategoryImportItem.safeParse(item)
+                        if (itemModel.success === false) {
+                            job.failed += 1
+                        }
+                    }
+                    break
+                case ImportJobs.Enum.attribute_import:
+                    for (const item of importData) {
+                        const itemModel = BaseAttributeImportModel.safeParse(item)
+                        if (itemModel.success === false) {
+                            job.failed += 1
+                        }
+                    }
+                    break
+                case ImportJobs.Enum.attribute_option_import:
+                    for (const item of importData) {
+                        const itemModel = AttributeOptionImportItem.safeParse(item)
+                        if (itemModel.success === false) {
+                            job.failed += 1
+                        }
+                    }
+                    break
+                case ImportJobs.Enum.attribute_group_import:
+                    for (const item of importData) {
+                        const itemModel = AttributeGroupImportItem.safeParse(item)
+                        if (itemModel.success === false) {
+                            job.failed += 1
+                        }
+                    }
+                    break
+                case ImportJobs.Enum.family_import:
+                    for (const item of importData) {
+                        const itemModel = FamilyImportItem.safeParse(item)
+                        if (itemModel.success === false) {
+                            job.failed += 1
+                        }
+                    }
+                    break
+                case ImportJobs.Enum.family_variant_import:
+                    for (const item of importData) {
+                        const itemModel = FamilyVariantImportItem.safeParse(item)
+                        if (itemModel.success === false) {
+                            job.failed += 1
+                        }
+                    }
+                    break
+                default:
+                    throw new Error("Invalid job!")
+            }
+
+        } else {
+            job.status = JobStatus.Enum.DONE
+            job.finishedAt = new Date()
         }
 
+        await saveJobToDB(job, data.context.instanceId)
+        await unlockExecution()
 
-        //TODO imports
+        data.response = {
+            statusCode: 200,
+            body: {
+                job
+            }
+        }
+
     } catch (e) {
         job.processed = 0
         job.failed = job.total
