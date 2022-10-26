@@ -18,7 +18,7 @@ export async function toggleCurrency(data: CatalogSettingsData): Promise<Catalog
         return data
     }
 
-    if(!data.state.public.enabledCurrencies) data.state.public.enabledCurrencies = []
+    if (!data.state.public.enabledCurrencies) data.state.public.enabledCurrencies = []
 
     const isEnabled = data.state.public.enabledCurrencies.includes(currencyId)
 
@@ -39,8 +39,8 @@ export async function toggleCurrency(data: CatalogSettingsData): Promise<Catalog
     data.state.public.updateToken = randomString()
 
     await sendEvent(data.context.instanceId, {
-        eventDocument: data.state.public.enabledCurrencies,
-        eventDocumentId: data.context.instanceId + "-" + "CURRENCIES",
+        eventDocument: {currencies: data.state.public.enabledCurrencies},
+        eventDocumentId: data.context.instanceId,
         eventOperation: WebhookEventOperation.Update,
         eventType: WebhookEventType.Currencies
     })

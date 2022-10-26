@@ -18,7 +18,7 @@ export async function toggleLocale(data: CatalogSettingsData): Promise<CatalogSe
         return data
     }
 
-    if(!data.state.public.enabledLocales) data.state.public.enabledLocales = []
+    if (!data.state.public.enabledLocales) data.state.public.enabledLocales = []
 
     const isEnabled = data.state.public.enabledLocales.includes(localeId)
 
@@ -39,8 +39,8 @@ export async function toggleLocale(data: CatalogSettingsData): Promise<CatalogSe
     data.state.public.updateToken = randomString()
 
     await sendEvent(data.context.instanceId, {
-        eventDocument: data.state.public.enabledLocales,
-        eventDocumentId: data.context.instanceId + "-" + "LOCALES",
+        eventDocument: {locales: data.state.public.enabledLocales},
+        eventDocumentId: data.context.instanceId,
         eventOperation: WebhookEventOperation.Update,
         eventType: WebhookEventType.Locales
     })
