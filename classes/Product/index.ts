@@ -151,7 +151,7 @@ export async function init(data: ProductData): Promise<ProductData> {
                     productSettings
                 })
 
-                await checkVariantAxesForInit({
+                const checkSumAxesValues = await checkVariantAxesForInit({
                     accountId,
                     axesValues: data.request.body.axesValues,
                     childProduct: checkSum.childProduct,
@@ -161,6 +161,7 @@ export async function init(data: ProductData): Promise<ProductData> {
 
                 source = checkSum.childProduct
                 data.state.private.parent = data.request.body.parent
+                data.state.private.axesValues = checkSumAxesValues
             } else {
                 source = await checkProduct({
                     accountId,
@@ -195,7 +196,7 @@ export async function init(data: ProductData): Promise<ProductData> {
         method: WebhookEventOperation.Create,
         type: data.state.private.dataType === DataType.Enum.PRODUCT ? WebhookEventType.Product : WebhookEventType.ProductModel,
         source: {
-            axesValues: dataType === DataType.Enum.PRODUCT && data.request.body.parent ? data.request.body.axesValues : [],
+            axesValues: data.state.private.axesValues,
             parent: data.state.private.parent,
             dataType: data.state.private.dataType,
             data: source,
@@ -255,6 +256,7 @@ export async function getProduct(data: ProductData): Promise<ProductData<any, Ge
     data.response = {
         statusCode: 200,
         body: {
+            axesValues: data.state.private.axesValues,
             dataType: data.state.private.dataType,
             parent: data.state.private.parent,
             data: sourceData,
@@ -324,6 +326,7 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
         method: WebhookEventOperation.Update,
         type: data.state.private.dataType === DataType.Enum.PRODUCT ? WebhookEventType.Product : WebhookEventType.ProductModel,
         source: {
+            axesValues: data.state.private.axesValues,
             parent: data.state.private.parent,
             dataType: data.state.private.dataType,
             data: data.state.private.dataSource,

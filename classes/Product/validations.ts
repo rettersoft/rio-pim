@@ -1,6 +1,6 @@
 import {
     AttributeOption,
-    AttributeTypes,
+    AttributeTypes, AxesValuesList,
     BaseAttribute,
     BOOLEAN,
     DATE,
@@ -383,7 +383,7 @@ export async function checkProductModelVariant(props: {
 export async function checkVariantAxesForInit(props: {
     accountId: string, axesValues: any[], parentProductModel: ProductModel, childProduct: Product,
     productSettings: GetProductsSettingsResult
-}): Promise<void> {
+}): Promise<AxesValuesList> {
     const axesValues = ModelsRepository.getAxesValuesList(props.axesValues)
 
     const variantSettings: FamilyVariant = props.productSettings.families.find(f => f.code === props.parentProductModel.family).variants.find(v => v.code === props.parentProductModel.variant)
@@ -418,4 +418,6 @@ export async function checkVariantAxesForInit(props: {
     if (axesSet.success) {
         throw new Error("These axes are already in use!")
     }
+
+    return axesValues
 }
