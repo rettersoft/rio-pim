@@ -5,7 +5,7 @@ getState: index.getState
 getInstanceId: index.getInstanceId
 authorizer: index.authorizer
 dependencies:
-  - ConstantsPackage
+  - PIMModelsPackage
 methods:
 
   - method: upsertExportProfile

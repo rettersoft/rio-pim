@@ -1,18 +1,11 @@
 import {ProductSettingsData} from "./index";
 import {checkUpdateToken, randomString, sendEvent} from "./helpers";
-import {Code, Family, FamilyVariant} from "./models";
-import {
-    getAttribute,
-    isAxisAttribute,
-    isFamilyAttributeLabel,
-    RESERVED_ID_ATTRIBUTE_CODE
-} from "./attributes.repository";
+import {getAttribute, isAxisAttribute, isFamilyAttributeLabel,} from "./attributes.repository";
 import {ALLOWED_AXE_TYPES} from "./families.repository";
 import {Classes, WebhookEventOperation, WebhookEventType} from "./rio";
+import {Code, Families, Family, FamilyVariant, FamilyVariants, RESERVED_ID_ATTRIBUTE_CODE} from "PIMModelsPackage";
 import API = Classes.API;
 
-
-//TODO check product relationships for all methods
 
 export async function createFamily(data: ProductSettingsData): Promise<ProductSettingsData> {
     checkUpdateToken(data)
@@ -97,6 +90,85 @@ export async function updateFamily(data: ProductSettingsData): Promise<ProductSe
         eventOperation: WebhookEventOperation.Update,
         eventType: WebhookEventType.Family
     })
+
+    return data
+}
+
+export async function upsertFamilies(data: ProductSettingsData): Promise<ProductSettingsData> {
+    checkUpdateToken(data)
+    const result = Families.safeParse(data.request.body.families)
+
+    if (result.success === false) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Model validation fail!",
+                error: result.error
+            }
+        }
+        return data
+    }
+
+    result.data.forEach(family => {
+        const oldIndex = data.state.public.families.findIndex(f => f.code === family.code)
+        if (oldIndex === -1) {
+            data.state.public.families.push(family)
+        } else {
+            // don't update variants
+            data.state.public.families[oldIndex].label = family.label
+            data.state.public.families[oldIndex].attributes = family.attributes
+            data.state.public.families[oldIndex].attributeAsImage = family.attributeAsImage
+            data.state.public.families[oldIndex].attributeAsLabel = family.attributeAsLabel
+        }
+    })
+
+
+    data.state.public.updateToken = randomString()
+
+
+    return data
+}
+
+export async function upsertFamilyVariants(data: ProductSettingsData): Promise<ProductSettingsData> {
+    checkUpdateToken(data)
+    const result = FamilyVariants.safeParse(data.request.body.variants)
+    if (result.success === false) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Model validation fail!",
+                error: result.error
+            }
+        }
+        return data
+    }
+
+    const familyCode = Code.safeParse(data.request.body.code)
+    if (familyCode.success === false) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Model validation fail!",
+                error: familyCode.error
+            }
+        }
+        return data
+    }
+
+    const familyIndex = data.state.public.families.findIndex(f => f.code = familyCode.data)
+
+    result.data.forEach(familyVariant => {
+        const oldIndex = data.state.public.families[familyIndex].variants.findIndex(v => v.code === familyVariant.code)
+        if (oldIndex === -1) {
+            data.state.public.families[familyIndex].variants.push(familyVariant)
+        } else {
+            data.state.public.families[familyIndex].variants[oldIndex] = familyVariant
+        }
+    })
+
+
+    data.state.public.updateToken = randomString()
+
 
     return data
 }
@@ -514,7 +586,10 @@ export async function deleteVariant(data: ProductSettingsData): Promise<ProductS
     }
 
     const api = await API.getInstance({instanceId: data.context.instanceId})
-    const response = await api.getProducts({pageSize: 1, filters: {family: familyCodeResult.data, variant: familyVariantCodeResult.data}})
+    const response = await api.getProducts({
+        pageSize: 1,
+        filters: {family: familyCodeResult.data, variant: familyVariantCodeResult.data}
+    })
 
     if (response.body.totalProducts > 0) {
         data.response = {
@@ -611,13 +686,6 @@ export async function updateVariant(data: ProductSettingsData): Promise<ProductS
         eventOperation: WebhookEventOperation.Update,
         eventType: WebhookEventType.Family
     })
-
-    return data
-}
-
-
-export async function listProductVariants(data: ProductSettingsData): Promise<ProductSettingsData> {
-    // TODO get created product variants
 
     return data
 }

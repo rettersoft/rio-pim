@@ -5,7 +5,7 @@ getState: index.getState
 authorizer: index.authorizer
 getInstanceId: index.getInstanceId
 dependencies:
-  - ConstantsPackage
+  - PIMModelsPackage
 methods:
   - method: addAttributeGroup
     type: WRITE
@@ -19,6 +19,10 @@ methods:
     type: WRITE
     handler: attribute-groups.deleteAttributeGroup
 
+  - method: upsertAttributeGroups
+    type: WRITE
+    handler: attribute-groups.upsertAttributeGroups
+
   - method: createAttribute
     type: WRITE
     handler: attributes.createAttribute
@@ -26,6 +30,14 @@ methods:
   - method: updateAttribute
     type: WRITE
     handler: attributes.updateAttribute
+
+  - method: upsertAttributes
+    type: WRITE
+    handler: attributes.upsertAttributes
+
+  - method: upsertAttributeSelectOptions
+    type: WRITE
+    handler: attributes.upsertAttributeSelectOptions
 
   - method: deleteAttribute
     type: WRITE
@@ -46,6 +58,14 @@ methods:
   - method: updateFamily
     type: WRITE
     handler: families.updateFamily
+
+  - method: upsertFamilies
+    type: WRITE
+    handler: families.upsertFamilies
+
+  - method: upsertFamilyVariants
+    type: WRITE
+    handler: families.upsertFamilyVariants
 
   - method: deleteFamily
     type: WRITE
@@ -83,6 +103,10 @@ methods:
     type: WRITE
     handler: groups.updateGroupType
 
+  - method: upsertGroupTypes
+    type: WRITE
+    handler: groups.upsertGroupTypes
+
   - method: deleteGroupType
     type: WRITE
     handler: groups.deleteGroupType
@@ -94,6 +118,10 @@ methods:
   - method: updateGroup
     type: WRITE
     handler: groups.updateGroup
+
+  - method: upsertGroups
+    type: WRITE
+    handler: groups.upsertGroups
 
   - method: deleteGroup
     type: WRITE

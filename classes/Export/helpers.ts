@@ -1,11 +1,32 @@
 import * as XLSX from "xlsx";
 import RDK from "@retter/rdk";
-import {Job, ProductItem, ProductModelItem} from "./models";
 import {Classes, DataType} from "./rio";
+import {ExportJob, Product, ProductModel} from "PIMModelsPackage";
 
 const rdk = new RDK();
 const JOB_PART_KEY_PREFIX = "ExportJob"
 const EXECUTION_LOCK_KEY = "EXPORT_EXECUTION_TASK"
+
+
+export interface ProductItem {
+    parent?: string
+    dataType: string
+    data: Product
+    meta: {
+        createdAt: string,
+        updatedAt: string
+    }
+}
+
+
+export interface ProductModelItem {
+    dataType: string
+    data: ProductModel
+    meta: {
+        createdAt: string,
+        updatedAt: string
+    }
+}
 
 
 export function getJobPartKey(accountId: string, profileCode: string) {
@@ -29,7 +50,7 @@ export async function json2CSV(json: object[]): Promise<Buffer> {
     return Buffer.from(result)
 }
 
-export async function getCurrentExecution(): Promise<Job> {
+export async function getCurrentExecution(): Promise<ExportJob> {
     const res = await rdk.getMemory({key: EXECUTION_LOCK_KEY})
     if (!res.success) {
         return undefined
@@ -38,7 +59,7 @@ export async function getCurrentExecution(): Promise<Job> {
     }
 }
 
-export async function lockExecution(job: Job) {
+export async function lockExecution(job: ExportJob) {
     await rdk.setMemory({key: EXECUTION_LOCK_KEY, value: job})
 }
 
@@ -47,13 +68,13 @@ export async function unlockExecution() {
 }
 
 
-export async function saveJobToDB(job: Job, accountId: string) {
+export async function saveJobToDB(job: ExportJob, accountId: string) {
     await rdk.writeToDatabase({
         data: job, partKey: getJobPartKey(accountId, job.code), sortKey: job.uid
     })
 }
 
-export async function getJobFromDB(accountId: string, jobCode: string, jobId: string): Promise<Job | undefined> {
+export async function getJobFromDB(accountId: string, jobCode: string, jobId: string): Promise<ExportJob | undefined> {
     const resp = await rdk.readDatabase({
         partKey: getJobPartKey(accountId, jobCode), sortKey: jobId
     })
@@ -139,7 +160,7 @@ export async function getCatalogSettings(accountId: string): Promise<{
     return result.body
 }
 
-export async function getExecutionsByJobCode(accountId: string, jobCode: string): Promise<Job[] | undefined> {
+export async function getExecutionsByJobCode(accountId: string, jobCode: string): Promise<ExportJob[] | undefined> {
     const results = await rdk.queryDatabase({
         partKey: getJobPartKey(accountId, jobCode)
     })

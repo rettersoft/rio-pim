@@ -1,7 +1,7 @@
 import {Data, Response} from "@retter/rdk";
 import {randomString} from "./helpers";
 import {AccountIDInput} from "./rio";
-import {Category, Channel} from "./models";
+import {Category, Channel} from "PIMModelsPackage";
 
 export interface CatalogSettingsPublicState {
     categories: Category[]
@@ -17,14 +17,23 @@ export async function authorizer(data: CatalogSettingsData): Promise<Response> {
     const isDeveloper = data.context.identity === "developer"
 
     if ([
-        "addCategory", "removeCategory", "updateCategory", "toggleCurrency", "toggleLocale", "upsertChannel", "deleteChannel", "getCatalogSettings"
+        "addCategory",
+        "removeCategory",
+        "updateCategory",
+        "toggleCurrency",
+        "toggleLocale",
+        "upsertChannel",
+        "deleteChannel",
+        "getCatalogSettings",
+        "upsertCategories",
+        "upsertChannels"
     ].includes(data.context.methodName)) {
         return {statusCode: 200}
     }
 
     switch (data.context.methodName) {
         case 'DESTROY':
-            if(data.context.identity === "AccountManager"){
+            if (data.context.identity === "AccountManager") {
                 return {statusCode: 200}
             }
             break
@@ -83,7 +92,7 @@ export async function getState(data: CatalogSettingsData): Promise<Response> {
 
 
 export async function getCatalogSettings(data: CatalogSettingsData): Promise<CatalogSettingsData> {
-    data.response= {
+    data.response = {
         statusCode: 200,
         body: {
             categories: data.state.public.categories,

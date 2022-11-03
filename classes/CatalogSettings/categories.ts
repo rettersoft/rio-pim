@@ -1,7 +1,7 @@
 import {CatalogSettingsData} from "./index";
-import {Category} from "./models";
 import {checkUpdateToken, randomString, sendEvent} from "./helpers";
 import {WebhookEventOperation, WebhookEventType} from "./rio";
+import {Categories, Category} from "PIMModelsPackage";
 
 
 export async function addCategory(data: CatalogSettingsData): Promise<CatalogSettingsData> {
@@ -100,9 +100,39 @@ export async function updateCategory(data: CatalogSettingsData): Promise<Catalog
     await sendEvent(data.context.instanceId, {
         eventDocument: result.data,
         eventDocumentId: data.context.instanceId + "-" + result.data.code,
-        eventOperation: WebhookEventOperation.Delete,
+        eventOperation: WebhookEventOperation.Update,
         eventType: WebhookEventType.Category
     })
 
+    return data
+}
+
+export async function upsertCategories(data: CatalogSettingsData): Promise<CatalogSettingsData> {
+
+    checkUpdateToken(data)
+
+    const result = Categories.safeParse(data.request.body.categories)
+    if (result.success === false) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: 'Model validation failed!',
+                error: result.error
+            }
+        }
+        return data
+    }
+
+    for (const datum of result.data) {
+        const oldIndex = data.state.public.categories.findIndex(cat => cat.code === datum.code)
+        if (oldIndex === -1) {
+            data.state.public.categories.push(datum)
+        } else {
+            data.state.public.categories[oldIndex] = datum
+        }
+    }
+
+
+    data.state.public.updateToken = randomString()
     return data
 }

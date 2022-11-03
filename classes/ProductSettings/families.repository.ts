@@ -1,5 +1,5 @@
 import {ProductSettingsData} from "./index";
-import {AttributeTypes, Code} from "./models";
+import {AttributeTypes, Code} from "PIMModelsPackage";
 
 
 export const ALLOWED_AXE_TYPES = [AttributeTypes.Enum.SIMPLESELECT, AttributeTypes.Enum.BOOLEAN]

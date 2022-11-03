@@ -1,6 +1,6 @@
 import {Classes} from "./rio";
 
-export class MiddlewarePackage {
+export class PIMMiddlewarePackage {
 
     async checkUserRole(props: { accountId: string, identity: string, userId: string }) {
         if (props.identity === "developer") {

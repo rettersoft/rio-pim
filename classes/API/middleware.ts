@@ -1,9 +1,9 @@
 import {APIData} from "./index";
-import {MiddlewarePackage} from "MiddlewarePackage";
+import {PIMMiddlewarePackage} from "PIMMiddlewarePackage";
 
 
 export async function checkUserRole(data: APIData) {
-    const middlewarePackage = new MiddlewarePackage();
+    const middlewarePackage = new PIMMiddlewarePackage();
     await middlewarePackage.checkUserRole({
         accountId: data.context.instanceId,
         userId: data.context.userId,

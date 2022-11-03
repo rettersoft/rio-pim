@@ -1,8 +1,8 @@
-import {AttributeTypes, BaseAttribute, Product, ProductAttribute} from "./models";
 import {ProductData} from "./index";
 import {getProductAttributeKeyMap} from "./keysets";
 import {GetProductsSettingsResult} from "./classes-repository";
 import RDK from "@retter/rdk";
+import {AttributeTypes, BaseAttribute, Product, ProductAttribute} from "PIMModelsPackage";
 
 const rdk = new RDK();
 

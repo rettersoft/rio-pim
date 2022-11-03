@@ -5,7 +5,7 @@ getState: index.getState
 authorizer: index.authorizer
 getInstanceId: index.getInstanceId
 dependencies:
-  - MiddlewarePackage
+  - PIMMiddlewarePackage
 methods:
 
   - method: generateApiKey

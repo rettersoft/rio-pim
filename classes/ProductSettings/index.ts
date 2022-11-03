@@ -2,22 +2,14 @@ import {Data, Response} from "@retter/rdk";
 import {AccountIDInput} from "./rio";
 import {randomString} from "./helpers";
 import {
-    AttributeGroup,
-    AttributeTypes,
+    AttributeGroup, AttributeOption, AttributeTypes,
     BaseAttribute,
     Family,
     Group,
-    GroupType, IDENTIFIER, PimValidationRules,
-    SelectOption
-} from "./models";
-import {RESERVED_ID_ATTRIBUTE_CODE} from "./attributes.repository";
-import {RESERVED_ATTRIBUTE_GROUP_CODE} from "./attribute-groups.repository";
-
-
-export interface AttributeOption {
-    code: string
-    options: SelectOption[]
-}
+    GroupType,
+    IDENTIFIER, PimValidationRules, RESERVED_ATTRIBUTE_GROUP_CODE,
+    RESERVED_ID_ATTRIBUTE_CODE
+} from "PIMModelsPackage";
 
 export interface ProductSettingsPublicState {
     attributeGroups: AttributeGroup[]
@@ -38,13 +30,18 @@ export async function authorizer(data: ProductSettingsData): Promise<Response> {
         "addAttributeGroup",
         "updateAttributeGroup",
         "deleteAttributeGroup",
+        "upsertAttributeGroups",
         "createAttribute",
         "updateAttribute",
         "deleteAttribute",
         "upsertSelectOption",
+        "upsertAttributes",
+        "upsertAttributeSelectOptions",
         "deleteSelectOption",
         "createFamily",
         "updateFamily",
+        "upsertFamilies",
+        "upsertFamilyVariants",
         "deleteFamily",
         "addAttributeToFamily",
         "removeAttributeFromFamily",
@@ -54,6 +51,8 @@ export async function authorizer(data: ProductSettingsData): Promise<Response> {
         "toggleRequiredStatusFamilyAttribute",
         "createGroupType",
         "updateGroupType",
+        "upsertGroupTypes",
+        "upsertGroups",
         "deleteGroupType",
         "createGroup",
         "updateGroup",

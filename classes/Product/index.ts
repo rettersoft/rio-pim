@@ -1,5 +1,4 @@
 import RDK, {Data, Response} from "@retter/rdk";
-import {AttributeTypes, AxesValuesList, Code, DataType, IMAGE, Product, ProductModel} from "./models";
 import {checkUpdateToken, finalizeProductOperation, getProductClassAccountId, randomString} from "./helpers";
 import {Classes, InternalDestinationEventHandlerInput, WebhookEventOperation, WebhookEventType} from "./rio";
 import {Env} from "./env";
@@ -7,13 +6,14 @@ import {Buffer} from "buffer";
 import {v4 as uuidv4} from 'uuid';
 import mime from "mime-types";
 import {getProductAttributeKeyMap} from "./keysets";
-import {MiddlewarePackage} from "MiddlewarePackage";
 import {ModelsRepository} from "./models-repository";
 import {checkProduct, checkProductModel, checkProductModelVariant, checkVariantAxesForInit} from "./validations";
 import {ClassesRepository} from "./classes-repository";
+import {PIMMiddlewarePackage} from "PIMMiddlewarePackage";
+import {AttributeTypes, AxesValuesList, Code, DataType, IMAGE, Product, ProductModel} from "PIMModelsPackage";
 import InternalDestination = Classes.InternalDestination;
 
-const middleware = new MiddlewarePackage()
+const middleware = new PIMMiddlewarePackage()
 
 const rdk = new RDK()
 
@@ -136,7 +136,10 @@ export async function init(data: ProductData): Promise<ProductData> {
 
     const dataType = ModelsRepository.getDataType(data.request.body.dataType)
 
-    const productSettings = await ClassesRepository.getProductsSettings(accountId)
+    const [productSettings, catalogSettings] = await Promise.all([
+        ClassesRepository.getProductsSettings(accountId),
+        ClassesRepository.getCatalogSettings(accountId)
+    ])
 
     let source: Product | ProductModel;
 
@@ -145,6 +148,7 @@ export async function init(data: ProductData): Promise<ProductData> {
             if (data.request.body.parent !== undefined) {
                 const checkSum = await checkProductModelVariant({
                     accountId,
+                    catalogSettings,
                     axesValues: data.request.body.axesValues,
                     data: data.request.body.data,
                     parent: data.request.body.parent,
@@ -164,6 +168,7 @@ export async function init(data: ProductData): Promise<ProductData> {
                 data.state.private.axesValues = checkSumAxesValues
             } else {
                 source = await checkProduct({
+                    catalogSettings,
                     accountId,
                     data: data.request.body.data,
                     productSettings
@@ -172,6 +177,7 @@ export async function init(data: ProductData): Promise<ProductData> {
             break
         case DataType.Enum.PRODUCT_MODEL:
             source = await checkProductModel({
+                catalogSettings,
                 accountId,
                 data: data.request.body.data,
                 productSettings
@@ -281,7 +287,11 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
 
     const dataType = ModelsRepository.getDataType(data.request.body.dataType)
 
-    const productSettings = await ClassesRepository.getProductsSettings(accountId)
+
+    const [productSettings, catalogSettings] = await Promise.all([
+        ClassesRepository.getProductsSettings(accountId),
+        ClassesRepository.getCatalogSettings(accountId)
+    ])
 
     let source: Product | ProductModel;
 
@@ -290,6 +300,7 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
             if (data.request.body.parent) {
                 const checkSum = await checkProductModelVariant({
                     accountId,
+                    catalogSettings,
                     axesValues: data.request.body.axesValues,
                     data: {...data.state.private.dataSource, ...data.request.body.data},
                     parent: data.request.body.parent,
@@ -300,6 +311,7 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
                 source = await checkProduct({
                     accountId,
                     data: {...data.state.private.dataSource, ...data.request.body.data},
+                    catalogSettings,
                     productSettings
                 })
             }
@@ -308,6 +320,7 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
             source = await checkProductModel({
                 accountId,
                 data: {...data.state.private.dataSource, ...data.request.body.data},
+                catalogSettings,
                 productSettings
             })
             break
@@ -501,27 +514,27 @@ export async function uploadTempImage(data: ProductData): Promise<ProductData> {
         return data
     }
 
-    const IMAGE: IMAGE = (attributeProperty as IMAGE)
+    const img: IMAGE = (attributeProperty as IMAGE)
 
-    if (IMAGE.allowedExtensions !== undefined) {
-        if (!IMAGE.allowedExtensions.includes(data.request.body.extension)) {
+    if (img.allowedExtensions !== undefined) {
+        if (!img.allowedExtensions.includes(data.request.body.extension)) {
             data.response = {
                 statusCode: 400,
                 body: {
-                    message: `Not allowed extension! Allowed extensions: (${IMAGE.allowedExtensions.join(", ")})`
+                    message: `Not allowed extension! Allowed extensions: (${img.allowedExtensions.join(", ")})`
                 }
             }
             return data
         }
     }
 
-    if (IMAGE.maxFileSizeInMB !== undefined) {
+    if (img.maxFileSizeInMB !== undefined) {
         const imageLengthInMB = (Buffer.byteLength(imageBuffer) / (1024 * 1024)).toFixed(2)
-        if (parseFloat(imageLengthInMB) > IMAGE.maxFileSizeInMB) {
+        if (parseFloat(imageLengthInMB) > img.maxFileSizeInMB) {
             data.response = {
                 statusCode: 400,
                 body: {
-                    message: `Max image size should be ${IMAGE.maxFileSizeInMB}`
+                    message: `Max image size should be ${img.maxFileSizeInMB}`
                 }
             }
             return data

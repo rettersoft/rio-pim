@@ -4,7 +4,8 @@ getInstanceId: index.getInstanceId
 authorizer: index.authorizer
 destroy: index.destroy
 dependencies:
-  - MiddlewarePackage
+  - PIMMiddlewarePackage
+  - PIMModelsPackage
 methods:
 
   - method: getProduct

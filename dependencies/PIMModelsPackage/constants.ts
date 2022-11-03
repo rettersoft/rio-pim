@@ -8,6 +8,10 @@ export interface LocaleConst {
     label: string
 }
 
+export const RESERVED_ID_ATTRIBUTE_CODE = "sku"
+
+export const RESERVED_ATTRIBUTE_GROUP_CODE = "other"
+
 export const Currencies: CurrencyConst[] = [
     {
         "id": "AFN",

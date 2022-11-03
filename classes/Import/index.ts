@@ -1,25 +1,6 @@
 import RDK, {Data, Response} from "@retter/rdk";
 import {AccountIDInput, Classes} from "./rio";
 import {
-    AttributeGroupImportItem,
-    AttributeOptionImportItem,
-    BaseAttributeImportModel,
-    CategoryImportItem,
-    Code, FamilyImportItem, FamilyVariantImportItem,
-    GlobalProductImportSettings,
-    GlobalProductModelImportSettings, GroupImportItem, GroupTypeImportItem,
-    ImportConnectors,
-    ImportJobs,
-    ImportProfile,
-    Job,
-    JobStatus,
-    ProductImportCSVSettings,
-    ProductImportItem,
-    ProductImportXLSXSettings,
-    ProductModelImportCSVSettings, ProductModelImportItem,
-    ProductModelImportXLSXSettings
-} from "./models";
-import {
     CSV2Json,
     generateJobId,
     getCurrentExecution,
@@ -27,11 +8,55 @@ import {
     getImportFileName,
     getJobFromDB,
     getJobPartKey,
+    getLabelsFromImportedFileItem,
     lockExecution,
     saveJobToDB,
     unlockExecution,
     XLSX2Json
 } from "./helpers";
+import {
+    AttributeGroup,
+    AttributeOption,
+    AttributeOptionItem,
+    AttributeTypes,
+    BaseAttribute,
+    Category,
+    Code,
+    Connectors,
+    DataType,
+    Family,
+    FamilyAttribute,
+    FamilyVariant,
+    GlobalProductImportSettings,
+    GlobalProductModelImportSettings,
+    GroupType,
+    ImportJob,
+    ImportJobs,
+    ImportProfile,
+    JobStatus,
+    Product,
+    ProductAttribute,
+    ProductImportCSVSettings,
+    ProductImportXLSXSettings,
+    ProductModel,
+    ProductModelImportCSVSettings,
+    ProductModelImportXLSXSettings,
+    SpecificAttributes
+} from "PIMModelsPackage";
+import {
+    AttributeGroupImportItem,
+    AttributeOptionImportItem,
+    BaseAttributeImportModel,
+    CategoryImportItem,
+    FamilyImportItem,
+    FamilyVariantImportItem,
+    GroupImportItem,
+    GroupTypeImportItem,
+    ProductImportItem,
+    ProductModelImportItem,
+    SpecificAttributesImportModel
+} from "./custom-models";
+import _ from "lodash";
 
 const rdk = new RDK();
 
@@ -40,6 +65,7 @@ export interface ImportPrivateState {
 }
 
 export interface ImportPublicState {
+    runningJob?: ImportJob
 }
 
 export type ImportData<Input = any, Output = any> = Data<Input, Output, ImportPublicState, ImportPrivateState>
@@ -132,7 +158,7 @@ export async function upsertImportProfile(data: ImportData): Promise<ImportData>
                 return data
             }
 
-            if (result.data.connector === ImportConnectors.Enum.xlsx) {
+            if (result.data.connector === Connectors.Enum.xlsx) {
                 const checkSettings = ProductImportXLSXSettings.safeParse(globalSettingsResultForProduct.data)
                 if (checkSettings.success === false) {
                     data.response = {
@@ -145,7 +171,7 @@ export async function upsertImportProfile(data: ImportData): Promise<ImportData>
                     return data
                 }
                 result.data.globalSettings = checkSettings.data
-            } else if (result.data.connector === ImportConnectors.Enum.csv) {
+            } else if (result.data.connector === Connectors.Enum.csv) {
                 const checkSettings = ProductImportCSVSettings.safeParse(globalSettingsResultForProduct.data)
                 if (checkSettings.success === false) {
                     data.response = {
@@ -174,7 +200,7 @@ export async function upsertImportProfile(data: ImportData): Promise<ImportData>
             }
 
 
-            if (result.data.connector === ImportConnectors.Enum.xlsx) {
+            if (result.data.connector === Connectors.Enum.xlsx) {
                 const checkSettings = ProductModelImportXLSXSettings.safeParse(globalSettingsResultForProductModel.data)
                 if (checkSettings.success === false) {
                     data.response = {
@@ -187,7 +213,7 @@ export async function upsertImportProfile(data: ImportData): Promise<ImportData>
                     return data
                 }
                 result.data.globalSettings = checkSettings.data
-            } else if (result.data.connector === ImportConnectors.Enum.csv) {
+            } else if (result.data.connector === Connectors.Enum.csv) {
                 const checkSettings = ProductModelImportCSVSettings.safeParse(globalSettingsResultForProductModel.data)
                 if (checkSettings.success === false) {
                     data.response = {
@@ -389,8 +415,9 @@ export async function startImport(data: ImportData): Promise<ImportData> {
         throw new Error("Job settings not found!")
     }
 
-    const job: Job = {
+    const job: ImportJob = {
         uid: generateJobId(),
+        job: jobSettings.job,
         status: JobStatus.Enum.RUNNING,
         connector: jobSettings.connector,
         code: jobCode.data,
@@ -429,7 +456,7 @@ export async function startImport(data: ImportData): Promise<ImportData> {
 }
 
 export async function executeImport(data: ImportData): Promise<ImportData> {
-    const job: Job = await getCurrentExecution()
+    const job: ImportJob = await getCurrentExecution()
 
     const jobSettings = data.state.private.profiles.find(p => p.code === job.code)
     if (!jobSettings) {
@@ -444,10 +471,10 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
 
         let importData: any[] = [];
         switch (jobSettings.connector) {
-            case ImportConnectors.Enum.csv:
+            case Connectors.Enum.csv:
                 importData = await CSV2Json(importFile.data)
                 break
-            case ImportConnectors.Enum.xlsx:
+            case Connectors.Enum.xlsx:
                 importData = await XLSX2Json(importFile.data)
                 break
             default:
@@ -475,66 +502,558 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                     }
                     break
                 case ImportJobs.Enum.group_type_import:
+                    const groupTypesRequestData = []
                     for (const item of importData) {
-                        const itemModel = GroupTypeImportItem.safeParse(item)
-                        if (itemModel.success === false) {
+                        const groupTypeImportItem = GroupTypeImportItem.safeParse(item)
+                        if (groupTypeImportItem.success === false) {
                             job.failed += 1
+                        } else {
+                            const groupTypeData = GroupType.safeParse({
+                                code: groupTypeImportItem.data.code,
+                                label: getLabelsFromImportedFileItem(item)
+                            })
+                            if (groupTypeData.success === false) {
+                                job.failed += 1
+                            } else {
+                                groupTypesRequestData.push(groupTypeData)
+                            }
+                        }
+                    }
+                    if (groupTypesRequestData.length) {
+                        try {
+                            await new Classes.ProductSettings(data.context.instanceId).upsertGroupTypes({
+                                groupTypes: groupTypesRequestData
+                            })
+                            job.processed = groupTypesRequestData.length
+                        } catch (e) {
+                            job.failed += groupTypesRequestData.length
                         }
                     }
                     break
                 case ImportJobs.Enum.group_import:
+                    const groupsRequestData = []
                     for (const item of importData) {
-                        const itemModel = GroupImportItem.safeParse(item)
-                        if (itemModel.success === false) {
+                        const groupImportItem = GroupImportItem.safeParse(item)
+                        if (groupImportItem.success === false) {
                             job.failed += 1
+                        } else {
+                            const groupData = GroupType.safeParse({
+                                code: groupImportItem.data.code,
+                                type: groupImportItem.data.type,
+                                label: getLabelsFromImportedFileItem(item)
+                            })
+                            if (groupData.success === false) {
+                                job.failed += 1
+                            } else {
+                                groupsRequestData.push(groupData)
+                            }
+                        }
+                    }
+                    if (groupsRequestData.length) {
+                        try {
+                            await new Classes.ProductSettings(data.context.instanceId).upsertGroups({
+                                groups: groupsRequestData
+                            })
+                            job.processed = groupsRequestData.length
+                        } catch (e) {
+                            job.failed += groupsRequestData.length
                         }
                     }
                     break
                 case ImportJobs.Enum.category_import:
+                    const preVerifiedData = []
                     for (const item of importData) {
-                        const itemModel = CategoryImportItem.safeParse(item)
-                        if (itemModel.success === false) {
+                        const categoryImportItem = CategoryImportItem.safeParse(item)
+                        if (categoryImportItem.success === false) {
                             job.failed += 1
+                        } else {
+                            preVerifiedData.push(item)
+                        }
+                    }
+                    const buildCategoryTree = (items, parent) => {
+                        return items.map(item => {
+                            if (item.parent === parent) {
+                                return {
+                                    code: item.code.split("#").pop(),
+                                    subCategories: buildCategoryTree(items, item.code).filter(Boolean)
+                                }
+                            }
+                        }).filter(Boolean)
+                    }
+                    const categoryTrees = preVerifiedData.filter(item => !item.parent).map(item => {
+                        return {
+                            code: item.code,
+                            subCategories: buildCategoryTree(preVerifiedData.filter(item => item.parent), item.code)
+                        }
+                    })
+
+                    const categoriesRequestData = []
+                    for (const categoryTree of categoryTrees) {
+                        const categoryData = Category.safeParse(categoryTree)
+                        if (categoryData.success === false) {
+                            job.failed += 1
+                        } else {
+                            categoriesRequestData.push(categoryData)
+                        }
+                    }
+
+                    if (categoriesRequestData.length) {
+                        try {
+                            await new Classes.CatalogSettings(data.context.instanceId).upsertCategories({
+                                categories: categoriesRequestData
+                            })
+                            job.processed = categoriesRequestData.length
+                        } catch (e) {
+                            job.failed += categoriesRequestData.length
                         }
                     }
                     break
                 case ImportJobs.Enum.attribute_import:
+                    const attributesRequestData = []
                     for (const item of importData) {
-                        const itemModel = BaseAttributeImportModel.safeParse(item)
-                        if (itemModel.success === false) {
+                        const attributeImportItem = BaseAttributeImportModel.safeParse(item)
+                        if (attributeImportItem.success === false) {
                             job.failed += 1
+                        } else {
+                            switch (attributeImportItem.data.type) {
+                                case AttributeTypes.Enum.SIMPLESELECT:
+                                    const simpleselectImportModel = SpecificAttributesImportModel.SIMPLESELECT.safeParse(attributeImportItem)
+                                    if (simpleselectImportModel.success === false) {
+                                        job.failed += 1
+                                    } else {
+                                        const simpleselectSpecificAttributeModel = SpecificAttributes.SIMPLESELECT.safeParse({
+                                            code: simpleselectImportModel.data.code,
+                                            type: simpleselectImportModel.data.type,
+                                            group: simpleselectImportModel.data.group,
+                                            localizable: simpleselectImportModel.data.localizable,
+                                            scopable: simpleselectImportModel.data.scopable,
+                                            label: getLabelsFromImportedFileItem(simpleselectImportModel),
+                                            isLocaleSpecific: simpleselectImportModel.data.isLocaleSpecific,
+                                            availableLocales: simpleselectImportModel.data.availableLocales.split(","),
+                                            isUnique: simpleselectImportModel.data.isUnique,
+                                        })
+                                        if (simpleselectSpecificAttributeModel.success === false) {
+                                            job.failed += 1
+                                        } else {
+                                            attributesRequestData.push(simpleselectSpecificAttributeModel)
+                                        }
+                                    }
+                                    break
+                                case AttributeTypes.Enum.IMAGE:
+                                    const imageImportModel = SpecificAttributesImportModel.IMAGE.safeParse(attributeImportItem)
+                                    if (imageImportModel.success === false) {
+                                        job.failed += 1
+                                    } else {
+                                        const imageSpecificAttributeModel = SpecificAttributes.IMAGE.safeParse({
+                                            code: imageImportModel.data.code,
+                                            type: imageImportModel.data.type,
+                                            group: imageImportModel.data.group,
+                                            localizable: imageImportModel.data.localizable,
+                                            scopable: imageImportModel.data.scopable,
+                                            label: getLabelsFromImportedFileItem(imageImportModel),
+                                            isLocaleSpecific: imageImportModel.data.isLocaleSpecific,
+                                            availableLocales: imageImportModel.data.availableLocales,
+                                            isUnique: imageImportModel.data.isUnique,
+                                            maxFileSizeInMB: imageImportModel.data.maxFileSizeInMB,
+                                            allowedExtensions: imageImportModel.data.allowedExtensions.split(",")
+                                        })
+                                        if (imageSpecificAttributeModel.success === false) {
+                                            job.failed += 1
+                                        } else {
+                                            attributesRequestData.push(imageSpecificAttributeModel)
+                                        }
+                                    }
+                                    break
+                                case AttributeTypes.Enum.BOOLEAN:
+                                    const booleanImportModel = SpecificAttributesImportModel.BOOLEAN.safeParse(attributeImportItem)
+                                    if (booleanImportModel.success === false) {
+                                        job.failed += 1
+                                    } else {
+                                        const booleanSpecificAttributeModel = SpecificAttributes.BOOLEAN.safeParse({
+                                            code: booleanImportModel.data.code,
+                                            type: booleanImportModel.data.type,
+                                            group: booleanImportModel.data.group,
+                                            localizable: booleanImportModel.data.localizable,
+                                            scopable: booleanImportModel.data.scopable,
+                                            label: getLabelsFromImportedFileItem(booleanImportModel),
+                                            isLocaleSpecific: booleanImportModel.data.isLocaleSpecific,
+                                            availableLocales: booleanImportModel.data.availableLocales,
+                                            isUnique: booleanImportModel.data.isUnique,
+                                            defaultValue: booleanImportModel.data.defaultValue
+                                        })
+                                        if (booleanSpecificAttributeModel.success === false) {
+                                            job.failed += 1
+                                        } else {
+                                            attributesRequestData.push(booleanSpecificAttributeModel)
+                                        }
+                                    }
+                                    break
+                                case AttributeTypes.Enum.MULTISELECT:
+                                    const multiselectImportModel = SpecificAttributesImportModel.MULTISELECT.safeParse(attributeImportItem)
+                                    if (multiselectImportModel.success === false) {
+                                        job.failed += 1
+                                    } else {
+                                        const booleanSpecificAttributeModel = SpecificAttributes.MULTISELECT.safeParse({
+                                            code: multiselectImportModel.data.code,
+                                            type: multiselectImportModel.data.type,
+                                            group: multiselectImportModel.data.group,
+                                            localizable: multiselectImportModel.data.localizable,
+                                            scopable: multiselectImportModel.data.scopable,
+                                            label: getLabelsFromImportedFileItem(multiselectImportModel),
+                                            isLocaleSpecific: multiselectImportModel.data.isLocaleSpecific,
+                                            availableLocales: multiselectImportModel.data.availableLocales,
+                                            isUnique: multiselectImportModel.data.isUnique,
+                                        })
+                                        if (booleanSpecificAttributeModel.success === false) {
+                                            job.failed += 1
+                                        } else {
+                                            attributesRequestData.push(booleanSpecificAttributeModel)
+                                        }
+                                    }
+                                    break
+                                case AttributeTypes.Enum.IDENTIFIER:
+                                    const identifierImportModel = SpecificAttributesImportModel.IDENTIFIER.safeParse(attributeImportItem)
+                                    if (identifierImportModel.success === false) {
+                                        job.failed += 1
+                                    } else {
+                                        const identifierSpecificAttributeModel = SpecificAttributes.IDENTIFIER.safeParse({
+                                            code: identifierImportModel.data.code,
+                                            type: identifierImportModel.data.type,
+                                            group: identifierImportModel.data.group,
+                                            localizable: identifierImportModel.data.localizable,
+                                            scopable: identifierImportModel.data.scopable,
+                                            label: getLabelsFromImportedFileItem(identifierImportModel),
+                                            isLocaleSpecific: identifierImportModel.data.isLocaleSpecific,
+                                            availableLocales: identifierImportModel.data.availableLocales,
+                                            isUnique: identifierImportModel.data.isUnique,
+                                            maxCharacters: identifierImportModel.data.maxCharacters,
+                                            validationRule: identifierImportModel.data.validationRule,
+                                            validationRegexp: identifierImportModel.data.validationRegexp,
+                                        })
+                                        if (identifierSpecificAttributeModel.success === false) {
+                                            job.failed += 1
+                                        } else {
+                                            attributesRequestData.push(identifierSpecificAttributeModel)
+                                        }
+                                    }
+                                    break
+                                case AttributeTypes.Enum.TEXTAREA:
+                                    const textareaImportModel = SpecificAttributesImportModel.TEXTAREA.safeParse(attributeImportItem)
+                                    if (textareaImportModel.success === false) {
+                                        job.failed += 1
+                                    } else {
+                                        const textareaSpecificAttributeModel = SpecificAttributes.TEXTAREA.safeParse({
+                                            code: textareaImportModel.data.code,
+                                            type: textareaImportModel.data.type,
+                                            group: textareaImportModel.data.group,
+                                            localizable: textareaImportModel.data.localizable,
+                                            scopable: textareaImportModel.data.scopable,
+                                            label: getLabelsFromImportedFileItem(textareaImportModel),
+                                            isLocaleSpecific: textareaImportModel.data.isLocaleSpecific,
+                                            availableLocales: textareaImportModel.data.availableLocales,
+                                            isUnique: textareaImportModel.data.isUnique,
+                                            maxCharacters: textareaImportModel.data.maxCharacters,
+                                        })
+                                        if (textareaSpecificAttributeModel.success === false) {
+                                            job.failed += 1
+                                        } else {
+                                            attributesRequestData.push(textareaSpecificAttributeModel)
+                                        }
+                                    }
+                                    break
+                                case AttributeTypes.Enum.PRICE:
+                                    const priceImportModel = SpecificAttributesImportModel.PRICE.safeParse(attributeImportItem)
+                                    if (priceImportModel.success === false) {
+                                        job.failed += 1
+                                    } else {
+                                        const priceSpecificAttributeModel = SpecificAttributes.PRICE.safeParse({
+                                            code: priceImportModel.data.code,
+                                            type: priceImportModel.data.type,
+                                            group: priceImportModel.data.group,
+                                            localizable: priceImportModel.data.localizable,
+                                            scopable: priceImportModel.data.scopable,
+                                            label: getLabelsFromImportedFileItem(priceImportModel),
+                                            isLocaleSpecific: priceImportModel.data.isLocaleSpecific,
+                                            availableLocales: priceImportModel.data.availableLocales,
+                                            isUnique: priceImportModel.data.isUnique,
+                                            decimalsAllowed: priceImportModel.data.decimalsAllowed,
+                                            minNumber: priceImportModel.data.minNumber,
+                                            maxNumber: priceImportModel.data.maxNumber,
+                                        })
+                                        if (priceSpecificAttributeModel.success === false) {
+                                            job.failed += 1
+                                        } else {
+                                            attributesRequestData.push(priceSpecificAttributeModel)
+                                        }
+                                    }
+                                    break
+                                case AttributeTypes.Enum.DATE:
+                                    const dateImportModel = SpecificAttributesImportModel.DATE.safeParse(attributeImportItem)
+                                    if (dateImportModel.success === false) {
+                                        job.failed += 1
+                                    } else {
+                                        const dateSpecificAttributeModel = SpecificAttributes.DATE.safeParse({
+                                            code: dateImportModel.data.code,
+                                            type: dateImportModel.data.type,
+                                            group: dateImportModel.data.group,
+                                            localizable: dateImportModel.data.localizable,
+                                            scopable: dateImportModel.data.scopable,
+                                            label: getLabelsFromImportedFileItem(dateImportModel),
+                                            isLocaleSpecific: dateImportModel.data.isLocaleSpecific,
+                                            availableLocales: dateImportModel.data.availableLocales,
+                                            isUnique: dateImportModel.data.isUnique,
+                                            minDate: dateImportModel.data.minDate,
+                                            maxDate: dateImportModel.data.maxDate,
+                                        })
+                                        if (dateSpecificAttributeModel.success === false) {
+                                            job.failed += 1
+                                        } else {
+                                            attributesRequestData.push(dateSpecificAttributeModel)
+                                        }
+                                    }
+                                    break
+                                case AttributeTypes.Enum.NUMBER:
+                                    const numberImportModel = SpecificAttributesImportModel.NUMBER.safeParse(attributeImportItem)
+                                    if (numberImportModel.success === false) {
+                                        job.failed += 1
+                                    } else {
+                                        const numberSpecificAttributeModel = SpecificAttributes.NUMBER.safeParse({
+                                            code: numberImportModel.data.code,
+                                            type: numberImportModel.data.type,
+                                            group: numberImportModel.data.group,
+                                            localizable: numberImportModel.data.localizable,
+                                            scopable: numberImportModel.data.scopable,
+                                            label: getLabelsFromImportedFileItem(numberImportModel),
+                                            isLocaleSpecific: numberImportModel.data.isLocaleSpecific,
+                                            availableLocales: numberImportModel.data.availableLocales,
+                                            isUnique: numberImportModel.data.isUnique,
+                                            negativeAllowed: numberImportModel.data.negativeAllowed,
+                                            decimalsAllowed: numberImportModel.data.decimalsAllowed,
+                                            minNumber: numberImportModel.data.minNumber,
+                                            maxNumber: numberImportModel.data.maxNumber,
+                                        })
+                                        if (numberSpecificAttributeModel.success === false) {
+                                            job.failed += 1
+                                        } else {
+                                            attributesRequestData.push(numberSpecificAttributeModel)
+                                        }
+                                    }
+                                    break
+                                case AttributeTypes.Enum.TEXT:
+                                    const textImportModel = SpecificAttributesImportModel.TEXT.safeParse(attributeImportItem)
+                                    if (textImportModel.success === false) {
+                                        job.failed += 1
+                                    } else {
+                                        const textSpecificAttributeModel = SpecificAttributes.TEXT.safeParse({
+                                            code: textImportModel.data.code,
+                                            type: textImportModel.data.type,
+                                            group: textImportModel.data.group,
+                                            localizable: textImportModel.data.localizable,
+                                            scopable: textImportModel.data.scopable,
+                                            label: getLabelsFromImportedFileItem(textImportModel),
+                                            isLocaleSpecific: textImportModel.data.isLocaleSpecific,
+                                            availableLocales: textImportModel.data.availableLocales,
+                                            isUnique: textImportModel.data.isUnique,
+                                            maxCharacters: textImportModel.data.maxCharacters,
+                                            validationRule: textImportModel.data.validationRule,
+                                            validationRegexp: textImportModel.data.validationRegexp,
+                                        })
+                                        if (textSpecificAttributeModel.success === false) {
+                                            job.failed += 1
+                                        } else {
+                                            attributesRequestData.push(textSpecificAttributeModel)
+                                        }
+                                    }
+                                    break
+                                default:
+                                    job.failed += 1
+                                    break
+                            }
+                        }
+                    }
+                    if (attributesRequestData.length) {
+                        try {
+                            await new Classes.ProductSettings(data.context.instanceId).upsertAttributes({
+                                attributes: attributesRequestData
+                            })
+                            job.processed = attributesRequestData.length
+                        } catch (e) {
+                            job.failed += attributesRequestData.length
                         }
                     }
                     break
                 case ImportJobs.Enum.attribute_option_import:
+                    const attributeOptionsPreVerifiedItems = []
+
                     for (const item of importData) {
-                        const itemModel = AttributeOptionImportItem.safeParse(item)
-                        if (itemModel.success === false) {
+                        const attributeOptionImportItem = AttributeOptionImportItem.safeParse(item)
+                        if (attributeOptionImportItem.success === false) {
                             job.failed += 1
+                        } else {
+                            const attributeOptionItemData = AttributeOptionItem.safeParse({
+                                code: attributeOptionImportItem.data.code,
+                                label: getLabelsFromImportedFileItem(item)
+                            })
+                            if (attributeOptionItemData.success === false) {
+                                job.failed += 1
+                            } else {
+                                attributeOptionsPreVerifiedItems.push(item)
+                            }
+                        }
+                    }
+                    if (attributeOptionsPreVerifiedItems.length) {
+                        const groupedByAttribute = _.groupBy(attributeOptionsPreVerifiedItems, "attribute")
+                        if (Object.keys(groupedByAttribute).length) {
+                            const requestData = []
+
+                            Object.keys(groupedByAttribute).forEach(key => {
+                                let attributeOptionObject: AttributeOption = {
+                                    code: key, options: []
+                                }
+                                groupedByAttribute[key].forEach(option => {
+                                    const attributeOptionItemData = AttributeOptionItem.safeParse({
+                                        code: option.code,
+                                        label: getLabelsFromImportedFileItem(option)
+                                    })
+                                    if (attributeOptionItemData.success === false) {
+                                        job.failed += 1
+                                    } else {
+                                        attributeOptionObject.options.push(attributeOptionItemData.data)
+                                    }
+                                })
+                                const attributeOptionModel = AttributeOption.safeParse(attributeOptionObject)
+                                if (attributeOptionModel.success === false) {
+                                    job.failed += 1
+                                } else {
+                                    requestData.push(attributeOptionModel.data)
+                                }
+                            })
+                            if (requestData.length) {
+                                try {
+                                    await new Classes.ProductSettings(data.context.instanceId).upsertAttributeSelectOptions({
+                                        attributeOptions: requestData
+                                    })
+                                    job.processed = requestData.length
+                                } catch (e) {
+                                    job.failed += requestData.length
+                                }
+                            }
+                        } else {
+                            job.failed += attributeOptionsPreVerifiedItems.length
                         }
                     }
                     break
                 case ImportJobs.Enum.attribute_group_import:
+                    const attributeGroupsRequestData = []
                     for (const item of importData) {
-                        const itemModel = AttributeGroupImportItem.safeParse(item)
-                        if (itemModel.success === false) {
+                        const attributeGroupImportItem = AttributeGroupImportItem.safeParse(item)
+                        if (attributeGroupImportItem.success === false) {
                             job.failed += 1
+                        } else {
+                            const attributeGroupData = AttributeGroup.safeParse({
+                                code: attributeGroupImportItem.data.code,
+                                label: getLabelsFromImportedFileItem(item)
+                            })
+                            if (attributeGroupData.success === false) {
+                                job.failed += 1
+                            } else {
+                                attributeGroupsRequestData.push(attributeGroupData)
+                            }
+                        }
+                    }
+                    if (attributeGroupsRequestData.length) {
+                        try {
+                            await new Classes.ProductSettings(data.context.instanceId).upsertAttributeGroups({
+                                attributeGroups: attributeGroupsRequestData
+                            })
+                            job.processed = attributeGroupsRequestData.length
+                        } catch (e) {
+                            job.failed += attributeGroupsRequestData.length
                         }
                     }
                     break
                 case ImportJobs.Enum.family_import:
+                    const familiesRequestData = []
                     for (const item of importData) {
-                        const itemModel = FamilyImportItem.safeParse(item)
-                        if (itemModel.success === false) {
+                        const familyImportItem = FamilyImportItem.safeParse(item)
+                        if (familyImportItem.success === false) {
                             job.failed += 1
+                        } else {
+                            const familyAttributes: FamilyAttribute[] = []
+                            //get family attribute required channels from item
+                            Object.keys(item).forEach(key=>{
+                                if(key.startsWith("requirements-")){
+                                    const splits = key.split("-")
+                                    if (splits.length === 2){
+                                        const channel: string = splits[1]
+                                        const attributes: string[] = item[key].split(",")
+                                        attributes.forEach(att=>{
+                                            const oldIndex = familyAttributes.findIndex(fa=>fa.attribute === att)
+                                            if(oldIndex === -1){
+                                                familyAttributes.push({
+                                                    attribute: att,
+                                                    requiredChannels: [channel]
+                                                })
+                                            }else{
+                                                familyAttributes[oldIndex].requiredChannels.push(channel)
+                                            }
+                                        })
+                                    }
+                                }
+                            })
+                            const familyData = Family.safeParse({
+                                code: familyImportItem.data.code,
+                                label: getLabelsFromImportedFileItem(item),
+                                attributeAsLabel: familyImportItem.data.attributeAsLabel,
+                                attributeAsImage: familyImportItem.data.attributeAsImage,
+                                attributes: familyAttributes,
+                            })
+                            if (familyData.success === false) {
+                                job.failed += 1
+                            } else {
+                                familiesRequestData.push(familyData)
+                            }
+                        }
+                    }
+                    if (familiesRequestData.length) {
+                        try {
+                            await new Classes.ProductSettings(data.context.instanceId).upsertFamilies({
+                                families: familiesRequestData
+                            })
+                            job.processed = familiesRequestData.length
+                        } catch (e) {
+                            job.failed += familiesRequestData.length
                         }
                     }
                     break
                 case ImportJobs.Enum.family_variant_import:
+                    const familyVariantsRequestData = []
                     for (const item of importData) {
-                        const itemModel = FamilyVariantImportItem.safeParse(item)
-                        if (itemModel.success === false) {
+                        const familyVariantImportItem = FamilyVariantImportItem.safeParse(item)
+                        if (familyVariantImportItem.success === false) {
                             job.failed += 1
+                        } else {
+                            const familyVariantData = FamilyVariant.safeParse({
+                                code: familyVariantImportItem.data.code,
+                                label: getLabelsFromImportedFileItem(item),
+                                axes: familyVariantImportItem.data.axes.split(","),
+                                attributes: familyVariantImportItem.data.attributes.split(","),
+                            })
+                            if (familyVariantData.success === false) {
+                                job.failed += 1
+                            } else {
+                                familyVariantsRequestData.push(familyVariantData)
+                            }
+                        }
+                    }
+                    if (familyVariantsRequestData.length) {
+                        try {
+                            await new Classes.ProductSettings(data.context.instanceId).upsertFamilyVariants({
+                                familyVariants: familyVariantsRequestData
+                            })
+                            job.processed = familyVariantsRequestData.length
+                        } catch (e) {
+                            job.failed += familyVariantsRequestData.length
                         }
                     }
                     break
@@ -575,6 +1094,168 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                 message: e.toString()
             }
         }
+    }
+
+    return data
+}
+
+export async function importProcess(data: ImportData): Promise<ImportData> {
+    let job: ImportJob;
+
+    const attributes: BaseAttribute[] = data.request.body.attributes || []
+
+    if (data.state.public.runningJob) {
+        job = data.state.public.runningJob
+    } else {
+        const jobData = ImportJob.safeParse(data.request.body.job)
+        if (jobData.success === false) {
+            throw new Error("Invalid job data!")
+        }
+        data.state.public.runningJob = jobData.data
+    }
+
+    const item = data.request.body.item
+
+    switch (job.code) {
+        case ImportJobs.Enum.product_import:
+            const productImportItem = ProductImportItem.safeParse(item)
+            if (productImportItem.success === false) {
+                job.failed += 1
+            } else {
+                const productAttributes: ProductAttribute[] = []
+                for (const key of Object.keys(item)) {
+                    if (key.startsWith("attributes-")) {
+                        const splits = key.split("-")
+                        const attributeCode = splits[1]
+                        if (splits.length === 0 || !attributeCode) {
+                            job.failed += 1
+                        } else {
+                            const attributeSettings: BaseAttribute = attributes.find(a => a.code === attributeCode)
+                            const productAttribute: ProductAttribute = {
+                                code: attributeCode,
+                                data: []
+                            }
+                            if (attributeSettings.localizable && attributeSettings.scopable) {
+                                // Note: export `attribute-${productAttribute.code}-${globalSettings.content.channel}-${locale}`
+                                productAttribute.data.push({
+                                    locale: splits[3], scope: splits[2], value: item[key]
+                                })
+                            } else if (attributeSettings.localizable && !attributeSettings.scopable) {
+                                // Note: export `attribute-${productAttribute.code}-${locale}`
+                                productAttribute.data.push({
+                                    locale: splits[2], value: item[key]
+                                })
+                            } else if (!attributeSettings.localizable && attributeSettings.scopable) {
+                                // Note: export `attribute-${productAttribute.code}-${globalSettings.content.channel}`
+                                productAttribute.data.push({
+                                    scope: splits[2], value: item[key]
+                                })
+                            } else {
+                                // Note: export `attribute-${productAttribute.code}`
+                                productAttribute.data.push({
+                                    value: item[key]
+                                })
+                            }
+                            productAttributes.push(productAttribute)
+                        }
+                    }
+                }
+
+                const productRequestData = Product.safeParse({
+                    sku: productImportItem.data.sku,
+                    family: productImportItem.data.family,
+                    enabled: productImportItem.data.enabled,
+                    groups: productImportItem.data.groups.split(","),
+                    categories: productImportItem.data.groups.split(","),
+                    attributes: productAttributes.length ? productAttributes : undefined,
+                })
+                if (productRequestData.success === false) {
+                    job.failed += 1
+                } else {
+                    try {
+                        await Classes.Product.getInstance({
+                            body: {
+                                dataType: DataType.Enum.PRODUCT,
+                                data: productRequestData
+                            }
+                        })
+                        job.processed += 1
+                    } catch (e) {
+                        job.failed += 1
+                    }
+                }
+            }
+            break
+        case ImportJobs.Enum.product_model_import:
+            const productModelImportItem = ProductModelImportItem.safeParse(item)
+            if (productModelImportItem.success === false) {
+                job.failed += 1
+            } else {
+                const productModelAttributes: ProductAttribute[] = []
+                for (const key of Object.keys(item)) {
+                    if (key.startsWith("attributes-")) {
+                        const splits = key.split("-")
+                        const attributeCode = splits[1]
+                        if (splits.length === 0 || !attributeCode) {
+                            job.failed += 1
+                        } else {
+                            const attributeSettings: BaseAttribute = attributes.find(a => a.code === attributeCode)
+                            const productModelAttribute: ProductAttribute = {
+                                code: attributeCode,
+                                data: []
+                            }
+                            if (attributeSettings.localizable && attributeSettings.scopable) {
+                                // Note: export `attribute-${productAttribute.code}-${globalSettings.content.channel}-${locale}`
+                                productModelAttribute.data.push({
+                                    locale: splits[3], scope: splits[2], value: item[key]
+                                })
+                            } else if (attributeSettings.localizable && !attributeSettings.scopable) {
+                                // Note: export `attribute-${productAttribute.code}-${locale}`
+                                productModelAttribute.data.push({
+                                    locale: splits[2], value: item[key]
+                                })
+                            } else if (!attributeSettings.localizable && attributeSettings.scopable) {
+                                // Note: export `attribute-${productAttribute.code}-${globalSettings.content.channel}`
+                                productModelAttribute.data.push({
+                                    scope: splits[2], value: item[key]
+                                })
+                            } else {
+                                // Note: export `attribute-${productAttribute.code}`
+                                productModelAttribute.data.push({
+                                    value: item[key]
+                                })
+                            }
+                            productModelAttributes.push(productModelAttribute)
+                        }
+                    }
+                }
+
+                const productModelRequestData = ProductModel.safeParse({
+                    code: productModelImportItem.data.code,
+                    family: productModelImportItem.data.family,
+                    variant: productModelImportItem.data.variant,
+                    categories: productModelImportItem.data.categories.split(","),
+                    attributes: productModelAttributes.length ? productModelAttributes : undefined,
+                })
+                if (productModelRequestData.success === false) {
+                    job.failed += 1
+                } else {
+                    try {
+                        await Classes.Product.getInstance({
+                            body: {
+                                dataType: DataType.Enum.PRODUCT_MODEL,
+                                data: productModelRequestData
+                            }
+                        })
+                        job.processed += 1
+                    } catch (e) {
+                        job.failed += 1
+                    }
+                }
+            }
+            break
+        default:
+            throw new Error("Unsupported job process!")
     }
 
     return data
@@ -639,7 +1320,7 @@ export async function getUploadedFile(data: ImportData): Promise<ImportData> {
         isBase64Encoded: true,
         body: file.data.toString("base64"),
         headers: {
-            "Content-Type": jobSettings.connector === ImportConnectors.Enum.xlsx ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : "text/csv",
+            "Content-Type": jobSettings.connector === Connectors.Enum.xlsx ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : "text/csv",
             "Content-Disposition": `attachment; filename="${filename}"`
         }
 

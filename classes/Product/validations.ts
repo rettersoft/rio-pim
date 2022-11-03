@@ -1,8 +1,13 @@
+import RDK from "@retter/rdk"
+import {getProductAttributeKeyMap, getProductAxeKeyMap} from "./keysets";
+import {ClassesRepository, GetCatalogSettingsResult, GetProductsSettingsResult} from "./classes-repository";
+import {ModelsRepository} from "./models-repository";
 import {
     AttributeOption,
-    AttributeTypes, AxesValuesList,
+    AttributeTypes,
+    AxesValuesList,
     BaseAttribute,
-    BOOLEAN,
+    Category,
     DATE,
     Family,
     FamilyVariant,
@@ -16,13 +21,45 @@ import {
     ProductModel,
     TEXT,
     TEXTAREA
-} from "./models";
-import RDK from "@retter/rdk"
-import {getProductAttributeKeyMap, getProductAxeKeyMap} from "./keysets";
-import {ClassesRepository, GetProductsSettingsResult} from "./classes-repository";
-import {ModelsRepository} from "./models-repository";
+} from "PIMModelsPackage";
 
 const rdk = new RDK()
+
+export function checkProductGroups(props: { product: Product, productSettings: GetProductsSettingsResult }) {
+    if (props.product.groups.length) {
+        for (const group of props.product.groups) {
+            if (!props.productSettings.groups.find(g => g.code === group)) {
+                throw new Error(`Group not found! (${group})`)
+            }
+        }
+    }
+}
+
+export function checkProductCategories(props: { product: Product | ProductModel, catalogSettings: GetCatalogSettingsResult }) {
+    if (props.product.categories.length) {
+        const getCategoriesInOneLevel = (categories: Category[], data = [], parentCode?: string) => {
+            if (categories.length >= 1) {
+                for (const category of categories) {
+                    const code = [parentCode, category.code].filter(Boolean).join("#")
+                    data.push({
+                        code,
+                        parent: parentCode,
+                    })
+                    getCategoriesInOneLevel(category.subCategories, data, code)
+                }
+            } else {
+                return []
+            }
+            return data
+        }
+        const categoriesInOneLevel = getCategoriesInOneLevel(props.catalogSettings.categories)
+        for (const category of props.product.categories) {
+            if (!categoriesInOneLevel.find(c => c.code === category)) {
+                throw new Error(`Category not found! (${category})`)
+            }
+        }
+    }
+}
 
 export async function validateProductAttributes(props: { productFamily: string, productAttributes: ProductAttribute[], accountId: string, productSettings: GetProductsSettingsResult }) {
 
@@ -113,10 +150,6 @@ export async function validateProductAttributes(props: { productFamily: string, 
                 }
                 break
             case AttributeTypes.Enum.BOOLEAN:
-                const BOOLEAN: BOOLEAN = attributeProperty
-                if (BOOLEAN.defaultValue === undefined) {
-                    throw new Error("Default value is null!")
-                }
                 break
             case AttributeTypes.Enum.IDENTIFIER:
                 const IDENTIFIER: IDENTIFIER = attributeProperty
@@ -275,7 +308,7 @@ export async function validateProductAttributes(props: { productFamily: string, 
  * check product
  * @param props
  */
-export async function checkProduct(props: { data: any, accountId: string, productSettings: GetProductsSettingsResult }): Promise<Product> {
+export async function checkProduct(props: { data: any, accountId: string, productSettings: GetProductsSettingsResult, catalogSettings: GetCatalogSettingsResult }): Promise<Product> {
     const product = ModelsRepository.getProduct(props.data)
 
     const productFamily = props.productSettings.families.find(f => f.code === product.family)
@@ -292,6 +325,13 @@ export async function checkProduct(props: { data: any, accountId: string, produc
         })
     }
 
+    checkProductGroups({
+        product: product, productSettings: props.productSettings
+    })
+    checkProductCategories({
+        product: product, catalogSettings: props.catalogSettings
+    })
+
     return product
 }
 
@@ -299,7 +339,7 @@ export async function checkProduct(props: { data: any, accountId: string, produc
  * check product Model
  * @param props
  */
-export async function checkProductModel(props: { data: any, accountId: string, productSettings: GetProductsSettingsResult }): Promise<ProductModel> {
+export async function checkProductModel(props: { data: any, accountId: string, productSettings: GetProductsSettingsResult, catalogSettings: GetCatalogSettingsResult }): Promise<ProductModel> {
     const productModel = ModelsRepository.getProductModel(props.data)
 
     const productModelFamily = props.productSettings.families.find(f => f.code === productModel.family)
@@ -321,6 +361,10 @@ export async function checkProductModel(props: { data: any, accountId: string, p
         })
     }
 
+    checkProductCategories({
+        product: productModel, catalogSettings: props.catalogSettings
+    })
+
     return productModel
 }
 
@@ -330,7 +374,7 @@ export async function checkProductModel(props: { data: any, accountId: string, p
  */
 export async function checkProductModelVariant(props: {
     data: any, accountId: string, parent?: string, axesValues: any[],
-    productSettings: GetProductsSettingsResult
+    productSettings: GetProductsSettingsResult, catalogSettings: GetCatalogSettingsResult
 }): Promise<{ parentProduct: ProductModel, childProduct: Product }> {
     if (!props.parent) {
         throw new Error("Parent field is required!")
@@ -369,6 +413,13 @@ export async function checkProductModelVariant(props: {
             productSettings: props.productSettings
         })
     }
+
+    checkProductGroups({
+        product: product, productSettings: props.productSettings
+    })
+    checkProductCategories({
+        product: product, catalogSettings: props.catalogSettings
+    })
 
     return {
         childProduct: product,

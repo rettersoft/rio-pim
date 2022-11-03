@@ -1,7 +1,5 @@
 import {ProductSettingsData} from "./index";
-import {AttributeTypes, BaseAttribute, Code} from "./models";
-
-export const RESERVED_ID_ATTRIBUTE_CODE = "sku"
+import {AttributeTypes, BaseAttribute, Code, RESERVED_ID_ATTRIBUTE_CODE} from "PIMModelsPackage";
 
 export function getAttribute(code: string | undefined, data: ProductSettingsData) {
     const attributeCodeModel = Code.safeParse(code)

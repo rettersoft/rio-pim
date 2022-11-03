@@ -13,7 +13,7 @@ export function randomString(l = 10) {
 
 
 export function checkUpdateToken(data: ProductSettingsData) {
-    if (data.state.public.updateToken !== data.request.body.updateToken) {
+    if (!["API", "Import"].includes(data.context.identity) && data.state.private.updateToken !== data.request.body.updateToken) {
         throw new Error("Invalid update token. Please, refresh your page and try again!")
     }
 }

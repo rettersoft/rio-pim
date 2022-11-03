@@ -1,8 +1,8 @@
 import {Data, Response} from "@retter/rdk";
 import {AccountIDInput, InternalDestinationEventHandlerInput} from "./rio";
-import {Webhook} from "./models";
 import {sendToElastic, sendWebhookEvent} from "./helpers";
 import {v4 as uuidv4} from "uuid"
+import {Webhook} from "PIMModelsPackage";
 
 
 export interface InternalDestinationPrivateState {

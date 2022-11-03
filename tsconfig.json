@@ -8,8 +8,8 @@
         "moduleResolution": "node",
         "downlevelIteration": true,
         "paths": {
-          "MiddlewarePackage": ["dependencies/MiddlewarePackage"],
-          "ConstantsPackage": ["dependencies/ConstantsPackage"]
+          "PIMMiddlewarePackage": ["dependencies/PIMMiddlewarePackage"],
+          "PIMModelsPackage": ["dependencies/PIMModelsPackage"]
         }
     },
     "exclude": [

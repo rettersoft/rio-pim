@@ -4,6 +4,8 @@ init:
 getState: index.getState
 getInstanceId: index.getInstanceId
 authorizer: index.authorizer
+dependencies:
+  - PIMModelsPackage
 methods:
 
   - method: eventHandler

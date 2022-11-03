@@ -1,6 +1,5 @@
 import Z from "zod";
-
-const Url = Z.string().url().optional()
+import {Url} from "./common-models";
 
 export const WebhookHandlers = Z.object({
     product: Url,

@@ -42,7 +42,7 @@ export class ElasticHelper {
         if (props && props.searchText) {
             query.bool.must.push({
                 query_string: {
-                    default_field: "data.sku",
+                    fields: ["data.sku","data.code"],
                     query: props.searchText,
                     default_operator: "AND"
                 }

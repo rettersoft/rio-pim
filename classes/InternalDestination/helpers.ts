@@ -1,8 +1,8 @@
-import {Webhook} from "./models";
 import axios from "axios";
 import {InternalDestinationEventHandlerInput, WebhookEventOperation, WebhookEventType} from "./rio";
 import {Client} from "@elastic/elasticsearch";
 import {Env} from "./env";
+import {Webhook} from "PIMModelsPackage";
 
 const client = new Client({
     cloud: {

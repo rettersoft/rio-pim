@@ -4,6 +4,8 @@ init:
 getState: index.getState
 authorizer: index.authorizer
 getInstanceId: index.getInstanceId
+dependencies:
+  - PIMModelsPackage
 methods:
   - method: addCategory
     type: WRITE
@@ -12,6 +14,10 @@ methods:
   - method: removeCategory
     type: WRITE
     handler: categories.removeCategory
+
+  - method: upsertCategories
+    type: WRITE
+    handler: categories.upsertCategories
 
   - method: updateCategory
     type: WRITE
@@ -28,6 +34,10 @@ methods:
   - method: upsertChannel
     type: WRITE
     handler: channels.upsertChannel
+
+  - method: upsertChannels
+    type: WRITE
+    handler: channels.upsertChannels
 
   - method: deleteChannel
     type: WRITE

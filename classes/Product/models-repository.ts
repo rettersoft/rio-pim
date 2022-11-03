@@ -1,4 +1,4 @@
-import {AxesValuesList, DataType, Product, ProductModel} from "./models"
+import {AxesValuesList, DataType, Product, ProductModel} from "PIMModelsPackage";
 
 
 export class ModelsRepository {

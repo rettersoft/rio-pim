@@ -1,7 +1,7 @@
 import {CatalogSettingsData} from "./index";
 import {checkUpdateToken, randomString, sendEvent} from "./helpers";
-import {Currencies} from "./consts";
 import {WebhookEventOperation, WebhookEventType} from "./rio";
+import {Currencies} from "PIMModelsPackage";
 
 
 export async function toggleCurrency(data: CatalogSettingsData): Promise<CatalogSettingsData> {

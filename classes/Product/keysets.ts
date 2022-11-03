@@ -1,5 +1,5 @@
-import {AxesValuesList} from "./models";
 import _ from "lodash";
+import { AxesValuesList } from "PIMModelsPackage";
 
 export function getProductAttributeKeyMap(props: {
     accountId: string, attributeCode: string, attributeValue: string

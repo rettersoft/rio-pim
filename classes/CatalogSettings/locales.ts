@@ -1,7 +1,7 @@
 import {CatalogSettingsData} from "./index";
 import {checkUpdateToken, randomString, sendEvent} from "./helpers";
-import {Locales} from "./consts";
 import {WebhookEventOperation, WebhookEventType} from "./rio";
+import {Locales} from "PIMModelsPackage";
 
 
 export async function toggleLocale(data: CatalogSettingsData): Promise<CatalogSettingsData> {

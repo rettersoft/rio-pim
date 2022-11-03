@@ -1,23 +1,6 @@
 import RDK, {Data, Response} from "@retter/rdk";
 import {AccountIDInput, Classes} from "./rio";
 import {
-    AttributeOption,
-    AttributeSettings,
-    Category,
-    Code,
-    ExportConnectors,
-    ExportJobs,
-    ExportProfile,
-    ExportProfileContent,
-    GlobalProductModelExportSettings,
-    Job,
-    JobStatus,
-    ProductExportCSVSettings,
-    ProductExportXLSXSettings,
-    ProductModelExportCSVSettings,
-    ProductModelExportXLSXSettings
-} from "./models";
-import {
     generateJobId,
     getAllProductModels,
     getAllProducts,
@@ -33,6 +16,24 @@ import {
     saveJobToDB,
     unlockExecution
 } from "./helpers";
+import {
+    AttributeOption,
+    BaseAttribute,
+    Category,
+    Code,
+    Connectors,
+    ExportJob,
+    ExportJobs,
+    ExportProfile,
+    ExportProfileContent, FamilyAttribute,
+    GlobalProductModelExportSettings,
+    JobStatus,
+    ProductExportCSVSettings,
+    ProductExportXLSXSettings,
+    ProductModelExportCSVSettings,
+    ProductModelExportXLSXSettings,
+    RESERVED_ID_ATTRIBUTE_CODE
+} from "PIMModelsPackage";
 
 
 const rdk = new RDK();
@@ -103,56 +104,56 @@ export async function init(data: ExportData): Promise<ExportData> {
                 code: "attribute_export_xlsx",
                 job: ExportJobs.Enum.attribute_export,
                 label: "Attributes Export XLSX",
-                connector: ExportConnectors.Enum.xlsx,
+                connector: Connectors.Enum.xlsx,
                 createdAt: new Date()
             },
             {
                 code: "attribute_group_export_xlsx",
                 job: ExportJobs.Enum.attribute_group_export,
                 label: "Attribute Groups Export XLSX",
-                connector: ExportConnectors.Enum.xlsx,
+                connector: Connectors.Enum.xlsx,
                 createdAt: new Date()
             },
             {
                 code: "attribute_option_export_xlsx",
                 job: ExportJobs.Enum.attribute_option_export,
                 label: "Attribute Options Export XLSX",
-                connector: ExportConnectors.Enum.xlsx,
+                connector: Connectors.Enum.xlsx,
                 createdAt: new Date()
             },
             {
                 code: "category_export_xlsx",
                 job: ExportJobs.Enum.category_export,
                 label: "Categories Export XLSX",
-                connector: ExportConnectors.Enum.xlsx,
+                connector: Connectors.Enum.xlsx,
                 createdAt: new Date()
             },
             {
                 code: "group_export_xlsx",
                 job: ExportJobs.Enum.group_export,
                 label: "Groups Export XLSX",
-                connector: ExportConnectors.Enum.xlsx,
+                connector: Connectors.Enum.xlsx,
                 createdAt: new Date()
             },
             {
                 code: "group_type_export_xlsx",
                 job: ExportJobs.Enum.group_type_export,
                 label: "Group Types Export XLSX",
-                connector: ExportConnectors.Enum.xlsx,
+                connector: Connectors.Enum.xlsx,
                 createdAt: new Date()
             },
             {
                 code: "family_export_xlsx",
                 job: ExportJobs.Enum.family_export,
                 label: "Families Export XLSX",
-                connector: ExportConnectors.Enum.xlsx,
+                connector: Connectors.Enum.xlsx,
                 createdAt: new Date()
             },
             {
                 code: "family_variant_export_xlsx",
                 job: ExportJobs.Enum.family_variant_export,
                 label: "Family Variants Export XLSX",
-                connector: ExportConnectors.Enum.xlsx,
+                connector: Connectors.Enum.xlsx,
                 createdAt: new Date()
             },
 
@@ -160,56 +161,56 @@ export async function init(data: ExportData): Promise<ExportData> {
                 code: "attribute_export_csv",
                 job: ExportJobs.Enum.attribute_export,
                 label: "Attributes Export CSV",
-                connector: ExportConnectors.Enum.csv,
+                connector: Connectors.Enum.csv,
                 createdAt: new Date()
             },
             {
                 code: "attribute_group_export_csv",
                 job: ExportJobs.Enum.attribute_group_export,
                 label: "Attribute Groups Export CSV",
-                connector: ExportConnectors.Enum.csv,
+                connector: Connectors.Enum.csv,
                 createdAt: new Date()
             },
             {
                 code: "attribute_option_export_csv",
                 job: ExportJobs.Enum.attribute_option_export,
                 label: "Attribute Options Export CSV",
-                connector: ExportConnectors.Enum.csv,
+                connector: Connectors.Enum.csv,
                 createdAt: new Date()
             },
             {
                 code: "category_export_csv",
                 job: ExportJobs.Enum.category_export,
                 label: "Categories Export CSV",
-                connector: ExportConnectors.Enum.csv,
+                connector: Connectors.Enum.csv,
                 createdAt: new Date()
             },
             {
                 code: "group_export_csv",
                 job: ExportJobs.Enum.group_export,
                 label: "Groups Export CSV",
-                connector: ExportConnectors.Enum.csv,
+                connector: Connectors.Enum.csv,
                 createdAt: new Date()
             },
             {
                 code: "group_type_export_csv",
                 job: ExportJobs.Enum.group_type_export,
                 label: "Group Types Export CSV",
-                connector: ExportConnectors.Enum.csv,
+                connector: Connectors.Enum.csv,
                 createdAt: new Date()
             },
             {
                 code: "family_export_csv",
                 job: ExportJobs.Enum.family_export,
                 label: "Families Export CSV",
-                connector: ExportConnectors.Enum.csv,
+                connector: Connectors.Enum.csv,
                 createdAt: new Date()
             },
             {
                 code: "family_variant_export_csv",
                 job: ExportJobs.Enum.family_variant_export,
                 label: "Family Variants Export CSV",
-                connector: ExportConnectors.Enum.csv,
+                connector: Connectors.Enum.csv,
                 createdAt: new Date()
             },
         ]
@@ -265,7 +266,7 @@ export async function upsertExportProfile(data: ExportData): Promise<ExportData>
                     content: exportProfileContentResultForProduct.data
                 }
             }
-            if (result.data.connector === ExportConnectors.Enum.xlsx) {
+            if (result.data.connector === Connectors.Enum.xlsx) {
                 const checkSettings = ProductExportXLSXSettings.safeParse(result.data.globalSettings)
                 if (checkSettings.success === false) {
                     data.response = {
@@ -278,7 +279,7 @@ export async function upsertExportProfile(data: ExportData): Promise<ExportData>
                     return data
                 }
                 result.data.globalSettings = checkSettings.data
-            } else if (result.data.connector === ExportConnectors.Enum.csv) {
+            } else if (result.data.connector === Connectors.Enum.csv) {
                 const checkSettings = ProductExportCSVSettings.safeParse(result.data.globalSettings)
                 if (checkSettings.success === false) {
                     data.response = {
@@ -323,7 +324,7 @@ export async function upsertExportProfile(data: ExportData): Promise<ExportData>
                     content: exportProfileContentResultForProductModel.data
                 }
             }
-            if (result.data.connector === ExportConnectors.Enum.xlsx) {
+            if (result.data.connector === Connectors.Enum.xlsx) {
                 const checkSettings = ProductModelExportXLSXSettings.safeParse(result.data.globalSettings)
                 if (checkSettings.success === false) {
                     data.response = {
@@ -336,7 +337,7 @@ export async function upsertExportProfile(data: ExportData): Promise<ExportData>
                     return data
                 }
                 result.data.globalSettings = checkSettings.data
-            } else if (result.data.connector === ExportConnectors.Enum.csv) {
+            } else if (result.data.connector === Connectors.Enum.csv) {
                 const checkSettings = ProductModelExportCSVSettings.safeParse(result.data.globalSettings)
                 if (checkSettings.success === false) {
                     data.response = {
@@ -457,8 +458,9 @@ export async function startExport(data: ExportData): Promise<ExportData> {
         throw new Error("Job settings not found!")
     }
 
-    const job: Job = {
+    const job: ExportJob = {
         uid: generateJobId(),
+        job: jobSettings.job,
         status: JobStatus.Enum.RUNNING,
         connector: jobSettings.connector,
         code: jobCode.data,
@@ -493,7 +495,7 @@ export async function startExport(data: ExportData): Promise<ExportData> {
 
 export async function executeExport(data: ExportData): Promise<ExportData> {
 
-    const job: Job = await getCurrentExecution()
+    const job: ExportJob = await getCurrentExecution()
 
     const jobSettings = data.state.private.profiles.find(p => p.code === job.code)
     if (!jobSettings) {
@@ -516,7 +518,7 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
                     const productAttributeValues = {};
 
                     (product.data.attributes || []).forEach((productAttribute) => {
-                        const attributeSettings: AttributeSettings = getProductsSettingsResult.body.productSettings.attributes.find(a => a.code === productAttribute.code)
+                        const attributeSettings: BaseAttribute = getProductsSettingsResult.body.productSettings.attributes.find(a => a.code === productAttribute.code)
                         const globalSettings: GlobalProductModelExportSettings = jobSettings.globalSettings
 
                         if (attributeSettings.localizable && attributeSettings.scopable) {
@@ -558,7 +560,7 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
                     const productModelAttributeValues = {};
 
                     (productModel.data.attributes || []).forEach(attribute => {
-                        const attributeSettings: AttributeSettings = getProductsSettingsResult.body.productSettings.attributes.find(a => a.code === attribute)
+                        const attributeSettings: BaseAttribute = getProductsSettingsResult.body.productSettings.attributes.find(a => a.code === attribute)
                         const globalSettings: GlobalProductModelExportSettings = jobSettings.globalSettings
 
                         if (attributeSettings.localizable && attributeSettings.scopable) {
@@ -630,7 +632,7 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
                             obj[`label-${al.locale}`] = al.value
                         })
                     }
-                    if(a.code !== "sku"){
+                    if (a.code !== "sku") {
                         dat.push(obj)
                     }
                 })
@@ -676,7 +678,7 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
                 getProductsSettingsResult.body.productSettings.families.forEach(family => {
                     let obj = {
                         code: family.code,
-                        attributes: family.attributes.map(attr => attr.attribute).join(","),
+                        attributes: family.attributes.map(attr => attr.attribute).filter(a => a !== RESERVED_ID_ATTRIBUTE_CODE).join(","),
                         attributeAsLabel: family.attributeAsLabel,
                         attributeAsImage: family.attributeAsImage
                     }
@@ -685,9 +687,9 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
                             obj[`label-${al.locale}`] = al.value
                         })
                     }
-                    family.attributes.forEach(attr => {
-                        attr.requiredChannels.forEach(reqChannel => {
-                            requirements[reqChannel] = [...(requirements[reqChannel] || []), attr]
+                    family.attributes.forEach((familyAttribute: FamilyAttribute) => {
+                        familyAttribute.requiredChannels.forEach(reqChannel => {
+                            requirements[reqChannel] = [...(requirements[reqChannel] || []), familyAttribute.attribute]
                         })
                     })
                     Object.keys(requirements).forEach(reqChannel => {
@@ -753,10 +755,10 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
         let fileBufferData: Buffer;
 
         switch (jobSettings.connector) {
-            case ExportConnectors.Enum.xlsx:
+            case Connectors.Enum.xlsx:
                 fileBufferData = await json2XLSX(fileData)
                 break
-            case ExportConnectors.Enum.csv:
+            case Connectors.Enum.csv:
                 fileBufferData = await json2CSV(fileData)
                 break
             default:
@@ -944,7 +946,7 @@ export async function getExportedFile(data: ExportData): Promise<ExportData> {
         isBase64Encoded: true,
         body: file.data.toString("base64"),
         headers: {
-            "Content-Type": jobSettings.connector === ExportConnectors.Enum.xlsx ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : "text/csv",
+            "Content-Type": jobSettings.connector === Connectors.Enum.xlsx ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : "text/csv",
             "Content-Disposition": `attachment; filename="${filename}"`
         }
 

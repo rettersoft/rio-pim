@@ -1,6 +1,5 @@
 import {ProductSettingsData} from "./index";
 import {checkUpdateToken, randomString, sendEvent} from "./helpers";
-import {AttributeTypes, BaseAttribute, Code, Family, FamilyVariant, SelectOption, SpecificAttributes} from "./models";
 import {
     checkReservedIdAttribute,
     getAttribute,
@@ -9,6 +8,17 @@ import {
     specificAttributeValidation
 } from "./attributes.repository";
 import {WebhookEventOperation, WebhookEventType} from "./rio";
+import {
+    AttributeOptions,
+    AttributeTypes,
+    BaseAttribute,
+    BaseAttributes,
+    Code,
+    Family,
+    FamilyVariant,
+    AttributeOptionItem,
+    SpecificAttributes
+} from "PIMModelsPackage";
 
 
 export async function createAttribute(data: ProductSettingsData): Promise<ProductSettingsData> {
@@ -166,6 +176,53 @@ export async function updateAttribute(data: ProductSettingsData): Promise<Produc
     return data
 }
 
+export async function upsertAttributes(data: ProductSettingsData): Promise<ProductSettingsData> {
+    checkUpdateToken(data)
+
+    const result = BaseAttributes.safeParse(data.request.body.attributes)
+    if (result.success === false) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Model validation error!",
+                error: result.error
+            }
+        }
+        return data
+    }
+
+    result.data.forEach(attribute => {
+        const result = SpecificAttributes[attribute.type].safeParse(attribute)
+
+        if (result.success === false) {
+            data.response = {
+                statusCode: 400,
+                body: {
+                    message: "Model validation error!",
+                    error: result.error
+                }
+            }
+            return data
+        }
+
+        checkReservedIdAttribute(result.data.code)
+
+        specificAttributeValidation(result.data)
+
+        const oldIndex = data.state.public.attributes.findIndex(attr => attr.code === attribute.code)
+        if (oldIndex === -1) {
+            data.state.public.attributes.push(attribute)
+        } else {
+            data.state.public.attributes[oldIndex] = attribute
+        }
+    })
+
+    data.state.public.updateToken = randomString()
+
+
+    return data
+}
+
 export async function deleteAttribute(data: ProductSettingsData): Promise<ProductSettingsData> {
     checkUpdateToken(data)
 
@@ -229,7 +286,7 @@ export async function deleteAttribute(data: ProductSettingsData): Promise<Produc
 export async function upsertSelectOption(data: ProductSettingsData): Promise<ProductSettingsData> {
     checkUpdateToken(data)
 
-    const result = SelectOption.safeParse(data.request.body.option)
+    const result = AttributeOptionItem.safeParse(data.request.body.option)
     if (result.success === false) {
         data.response = {
             statusCode: 400,
@@ -282,6 +339,51 @@ export async function upsertSelectOption(data: ProductSettingsData): Promise<Pro
         eventOperation: webhookOperation,
         eventType: WebhookEventType.AttributeOption
     })
+
+    return data
+}
+
+export async function upsertAttributeSelectOptions(data: ProductSettingsData): Promise<ProductSettingsData> {
+    checkUpdateToken(data)
+
+    const result = AttributeOptions.safeParse(data.request.body.attributeOptions)
+    if (result.success === false) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Model validation error!",
+                error: result.error
+            }
+        }
+        return data
+    }
+
+    for (const datum of result.data) {
+        const attribute = getAttribute(datum.code, data)
+        if (![AttributeTypes.Enum.SIMPLESELECT, AttributeTypes.Enum.MULTISELECT].includes(attribute.type)) {
+            data.response = {
+                statusCode: 400,
+                body: {
+                    message: "Invalid attribute type!"
+                }
+            }
+            return data
+        }
+
+        const oldIndex = data.state.public.attributeOptions.findIndex(ao => ao.code === datum.code)
+        if (oldIndex == -1) {
+            data.state.public.attributeOptions.push(datum)
+        } else {
+            for (const option of datum.options) {
+                const oldOptionIndex = data.state.public.attributeOptions[oldIndex].options.findIndex(o => o.code === option.code)
+                if (oldOptionIndex === -1) {
+                    data.state.public.attributeOptions[oldIndex].options.push(option)
+                } else {
+                    data.state.public.attributeOptions[oldIndex].options[oldOptionIndex] = option
+                }
+            }
+        }
+    }
 
     return data
 }

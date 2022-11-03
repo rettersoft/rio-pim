@@ -1,7 +1,7 @@
 import {CatalogSettingsData} from "./index";
-import {Channel} from "./models";
 import {checkUpdateToken, randomString, sendEvent} from "./helpers";
 import {WebhookEventOperation, WebhookEventType} from "./rio";
+import {Channel, Channels} from "PIMModelsPackage";
 
 
 export async function upsertChannel(data: CatalogSettingsData): Promise<CatalogSettingsData> {
@@ -19,7 +19,7 @@ export async function upsertChannel(data: CatalogSettingsData): Promise<CatalogS
         return data
     }
 
-    if(!data.state.public.channels) data.state.public.channels = []
+    if (!data.state.public.channels) data.state.public.channels = []
 
     let eventOperation: WebhookEventOperation;
 
@@ -44,17 +44,46 @@ export async function upsertChannel(data: CatalogSettingsData): Promise<CatalogS
     return data
 }
 
+export async function upsertChannels(data: CatalogSettingsData): Promise<CatalogSettingsData> {
+    checkUpdateToken(data)
+
+    const result = Channels.safeParse(data.request.body.channels)
+    if (result.success === false) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: 'Model validation failed!',
+                error: result.error
+            }
+        }
+        return data
+    }
+
+    for (const datum of result.data) {
+        const oldIndex = data.state.public.channels.findIndex(c => c.code === datum.code)
+        if (oldIndex === -1) {
+            data.state.public.channels.push(datum)
+        } else {
+            data.state.public.channels[oldIndex] = datum
+        }
+    }
+
+    data.state.public.updateToken = randomString()
+
+    return data
+}
+
 
 export async function deleteChannel(data: CatalogSettingsData): Promise<CatalogSettingsData> {
     checkUpdateToken(data)
 
     const channelCode = data.request.body.code
 
-    if(!data.state.public.channels) data.state.public.channels = []
+    if (!data.state.public.channels) data.state.public.channels = []
 
     const channelIndex = data.state.public.channels.findIndex(c => c.code === channelCode)
     if (channelIndex !== -1) {
-        data.state.public.channels = data.state.public.channels.filter(c=>c.code !== channelCode)
+        data.state.public.channels = data.state.public.channels.filter(c => c.code !== channelCode)
     }
     data.state.public.updateToken = randomString()
 

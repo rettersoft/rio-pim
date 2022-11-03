@@ -1,8 +1,8 @@
 import {ProductSettingsData} from "./index";
 import {checkUpdateToken, randomString, sendEvent} from "./helpers";
-import {AttributeGroup, BaseAttribute, Code} from "./models";
-import {checkReservedAttributeGroup, RESERVED_ATTRIBUTE_GROUP_CODE} from "./attribute-groups.repository";
+import {checkReservedAttributeGroup} from "./attribute-groups.repository";
 import {WebhookEventOperation, WebhookEventType} from "./rio";
+import {AttributeGroup, AttributeGroups, BaseAttribute, Code, RESERVED_ATTRIBUTE_GROUP_CODE} from "PIMModelsPackage";
 
 
 export async function addAttributeGroup(data: ProductSettingsData): Promise<ProductSettingsData> {
@@ -81,6 +81,36 @@ export async function updateAttributeGroup(data: ProductSettingsData): Promise<P
         eventOperation: WebhookEventOperation.Update,
         eventType: WebhookEventType.AttributeGroup
     })
+
+    return data
+}
+
+export async function upsertAttributeGroups(data: ProductSettingsData): Promise<ProductSettingsData> {
+
+    checkUpdateToken(data)
+
+    const result = AttributeGroups.safeParse(data.request.body.attributeGroups)
+    if (result.success === false) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Model validation error!",
+                error: result.error
+            }
+        }
+        return data
+    }
+
+    for (const datum of result.data) {
+        const agIndex = data.state.public.attributeGroups.findIndex(ag => ag.code === datum.code)
+        if (agIndex === -1) {
+            data.state.public.attributeGroups.push(datum)
+        } else {
+            data.state.public.attributeGroups[agIndex] = datum
+        }
+    }
+
+    data.state.public.updateToken = randomString()
 
     return data
 }
