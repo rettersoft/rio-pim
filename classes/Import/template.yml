@@ -29,8 +29,12 @@ methods:
     handler: index.startImport
 
   - method: executeImport
-    type: WRITE
+    type: READ
     handler: index.executeImport
+
+  - method: importProcess
+    type: QUEUED_WRITE
+    handler: index.importProcess
 
   - method: getExecution
     type: READ

@@ -97,6 +97,11 @@ export async function authorizer(data: ImportData): Promise<Response> {
                 return {statusCode: 200}
             }
             break
+        case 'importProcess':
+            if (isThisClassInstance) {
+                return {statusCode: 200}
+            }
+            break
         case 'DESTROY':
             if (data.context.identity === "AccountManager") {
                 return {statusCode: 200}
@@ -483,6 +488,17 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
 
         job.total = importData.length
 
+        let getProductsSettingsResult;
+
+        if ([ImportJobs.Enum.product_import, ImportJobs.Enum.product_model_import].includes(jobSettings.job)) {
+            const res = await new Classes.ProductSettings(data.context.instanceId).getProductSettings()
+            if (res.statusCode >= 400) {
+                throw new Error("Product settings error!")
+            } else {
+                getProductsSettingsResult = res.body
+            }
+        }
+
         if (importData.length) {
             switch (jobSettings.job) {
                 case ImportJobs.Enum.product_import:
@@ -490,6 +506,11 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                         const itemModel = ProductImportItem.safeParse(item)
                         if (itemModel.success === false) {
                             job.failed += 1
+                        } else {
+                            await new Classes.Import(data.context.instanceId).importProcess({
+                                attributes: getProductsSettingsResult.productSettings.attributes,
+                                job
+                            })
                         }
                     }
                     break
@@ -498,6 +519,11 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                         const itemModel = ProductModelImportItem.safeParse(item)
                         if (itemModel.success === false) {
                             job.failed += 1
+                        } else {
+                            await new Classes.Import(data.context.instanceId).importProcess({
+                                attributes: getProductsSettingsResult.productSettings.attributes,
+                                job
+                            })
                         }
                     }
                     break
@@ -981,20 +1007,20 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                         } else {
                             const familyAttributes: FamilyAttribute[] = []
                             //get family attribute required channels from item
-                            Object.keys(item).forEach(key=>{
-                                if(key.startsWith("requirements-")){
+                            Object.keys(item).forEach(key => {
+                                if (key.startsWith("requirements-")) {
                                     const splits = key.split("-")
-                                    if (splits.length === 2){
+                                    if (splits.length === 2) {
                                         const channel: string = splits[1]
                                         const attributes: string[] = item[key].split(",")
-                                        attributes.forEach(att=>{
-                                            const oldIndex = familyAttributes.findIndex(fa=>fa.attribute === att)
-                                            if(oldIndex === -1){
+                                        attributes.forEach(att => {
+                                            const oldIndex = familyAttributes.findIndex(fa => fa.attribute === att)
+                                            if (oldIndex === -1) {
                                                 familyAttributes.push({
                                                     attribute: att,
                                                     requiredChannels: [channel]
                                                 })
-                                            }else{
+                                            } else {
                                                 familyAttributes[oldIndex].requiredChannels.push(channel)
                                             }
                                         })
