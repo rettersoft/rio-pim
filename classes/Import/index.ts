@@ -508,6 +508,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                             job.failed += 1
                         } else {
                             await new Classes.Import(data.context.instanceId).importProcess({
+                                item,
                                 attributes: getProductsSettingsResult.productSettings.attributes,
                                 job
                             })
@@ -521,6 +522,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                             job.failed += 1
                         } else {
                             await new Classes.Import(data.context.instanceId).importProcess({
+                                item,
                                 attributes: getProductsSettingsResult.productSettings.attributes,
                                 job
                             })
@@ -551,8 +553,10 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                 groupTypes: groupTypesRequestData
                             })
                             job.processed = groupTypesRequestData.length
+                            job.status = JobStatus.Enum.DONE
                         } catch (e) {
                             job.failed += groupTypesRequestData.length
+                            job.status = JobStatus.Enum.FAILED
                         }
                     }
                     break
@@ -581,8 +585,10 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                 groups: groupsRequestData
                             })
                             job.processed = groupsRequestData.length
+                            job.status = JobStatus.Enum.DONE
                         } catch (e) {
                             job.failed += groupsRequestData.length
+                            job.status = JobStatus.Enum.FAILED
                         }
                     }
                     break
@@ -629,8 +635,10 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                 categories: categoriesRequestData
                             })
                             job.processed = categoriesRequestData.length
+                            job.status = JobStatus.Enum.DONE
                         } catch (e) {
                             job.failed += categoriesRequestData.length
+                            job.status = JobStatus.Enum.FAILED
                         }
                     }
                     break
@@ -903,8 +911,10 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                 attributes: attributesRequestData
                             })
                             job.processed = attributesRequestData.length
+                            job.status = JobStatus.Enum.DONE
                         } catch (e) {
                             job.failed += attributesRequestData.length
+                            job.status = JobStatus.Enum.FAILED
                         }
                     }
                     break
@@ -960,8 +970,10 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                         attributeOptions: requestData
                                     })
                                     job.processed = requestData.length
+                                    job.status = JobStatus.Enum.DONE
                                 } catch (e) {
                                     job.failed += requestData.length
+                                    job.status = JobStatus.Enum.FAILED
                                 }
                             }
                         } else {
@@ -993,8 +1005,10 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                 attributeGroups: attributeGroupsRequestData
                             })
                             job.processed = attributeGroupsRequestData.length
+                            job.status = JobStatus.Enum.DONE
                         } catch (e) {
                             job.failed += attributeGroupsRequestData.length
+                            job.status = JobStatus.Enum.FAILED
                         }
                     }
                     break
@@ -1047,8 +1061,10 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                 families: familiesRequestData
                             })
                             job.processed = familiesRequestData.length
+                            job.status = JobStatus.Enum.DONE
                         } catch (e) {
                             job.failed += familiesRequestData.length
+                            job.status = JobStatus.Enum.FAILED
                         }
                     }
                     break
@@ -1078,22 +1094,28 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                 familyVariants: familyVariantsRequestData
                             })
                             job.processed = familyVariantsRequestData.length
+                            job.status = JobStatus.Enum.DONE
                         } catch (e) {
                             job.failed += familyVariantsRequestData.length
+                            job.status = JobStatus.Enum.FAILED
                         }
                     }
                     break
                 default:
                     throw new Error("Invalid job!")
             }
-
         } else {
+            job.processed = 0
+            job.failed = 0
             job.status = JobStatus.Enum.DONE
+        }
+
+        if (![ImportJobs.Enum.product_import, ImportJobs.Enum.product_model_import].includes(jobSettings.job)) {
             job.finishedAt = new Date()
+            await unlockExecution()
         }
 
         await saveJobToDB(job, data.context.instanceId)
-        await unlockExecution()
 
         data.response = {
             statusCode: 200,
@@ -1282,6 +1304,12 @@ export async function importProcess(data: ImportData): Promise<ImportData> {
             break
         default:
             throw new Error("Unsupported job process!")
+    }
+
+    if (job.failed + job.processed === job.total) {
+        job.finishedAt = new Date()
+        await saveJobToDB(job, data.context.instanceId)
+        await unlockExecution()
     }
 
     return data

@@ -34,6 +34,7 @@ import {
     ProductModelExportXLSXSettings,
     RESERVED_ID_ATTRIBUTE_CODE
 } from "PIMModelsPackage";
+import _ from "lodash";
 
 
 const rdk = new RDK();
@@ -626,7 +627,7 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
             case ExportJobs.Enum.attribute_export:
                 dat = [];
                 getProductsSettingsResult.body.productSettings.attributes.forEach(a => {
-                    let obj = a
+                    let obj = _.omit(a, "label")
                     if (a.label && a.label.length) {
                         a.label.forEach(al => {
                             obj[`label-${al.locale}`] = al.value
@@ -661,7 +662,7 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
             case ExportJobs.Enum.attribute_group_export:
                 dat = [];
                 getProductsSettingsResult.body.productSettings.attributeGroups.forEach(a => {
-                    let obj = a
+                    let obj = _.omit(a, "label")
                     if (a.label && a.label.length) {
                         a.label.forEach(al => {
                             obj[`label-${al.locale}`] = al.value
@@ -737,7 +738,7 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
             case ExportJobs.Enum.group_export:
                 dat = [];
                 getProductsSettingsResult.body.productSettings.groups.forEach(a => {
-                    let obj = a
+                    let obj = _.omit(a, "label")
                     if (a.label && a.label.length) {
                         a.label.forEach(al => {
                             obj[`label-${al.locale}`] = al.value
