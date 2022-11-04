@@ -127,7 +127,121 @@ export async function getInstanceId(data: ImportData<AccountIDInput>): Promise<s
 
 export async function init(data: ImportData): Promise<ImportData> {
     data.state.private = {
-        profiles: [],
+        profiles: [
+            {
+                code: "attribute_import_xlsx",
+                job: ImportJobs.Enum.attribute_import,
+                label: "Attributes Import XLSX",
+                connector: Connectors.Enum.xlsx,
+                createdAt: new Date()
+            },
+            {
+                code: "attribute_group_import_xlsx",
+                job: ImportJobs.Enum.attribute_group_import,
+                label: "Attribute Groups Import XLSX",
+                connector: Connectors.Enum.xlsx,
+                createdAt: new Date()
+            },
+            {
+                code: "attribute_option_import_xlsx",
+                job: ImportJobs.Enum.attribute_option_import,
+                label: "Attribute Options Import XLSX",
+                connector: Connectors.Enum.xlsx,
+                createdAt: new Date()
+            },
+            {
+                code: "category_import_xlsx",
+                job: ImportJobs.Enum.category_import,
+                label: "Categories Import XLSX",
+                connector: Connectors.Enum.xlsx,
+                createdAt: new Date()
+            },
+            {
+                code: "group_import_xlsx",
+                job: ImportJobs.Enum.group_import,
+                label: "Groups Import XLSX",
+                connector: Connectors.Enum.xlsx,
+                createdAt: new Date()
+            },
+            {
+                code: "group_type_import_xlsx",
+                job: ImportJobs.Enum.group_type_import,
+                label: "Group Types Import XLSX",
+                connector: Connectors.Enum.xlsx,
+                createdAt: new Date()
+            },
+            {
+                code: "family_import_xlsx",
+                job: ImportJobs.Enum.family_import,
+                label: "Families Import XLSX",
+                connector: Connectors.Enum.xlsx,
+                createdAt: new Date()
+            },
+            {
+                code: "family_variant_import_xlsx",
+                job: ImportJobs.Enum.family_variant_import,
+                label: "Family Variants Import XLSX",
+                connector: Connectors.Enum.xlsx,
+                createdAt: new Date()
+            },
+
+            {
+                code: "attribute_import_csv",
+                job: ImportJobs.Enum.attribute_import,
+                label: "Attributes Import CSV",
+                connector: Connectors.Enum.csv,
+                createdAt: new Date()
+            },
+            {
+                code: "attribute_group_import_csv",
+                job: ImportJobs.Enum.attribute_group_import,
+                label: "Attribute Groups Import CSV",
+                connector: Connectors.Enum.csv,
+                createdAt: new Date()
+            },
+            {
+                code: "attribute_option_import_csv",
+                job: ImportJobs.Enum.attribute_option_import,
+                label: "Attribute Options Import CSV",
+                connector: Connectors.Enum.csv,
+                createdAt: new Date()
+            },
+            {
+                code: "category_import_csv",
+                job: ImportJobs.Enum.category_import,
+                label: "Categories Import CSV",
+                connector: Connectors.Enum.csv,
+                createdAt: new Date()
+            },
+            {
+                code: "group_import_csv",
+                job: ImportJobs.Enum.group_import,
+                label: "Groups Import CSV",
+                connector: Connectors.Enum.csv,
+                createdAt: new Date()
+            },
+            {
+                code: "group_type_import_csv",
+                job: ImportJobs.Enum.group_type_import,
+                label: "Group Types Import CSV",
+                connector: Connectors.Enum.csv,
+                createdAt: new Date()
+            },
+            {
+                code: "family_import_csv",
+                job: ImportJobs.Enum.family_import,
+                label: "Families Import CSV",
+                connector: Connectors.Enum.csv,
+                createdAt: new Date()
+            },
+            {
+                code: "family_variant_import_csv",
+                job: ImportJobs.Enum.family_variant_import,
+                label: "Family Variants Import CSV",
+                connector: Connectors.Enum.csv,
+                createdAt: new Date()
+            },
+        ],
     }
     return data
 }
