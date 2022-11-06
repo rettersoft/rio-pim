@@ -133,7 +133,7 @@ export async function validateProductAttributes(props: { productFamily: string, 
                             throw new Error(`Invalid validation rule! (${TEXT_ATTRIBUTE.validationRule})`)
                     }
                     for (const datum of productAttribute.data) {
-                        if (new RegExp(regex, "g").test(datum.value)) {
+                        if (!new RegExp(regex, "g").test(datum.value)) {
                             throw new Error(`${productAttribute.code}, invalid regex format, ${TEXT_ATTRIBUTE.maxCharacters}`)
                         }
                     }
