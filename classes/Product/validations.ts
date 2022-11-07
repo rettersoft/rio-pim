@@ -66,6 +66,13 @@ export async function validateProductAttributes(props: { productFamily: string, 
     const familyData: Family = props.productSettings.families.find(f => f.code === props.productFamily)
     if (!familyData) throw new Error("Product family not found!")
 
+    //detect duplicated attributes
+    for (const productAttribute of props.productAttributes) {
+        if(props.productAttributes.filter(a=>a.code === productAttribute.code).length > 1){
+            throw new Error(`Duplicated attribute detected! (${productAttribute.code})`)
+        }
+    }
+
     for (const familyAttribute of familyData.attributes) {
         const productAttribute: ProductAttribute | undefined = props.productAttributes.find(pa => pa.code === familyAttribute.attribute)
 
