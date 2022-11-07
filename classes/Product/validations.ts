@@ -242,14 +242,14 @@ export async function validateProductAttributes(props: { productFamily: string, 
                 const DATE: DATE = attributeProperty
                 if (DATE.minDate !== undefined) {
                     for (const datum of productAttribute.data) {
-                        if (new Date(datum.value) < DATE.minDate) {
+                        if (new Date(datum.value) < new Date(DATE.minDate)) {
                             throw new Error(`${productAttribute.code} should not be less than ${DATE.minDate}!`)
                         }
                     }
                 }
                 if (DATE.maxDate !== undefined) {
                     for (const datum of productAttribute.data) {
-                        if (new Date(datum.value) > DATE.maxDate) {
+                        if (new Date(datum.value) > new Date(DATE.maxDate)) {
                             throw new Error(`${productAttribute.code} should not be greater than ${DATE.maxDate}!`)
                         }
                     }

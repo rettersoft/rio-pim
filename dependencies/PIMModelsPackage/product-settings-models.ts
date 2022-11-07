@@ -92,11 +92,11 @@ export const SpecificAttributes = {
     MULTISELECT: BaseAttribute.extend({}),
     SIMPLESELECT: BaseAttribute.extend({}),
     DATE: BaseAttribute.extend({
-        minDate: Z.preprocess((arg) => {
-            if (typeof arg === "string") return new Date(arg)
+        minDate: Z.preprocess((arg: Date | string) => {
+            return new Date(new Date(arg.toString()).toISOString().slice(0,10))
         }, Z.date()).optional(),
-        maxDate: Z.preprocess((arg) => {
-            if (typeof arg === "string") return new Date(arg)
+        maxDate: Z.preprocess((arg: Date | string) => {
+            return new Date(new Date(arg.toString()).toISOString().slice(0,10))
         }, Z.date()).optional(),
     }),
     PRICE: BaseAttribute.extend({
