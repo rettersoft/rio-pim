@@ -4,6 +4,7 @@ import {ElasticHelper} from "./elastic";
 import {SearchTotalHits} from "@elastic/elasticsearch/lib/api/types";
 import RDK from "@retter/rdk";
 import {checkAuthorization} from "./middleware";
+import {PIMRepository} from "PIMRepositoryPackage";
 
 const rdk = new RDK();
 
@@ -118,6 +119,23 @@ export async function deleteProduct(data: APIData): Promise<APIData> {
     }
 
     await rdk.deleteInstance({instanceId: `${data.context.instanceId}-${id}`, classId: 'Product'})
+
+    return data
+}
+
+export async function getImage(data: APIData): Promise<APIData> {
+    //await checkAuthorization(data)
+
+    const result = await PIMRepository.getProductImageByRDK(data.request.queryStringParams.filename, data.context.instanceId)
+    data.response = {
+        statusCode: 200,
+        body: result.fileData,
+        isBase64Encoded: true,
+        headers: {
+            "content-type": result.contentType,
+            "cache-control": result.cacheControl
+        }
+    }
 
     return data
 }

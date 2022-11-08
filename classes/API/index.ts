@@ -30,6 +30,7 @@ export async function authorizer(data: APIData): Promise<Response> {
         "getCatalogSettings",
         "upsertProduct",
         "deleteProduct",
+        "getImage"
     ].includes(data.context.methodName)) {
         return {statusCode: 200}
     }

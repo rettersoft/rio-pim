@@ -12,7 +12,7 @@ export async function checkUserRole(data: APIData) {
 }
 
 export async function checkApiKey(data: APIData) {
-    if (!(data.state.private.apiKeys || []).find(a => a.apiKey === data.request.headers["x-pim-api-key"])) {
+    if (!(data.state.private.apiKeys || []).find(a => a.apiKey === data.request.headers["x-api-key"])) {
         throw new Error("Access Denied")
     }
 }

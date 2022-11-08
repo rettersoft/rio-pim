@@ -14,6 +14,7 @@ import {
     IDENTIFIER,
     IMAGE,
     NUMBER,
+    PimImageExtensions,
     PimValidationRules,
     PRICE,
     Product,
@@ -68,7 +69,7 @@ export async function validateProductAttributes(props: { productFamily: string, 
 
     //detect duplicated attributes
     for (const productAttribute of props.productAttributes) {
-        if(props.productAttributes.filter(a=>a.code === productAttribute.code).length > 1){
+        if (props.productAttributes.filter(a => a.code === productAttribute.code).length > 1) {
             throw new Error(`Duplicated attribute detected! (${productAttribute.code})`)
         }
     }
@@ -225,11 +226,14 @@ export async function validateProductAttributes(props: { productFamily: string, 
                 break
             case AttributeTypes.Enum.IMAGE:
                 const IMAGE: IMAGE = attributeProperty
-                if (IMAGE.allowedExtensions !== undefined) {
-                    for (const datum of productAttribute.data) {
-                        const ext = datum.value.split('.').pop()
-                        if (!IMAGE.allowedExtensions.includes(ext)) {
-                            throw new Error(`${productAttribute.code} extension is invalid!`)
+                for (const datum of productAttribute.data) {
+                    const ext = datum.value.split('.').pop()
+                    if (IMAGE.allowedExtensions !== undefined && !IMAGE.allowedExtensions.includes(ext)) {
+                        throw new Error(`${productAttribute.code} extension is invalid!`)
+                    } else if (IMAGE.allowedExtensions === undefined) {
+                        const extModel = PimImageExtensions.safeParse(ext)
+                        if (extModel.success === false) {
+                            throw new Error(`Unsupported extension! (code: ${productAttribute.code}, extension: ${ext})`)
                         }
                     }
                 }

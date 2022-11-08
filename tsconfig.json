@@ -9,7 +9,8 @@
         "downlevelIteration": true,
         "paths": {
           "PIMMiddlewarePackage": ["dependencies/PIMMiddlewarePackage"],
-          "PIMModelsPackage": ["dependencies/PIMModelsPackage"]
+          "PIMModelsPackage": ["dependencies/PIMModelsPackage"],
+          "PIMRepositoryPackage": ["dependencies/PIMRepositoryPackage"],
         }
     },
     "exclude": [

@@ -6,6 +6,8 @@ authorizer: index.authorizer
 getInstanceId: index.getInstanceId
 dependencies:
   - PIMMiddlewarePackage
+  - PIMModelsPackage
+  - PIMRepositoryPackage
 methods:
 
   - method: generateApiKey
@@ -35,9 +37,13 @@ methods:
     handler: api.getCatalogSettings
 
   - method: upsertProduct
-    type: WRITE
+    type: READ
     handler: api.upsertProduct
 
   - method: deleteProduct
-    type: WRITE
+    type: READ
     handler: api.deleteProduct
+
+  - method: getImage
+    type: READ
+    handler: api.getImage

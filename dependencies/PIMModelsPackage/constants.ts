@@ -12,6 +12,8 @@ export const RESERVED_ID_ATTRIBUTE_CODE = "sku"
 
 export const RESERVED_ATTRIBUTE_GROUP_CODE = "other"
 
+export const IMAGE_CACHE_TTL_IN_SECONDS = 86400
+
 export const Currencies: CurrencyConst[] = [
     {
         "id": "AFN",

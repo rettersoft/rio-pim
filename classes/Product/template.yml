@@ -6,6 +6,7 @@ destroy: index.destroy
 dependencies:
   - PIMMiddlewarePackage
   - PIMModelsPackage
+  - PIMRepositoryPackage
 methods:
 
   - method: getProduct

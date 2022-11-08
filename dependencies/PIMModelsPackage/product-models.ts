@@ -5,7 +5,8 @@ import {Code, ProductCategoryCode} from "./common-models";
 export const ProductAttributeData = Z.object({
     scope: Code.optional(),
     locale: Code.optional(),
-    value: Z.any()
+    value: Z.any(),
+    meta: Z.any().optional()
 })
 
 export const ProductAttribute = Z.object({

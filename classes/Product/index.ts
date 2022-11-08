@@ -1,16 +1,31 @@
 import RDK, {Data, Response} from "@retter/rdk";
-import {checkUpdateToken, finalizeProductOperation, getProductClassAccountId, randomString} from "./helpers";
+import {
+    checkUpdateToken,
+    finalizeProductOperation,
+    getImageFileName,
+    getProductClassAccountId,
+    manipulateRequestProductAttributes,
+    randomString
+} from "./helpers";
 import {Classes, InternalDestinationEventHandlerInput, WebhookEventOperation, WebhookEventType} from "./rio";
 import {Env} from "./env";
 import {Buffer} from "buffer";
 import {v4 as uuidv4} from 'uuid';
-import mime from "mime-types";
 import {getProductAttributeKeyMap} from "./keysets";
 import {ModelsRepository} from "./models-repository";
 import {checkProduct, checkProductModel, checkProductModelVariant, checkVariantAxesForInit} from "./validations";
 import {ClassesRepository} from "./classes-repository";
 import {PIMMiddlewarePackage} from "PIMMiddlewarePackage";
-import {AttributeTypes, AxesValuesList, Code, DataType, IMAGE, Product, ProductModel} from "PIMModelsPackage";
+import {
+    AttributeTypes,
+    AxesValuesList,
+    Code,
+    DataType,
+    IMAGE,
+    Product,
+    ProductModel
+} from "PIMModelsPackage";
+import {PIMRepository} from "PIMRepositoryPackage";
 import InternalDestination = Classes.InternalDestination;
 
 const middleware = new PIMMiddlewarePackage()
@@ -146,7 +161,7 @@ export async function init(data: ProductData): Promise<ProductData> {
     switch (dataType) {
         case DataType.Enum.PRODUCT:
             if (data.request.body.parent !== undefined) {
-                const checkSum = await checkProductModelVariant({
+                const checksum = await checkProductModelVariant({
                     accountId,
                     catalogSettings,
                     axesValues: data.request.body.axesValues,
@@ -158,12 +173,12 @@ export async function init(data: ProductData): Promise<ProductData> {
                 const checkSumAxesValues = await checkVariantAxesForInit({
                     accountId,
                     axesValues: data.request.body.axesValues,
-                    childProduct: checkSum.childProduct,
-                    parentProductModel: checkSum.parentProduct,
+                    childProduct: checksum.childProduct,
+                    parentProductModel: checksum.parentProduct,
                     productSettings
                 })
 
-                source = checkSum.childProduct
+                source = checksum.childProduct
                 data.state.private.parent = data.request.body.parent
                 data.state.private.axesValues = checkSumAxesValues
             } else {
@@ -188,6 +203,8 @@ export async function init(data: ProductData): Promise<ProductData> {
     }
 
     await finalizeProductOperation(data, source.attributes, productSettings)
+
+    manipulateRequestProductAttributes(source, productSettings, data)
 
     data.state.private.dataSource = source
     data.state.private.dataType = dataType
@@ -329,6 +346,8 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
     }
 
     await finalizeProductOperation(data, source.attributes, productSettings)
+
+    manipulateRequestProductAttributes(source, productSettings, data)
 
     data.state.private.dataSource = source
     data.state.private.updateToken = randomString()
@@ -542,7 +561,7 @@ export async function uploadTempImage(data: ProductData): Promise<ProductData> {
     }
 
     const imageId = uuidv4().replace(new RegExp("-", "g"), "")
-    const imageFileName = accountId + "-" + imageId + "." + data.request.body.extension
+    const imageFileName = getImageFileName(accountId, imageId, data.request.body.extension)
     await rdk.setFile({body: data.request.body.image, filename: imageFileName})
 
     const response: ImageResponse = {
@@ -591,23 +610,16 @@ export async function checkUploadedImage(data: ProductData): Promise<ProductData
 
 export async function getUploadedImage(data: ProductData): Promise<ProductData> {
     const filename = data.request.queryStringParams.filename
-    const file = await rdk.getFile({filename})
-    if (file.error) {
-        data.response = {
-            statusCode: 400,
-            body: {
-                message: file.error
-            }
-        }
-        return data
-    }
+
+    const result = await PIMRepository.getProductImageByRDK(filename, getProductClassAccountId(data))
 
     data.response = {
         statusCode: 200,
-        body: file.data,
+        body: result.fileData,
         isBase64Encoded: true,
         headers: {
-            "content-type": mime.lookup(filename.split(".").pop()) || undefined
+            "content-type": result.contentType,
+            "cache-control": result.cacheControl
         }
     }
 

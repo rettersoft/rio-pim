@@ -19,7 +19,8 @@ export const PimImageExtensions = Z.enum([
     "jpeg",
     "jpg",
     "png",
-    "tiff"
+    "tiff",
+    "webp"
 ])
 
 export const PimValidationRules = Z.enum([

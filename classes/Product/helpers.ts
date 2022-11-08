@@ -2,13 +2,22 @@ import {ProductData} from "./index";
 import {getProductAttributeKeyMap} from "./keysets";
 import {GetProductsSettingsResult} from "./classes-repository";
 import RDK from "@retter/rdk";
-import {AttributeTypes, BaseAttribute, Product, ProductAttribute} from "PIMModelsPackage";
+import {AttributeTypes, BaseAttribute, Product, ProductAttribute, ProductModel} from "PIMModelsPackage";
+import * as queryString from "querystring";
 
 const rdk = new RDK();
 
 
 export function getProductClassAccountId(data: ProductData) {
     return data.context.instanceId.split("-").shift()
+}
+
+export function getImageFileName(accountId: string, imageId: string, extension: string) {
+    return `${accountId}-${imageId}.${extension}`
+}
+
+export function getImageURL(props: { projectId: string, accountId: string, imageName: string }) {
+    return `https://${props.projectId}.api.retter.io/${props.projectId}/CALL/API/getImage/${props.accountId}?` + queryString.stringify({filename: props.imageName})
 }
 
 export function randomString(l = 10) {
@@ -120,4 +129,30 @@ export function getAttributeAsLabelValue(product: Product, productSettings: GetP
         }
     }
     return undefined
+}
+
+
+export function manipulateRequestProductAttributes(product: Product | ProductModel, productSettings: GetProductsSettingsResult, data: ProductData) {
+    if(product.attributes && product.attributes.length){
+        for (let i = 0; i < product.attributes.length; i++) {
+            const attributeProperty = productSettings.attributes.find(ap => ap.code === product.attributes[i].code)
+            if (attributeProperty) {
+                switch (attributeProperty.type) {
+                    case AttributeTypes.Enum.IMAGE:
+                        for (let j = 0; j < product.attributes[i].data.length; j++) {
+                            if (product.attributes[i].data[j].value) {
+                                product.attributes[i].data[j].meta = {
+                                    url: getImageURL({
+                                        projectId: data.context.projectId,
+                                        accountId: getProductClassAccountId(data),
+                                        imageName: product.attributes[i].data[j].value
+                                    })
+                                }
+                            }
+                        }
+                        break
+                }
+            }
+        }
+    }
 }
