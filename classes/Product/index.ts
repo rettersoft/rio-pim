@@ -196,7 +196,7 @@ export async function init(data: ProductData): Promise<ProductData> {
 
     await finalizeProductOperation(data, source.attributes, productSettings)
 
-    manipulateRequestProductAttributes(source, productSettings, data)
+    manipulateRequestProductAttributes(data, source, productSettings, catalogSettings)
 
     data.state.private.dataSource = source
     data.state.private.dataType = dataType
@@ -339,7 +339,7 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
 
     await finalizeProductOperation(data, source.attributes, productSettings)
 
-    manipulateRequestProductAttributes(source, productSettings, data)
+    manipulateRequestProductAttributes(data, source, productSettings, catalogSettings)
 
     data.state.private.dataSource = source
     data.state.private.updateToken = randomString()

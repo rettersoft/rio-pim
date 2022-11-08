@@ -1,8 +1,16 @@
 import {ProductData} from "./index";
 import {getProductAttributeKeyMap} from "./keysets";
-import {GetProductsSettingsResult} from "./classes-repository";
+import {GetCatalogSettingsResult, GetProductsSettingsResult} from "./classes-repository";
 import RDK from "@retter/rdk";
-import {AttributeTypes, BaseAttribute, DataType, Product, ProductAttribute, ProductModel} from "PIMModelsPackage";
+import {
+    AttributeTypes,
+    BaseAttribute,
+    BOOLEAN,
+    DataType,
+    Product,
+    ProductAttribute,
+    ProductModel
+} from "PIMModelsPackage";
 import * as queryString from "querystring";
 import {Classes} from "./rio";
 import {PIMMiddlewarePackage} from "PIMMiddlewarePackage";
@@ -136,7 +144,7 @@ export function getAttributeAsLabelValue(product: Product, productSettings: GetP
 }
 
 
-export function manipulateRequestProductAttributes(product: Product | ProductModel, productSettings: GetProductsSettingsResult, data: ProductData) {
+export function manipulateRequestProductAttributes(data: ProductData, product: Product | ProductModel, productSettings: GetProductsSettingsResult, catalogSettings: GetCatalogSettingsResult ) {
     if (product.attributes && product.attributes.length) {
         for (let i = 0; i < product.attributes.length; i++) {
             const attributeProperty = productSettings.attributes.find(ap => ap.code === product.attributes[i].code)
@@ -159,6 +167,52 @@ export function manipulateRequestProductAttributes(product: Product | ProductMod
             }
         }
     }
+
+    // fill default BOOLEANS
+    productSettings.attributes.filter(a => a.type === AttributeTypes.Enum.BOOLEAN && (a as BOOLEAN).defaultValue !== undefined).forEach(attributeProperty => {
+        const aIndex = (product.attributes || []).findIndex(a => a.code === attributeProperty.code)
+        if (aIndex === -1) {
+            const defaultValue = (attributeProperty as BOOLEAN).defaultValue
+            const productAttribute: ProductAttribute = {
+                code: attributeProperty.code,
+                data: []
+            }
+            if (attributeProperty.scopable && attributeProperty.localizable) {
+                if (attributeProperty.isLocaleSpecific) {
+                    catalogSettings.channels.forEach(channel => {
+                        attributeProperty.availableLocales.forEach(locale => {
+                            if (channel.locales.includes(locale)) {
+                                productAttribute.data.push({locale, scope: channel.code, value: defaultValue})
+                            }
+                        })
+                    })
+                } else {
+                    catalogSettings.channels.forEach(channel => {
+                        channel.locales.forEach(locale => {
+                            if (channel.locales.includes(locale)) {
+                                productAttribute.data.push({locale, scope: channel.code, value: defaultValue})
+                            }
+                        })
+                    })
+                }
+            } else if (attributeProperty.scopable && !attributeProperty.localizable) {
+                catalogSettings.channels.forEach(channel => {
+                    productAttribute.data.push({scope: channel.code, value: defaultValue})
+                })
+            } else if (!attributeProperty.scopable && attributeProperty.localizable) {
+                catalogSettings.enabledLocales.forEach(locale => {
+                    productAttribute.data.push({locale, value: defaultValue})
+                })
+            } else {
+                productAttribute.data.push({value: defaultValue})
+            }
+            if(!product.attributes){
+                product.attributes = [productAttribute]
+            }else{
+                product.attributes.push(productAttribute)
+            }
+        }
+    })
 }
 
 
