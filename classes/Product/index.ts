@@ -1,6 +1,6 @@
 import RDK, {Data, Response} from "@retter/rdk";
 import {
-    checkUpdateToken,
+    checkUpdateToken, deleteProductClassInstanceCheck,
     finalizeProductOperation,
     getImageFileName,
     getProductClassAccountId,
@@ -16,15 +16,7 @@ import {ModelsRepository} from "./models-repository";
 import {checkProduct, checkProductModel, checkProductModelVariant, checkVariantAxesForInit} from "./validations";
 import {ClassesRepository} from "./classes-repository";
 import {PIMMiddlewarePackage} from "PIMMiddlewarePackage";
-import {
-    AttributeTypes,
-    AxesValuesList,
-    Code,
-    DataType,
-    IMAGE,
-    Product,
-    ProductModel
-} from "PIMModelsPackage";
+import {AttributeTypes, AxesValuesList, Code, DataType, IMAGE, Product, ProductModel} from "PIMModelsPackage";
 import {PIMRepository} from "PIMRepositoryPackage";
 import InternalDestination = Classes.InternalDestination;
 
@@ -384,9 +376,7 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
 }
 
 export async function deleteInstance(data: ProductData): Promise<ProductData> {
-    const accountId = data.context.instanceId.split("-").shift()
-
-    await middleware.checkUserRole({accountId, userId: data.context.userId, identity: data.context.identity})
+    await deleteProductClassInstanceCheck(data)
 
     await rdk.deleteInstance({
         classId: "Product",
@@ -397,13 +387,7 @@ export async function deleteInstance(data: ProductData): Promise<ProductData> {
 
 export async function destroy(data: ProductData): Promise<ProductData> {
 
-    if (data.context.identity !== "AccountManager" && data.context.identity !== "API") {
-        await middleware.checkUserRole({
-            accountId: getProductClassAccountId(data),
-            userId: data.context.userId,
-            identity: data.context.identity
-        })
-    }
+    await deleteProductClassInstanceCheck(data)
 
     const workers: Array<Promise<any>> = []
     for (const savedImage of data.state.private.savedImages) {

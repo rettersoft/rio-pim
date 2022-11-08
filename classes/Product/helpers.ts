@@ -2,8 +2,12 @@ import {ProductData} from "./index";
 import {getProductAttributeKeyMap} from "./keysets";
 import {GetProductsSettingsResult} from "./classes-repository";
 import RDK from "@retter/rdk";
-import {AttributeTypes, BaseAttribute, Product, ProductAttribute, ProductModel} from "PIMModelsPackage";
+import {AttributeTypes, BaseAttribute, DataType, Product, ProductAttribute, ProductModel} from "PIMModelsPackage";
 import * as queryString from "querystring";
+import {Classes} from "./rio";
+import {PIMMiddlewarePackage} from "PIMMiddlewarePackage";
+
+const middleware = new PIMMiddlewarePackage()
 
 const rdk = new RDK();
 
@@ -133,7 +137,7 @@ export function getAttributeAsLabelValue(product: Product, productSettings: GetP
 
 
 export function manipulateRequestProductAttributes(product: Product | ProductModel, productSettings: GetProductsSettingsResult, data: ProductData) {
-    if(product.attributes && product.attributes.length){
+    if (product.attributes && product.attributes.length) {
         for (let i = 0; i < product.attributes.length; i++) {
             const attributeProperty = productSettings.attributes.find(ap => ap.code === product.attributes[i].code)
             if (attributeProperty) {
@@ -153,6 +157,27 @@ export function manipulateRequestProductAttributes(product: Product | ProductMod
                         break
                 }
             }
+        }
+    }
+}
+
+
+export async function deleteProductClassInstanceCheck(data: ProductData) {
+    if (!["AccountManager", "API", "Product"].includes(data.context.identity)) {
+        await middleware.checkUserRole({
+            accountId: getProductClassAccountId(data),
+            userId: data.context.userId,
+            identity: data.context.identity
+        })
+    }
+
+    if (data.state.private.dataType === DataType.Enum.PRODUCT_MODEL) {
+        const result = await new Classes.API(data.context.instanceId).getProducts({
+            pageSize: 1,
+            filters: {parent: (data.state.private.dataSource as ProductModel).code}
+        })
+        if (!result || !result.body || result.body.totalProducts === undefined || result.body.totalProducts > 0) {
+            throw new Error("You can not delete! This product model have a product(s).")
         }
     }
 }
