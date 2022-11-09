@@ -71,13 +71,13 @@ methods:
     type: WRITE
     handler: families.deleteFamily
 
-  - method: addAttributeToFamily
+  - method: addAttributesToFamily
     type: WRITE
-    handler: families.addAttributeToFamily
+    handler: families.addAttributesToFamily
 
-  - method: removeAttributeFromFamily
+  - method: removeAttributesFromFamily
     type: WRITE
-    handler: families.removeAttributeFromFamily
+    handler: families.removeAttributesFromFamily
 
   - method: addVariant
     type: WRITE

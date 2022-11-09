@@ -3,7 +3,15 @@ import {checkUpdateToken, randomString, sendEvent} from "./helpers";
 import {getAttribute, isAxisAttribute, isFamilyAttributeLabel,} from "./attributes.repository";
 import {ALLOWED_AXE_TYPES} from "./families.repository";
 import {Classes, WebhookEventOperation, WebhookEventType} from "./rio";
-import {Code, Families, Family, FamilyVariant, FamilyVariants, RESERVED_ID_ATTRIBUTE_CODE} from "PIMModelsPackage";
+import {
+    Code,
+    Codes,
+    Families,
+    Family,
+    FamilyVariant,
+    FamilyVariants,
+    RESERVED_ID_ATTRIBUTE_CODE
+} from "PIMModelsPackage";
 import API = Classes.API;
 
 
@@ -213,18 +221,18 @@ export async function deleteFamily(data: ProductSettingsData): Promise<ProductSe
     return data
 }
 
-export async function addAttributeToFamily(data: ProductSettingsData): Promise<ProductSettingsData> {
+export async function addAttributesToFamily(data: ProductSettingsData): Promise<ProductSettingsData> {
     checkUpdateToken(data)
 
-    const attributeCodeResult = Code.safeParse(data.request.body.attributeCode)
+    const attributeCodesResult = Codes.safeParse(data.request.body.attributeCodes)
     const familyCodeResult = Code.safeParse(data.request.body.familyCode)
 
-    if (attributeCodeResult.success === false) {
+    if (attributeCodesResult.success === false) {
         data.response = {
             statusCode: 400,
             body: {
                 message: "Model validation fail!",
-                error: attributeCodeResult.error
+                error: attributeCodesResult.error
             }
         }
         return data
@@ -241,11 +249,77 @@ export async function addAttributeToFamily(data: ProductSettingsData): Promise<P
         return data
     }
 
-    if (data.state.public.attributes.findIndex(a => a.code === attributeCodeResult.data) === -1) {
+    const familyIndex = data.state.public.families.findIndex(f => f.code === familyCodeResult.data)
+    if (familyIndex === -1) {
         data.response = {
             statusCode: 404,
             body: {
-                message: "Attribute not found!"
+                message: "Family not found!"
+            }
+        }
+        return data
+    }
+
+    for (const attributeCode of attributeCodesResult.data) {
+        if (data.state.public.attributes.findIndex(a => a.code === attributeCode) === -1) {
+            data.response = {
+                statusCode: 404,
+                body: {
+                    message: `"Attribute not found!" (${attributeCode})`
+                }
+            }
+            return data
+        }
+        if (data.state.public.families[familyIndex].attributes.findIndex(fa => fa.attribute === attributeCode) !== -1) {
+            data.response = {
+                statusCode: 400,
+                body: {
+                    message: `"Attribute already exist!" (${attributeCode})`
+                }
+            }
+            return data
+        }
+        data.state.public.families[familyIndex].attributes.push({
+            attribute: attributeCode,
+            requiredChannels: []
+        })
+    }
+
+    data.state.public.updateToken = randomString()
+
+    await sendEvent(data.context.instanceId, {
+        eventDocument: data.state.public.families[familyIndex],
+        eventDocumentId: data.context.instanceId + "-" + data.state.public.families[familyIndex].code,
+        eventOperation: WebhookEventOperation.Update,
+        eventType: WebhookEventType.Family
+    })
+
+    return data
+}
+
+export async function removeAttributesFromFamily(data: ProductSettingsData): Promise<ProductSettingsData> {
+    checkUpdateToken(data)
+
+    const attributeCodesResult = Codes.safeParse(data.request.body.attributeCodes)
+    const familyCodeResult = Code.safeParse(data.request.body.familyCode)
+
+    if (attributeCodesResult.success === false) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Model validation fail!",
+                error: attributeCodesResult.error
+            }
+        }
+        return data
+    }
+
+    if (familyCodeResult.success === false) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Model validation fail!",
+                error: familyCodeResult.error
             }
         }
         return data
@@ -262,20 +336,39 @@ export async function addAttributeToFamily(data: ProductSettingsData): Promise<P
         return data
     }
 
-    if (data.state.public.families[familyIndex].attributes.findIndex(fa => fa.attribute === attributeCodeResult.data) !== -1) {
-        data.response = {
-            statusCode: 400,
-            body: {
-                message: "Attribute already exist!"
+    for (const attributeCode of attributeCodesResult.data) {
+        if (data.state.public.attributes.findIndex(a => a.code === attributeCode) === -1) {
+            data.response = {
+                statusCode: 404,
+                body: {
+                    message: `"Attribute not found!" (${attributeCode})`
+                }
             }
+            return data
         }
-        return data
-    }
 
-    data.state.public.families[familyIndex].attributes.push({
-        attribute: attributeCodeResult.data,
-        requiredChannels: []
-    })
+        if (isAxisAttribute(attributeCode, data)) {
+            data.response = {
+                statusCode: 400,
+                body: {
+                    message: `This attribute used as a variant axis in a family variant! (${attributeCode})`
+                }
+            }
+            return data
+        }
+
+        if (isFamilyAttributeLabel(attributeCode, data)) {
+            data.response = {
+                statusCode: 400,
+                body: {
+                    message: `This attribute used as label! (${attributeCode})`
+                }
+            }
+            return data
+        }
+
+        data.state.public.families[familyIndex].attributes = data.state.public.families[familyIndex].attributes.filter(a => a.attribute !== attributeCode)
+    }
 
     data.state.public.updateToken = randomString()
 
@@ -377,92 +470,6 @@ export async function toggleRequiredStatusFamilyAttribute(data: ProductSettingsD
     } else {
         data.state.public.families[familyIndex].attributes[familyAttributeIndex].requiredChannels.push(channelCodeResult.data)
     }
-    data.state.public.updateToken = randomString()
-
-    await sendEvent(data.context.instanceId, {
-        eventDocument: data.state.public.families[familyIndex],
-        eventDocumentId: data.context.instanceId + "-" + data.state.public.families[familyIndex].code,
-        eventOperation: WebhookEventOperation.Update,
-        eventType: WebhookEventType.Family
-    })
-
-    return data
-}
-
-export async function removeAttributeFromFamily(data: ProductSettingsData): Promise<ProductSettingsData> {
-    checkUpdateToken(data)
-
-    const attributeCodeResult = Code.safeParse(data.request.body.attributeCode)
-    const familyCodeResult = Code.safeParse(data.request.body.familyCode)
-
-    if (attributeCodeResult.success === false) {
-        data.response = {
-            statusCode: 400,
-            body: {
-                message: "Model validation fail!",
-                error: attributeCodeResult.error
-            }
-        }
-        return data
-    }
-
-    if (familyCodeResult.success === false) {
-        data.response = {
-            statusCode: 400,
-            body: {
-                message: "Model validation fail!",
-                error: familyCodeResult.error
-            }
-        }
-        return data
-    }
-
-    if (data.state.public.attributes.findIndex(a => a.code === attributeCodeResult.data) === -1) {
-        data.response = {
-            statusCode: 404,
-            body: {
-                message: "Attribute not found!"
-            }
-        }
-        return data
-    }
-
-    const familyIndex = data.state.public.families.findIndex(f => f.code === familyCodeResult.data)
-    if (familyIndex === -1) {
-        data.response = {
-            statusCode: 404,
-            body: {
-                message: "Family not found!"
-            }
-        }
-        return data
-    }
-
-    if (isAxisAttribute(attributeCodeResult.data, data)) {
-        data.response = {
-            statusCode: 400,
-            body: {
-                message: "This attribute used as a variant axis in a family variant!"
-            }
-        }
-        return data
-    }
-
-    if (isFamilyAttributeLabel(attributeCodeResult.data, data)) {
-        data.response = {
-            statusCode: 400,
-            body: {
-                message: "This attribute used as label!"
-            }
-        }
-        return data
-    }
-
-    if (data.state.public.families[familyIndex].attributes.findIndex(fa => fa.attribute === attributeCodeResult.data) !== -1) {
-        data.state.public.families[familyIndex].attributes = data.state.public.families[familyIndex].attributes
-            .filter(a => a.attribute !== attributeCodeResult.data)
-    }
-
     data.state.public.updateToken = randomString()
 
     await sendEvent(data.context.instanceId, {
