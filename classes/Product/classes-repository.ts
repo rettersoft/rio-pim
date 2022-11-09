@@ -47,7 +47,7 @@ export class ClassesRepository {
         if (getProductsSettingsResult.statusCode >= 400) {
             throw new Error("Catalog settings error!")
         }
-        return getProductsSettingsResult.body.productSettings
+        return getProductsSettingsResult.body
     }
 
     static async getProduct<T>(accountId: string, id: string): Promise<GetProductResult<T>> {
