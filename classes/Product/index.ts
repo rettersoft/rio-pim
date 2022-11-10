@@ -595,7 +595,7 @@ export async function checkUploadedImage(data: ProductData): Promise<ProductData
 export async function getUploadedImage(data: ProductData): Promise<ProductData> {
     const filename = data.request.queryStringParams.filename
 
-    const result = await PIMRepository.getProductImageByRDK(filename, getProductClassAccountId(data))
+    const result = await PIMRepository.getProductImageByRDK(getProductClassAccountId(data), {filename})
 
     data.response = {
         statusCode: 200,

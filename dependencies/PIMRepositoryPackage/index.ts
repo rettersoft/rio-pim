@@ -1,24 +1,20 @@
 import {CustomValidations, IMAGE_CACHE_TTL_IN_SECONDS} from "PIMModelsPackage";
-import mime from "mime-types";
-import RDK from "@retter/rdk";
-
-const rdk = new RDK();
+import {Classes, GetImageByRDKModel} from "./rio";
 
 
 export class PIMRepository {
-    static async getProductImageByRDK(filename: string, accountId: string) {
-        CustomValidations.validateImageFilename(filename, accountId)
+    static async getProductImageByRDK(accountId: string, getImageInput: GetImageByRDKModel) {
+        CustomValidations.validateImageFilename(getImageInput.filename, accountId)
 
-        const file = await rdk.getFile({filename})
-        if (!file || file.error) {
-            throw new Error(file && file.error ? file.error : "file not found")
+        const result = await new Classes.Image(accountId).getImageByRDK(getImageInput)
+
+        if (!result || result.statusCode >= 400) {
+            throw new Error("Image get error!")
         }
 
-        let ext: any = filename.split(".").pop()
-        ext = mime.lookup(ext) ? mime.lookup(ext) : undefined
         return {
-            fileData: file.data,
-            contentType: ext ? ext : undefined,
+            fileData: result.body,
+            contentType: result.headers ? result.headers["content-type"] : undefined,
             cacheControl: `max-age=${IMAGE_CACHE_TTL_IN_SECONDS}`
         }
     }

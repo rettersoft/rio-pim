@@ -1,0 +1,64 @@
+{
+  "type": "object",
+  "properties": {
+    "filename": {
+      "type": "string"
+    },
+    "height": {
+      "type": "number"
+    },
+    "width": {
+      "type": "number"
+    },
+    "quality": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "format": {
+      "type": "string",
+      "enum": [
+        "avif",
+        "dz",
+        "fits",
+        "gif",
+        "heif",
+        "input",
+        "jpeg",
+        "jpg",
+        "magick",
+        "openslide",
+        "pdf",
+        "png",
+        "ppm",
+        "raw",
+        "svg",
+        "tiff",
+        "tif",
+        "webp",
+        "v"
+      ]
+    },
+    "compressionLevel": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 9
+    },
+    "background": {
+      "type": "string"
+    },
+    "fit": {
+      "type": "string",
+      "enum": [
+        "contain",
+        "cover",
+        "fill",
+        "inside",
+        "outside"
+      ]
+    }
+  },
+  "required": [
+    "filename"
+  ]
+}

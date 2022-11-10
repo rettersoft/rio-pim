@@ -126,7 +126,7 @@ export async function deleteProduct(data: APIData): Promise<APIData> {
 export async function getImage(data: APIData): Promise<APIData> {
     //await checkAuthorization(data)
 
-    const result = await PIMRepository.getProductImageByRDK(data.request.queryStringParams.filename, data.context.instanceId)
+    const result = await PIMRepository.getProductImageByRDK(data.context.instanceId, data.request.queryStringParams as any)
     data.response = {
         statusCode: 200,
         body: result.fileData,

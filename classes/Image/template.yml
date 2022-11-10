@@ -1,0 +1,14 @@
+init:
+  handler: index.init
+  inputModel: AccountIDInput
+getState: index.getState
+getInstanceId: index.getInstanceId
+authorizer: index.authorizer
+dependencies:
+  - PIMModelsPackage
+methods:
+
+  - method: getImageByRDK
+    inputModel: GetImageByRDKModel
+    type: READ
+    handler: index.getImageByRDK

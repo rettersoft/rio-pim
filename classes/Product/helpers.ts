@@ -11,7 +11,6 @@ import {
     ProductAttribute,
     ProductModel
 } from "PIMModelsPackage";
-import * as queryString from "querystring";
 import {Classes} from "./rio";
 import {PIMMiddlewarePackage} from "PIMMiddlewarePackage";
 
@@ -28,8 +27,8 @@ export function getImageFileName(accountId: string, imageId: string, extension: 
     return `${accountId}-${imageId}.${extension}`
 }
 
-export function getImageURL(props: { projectId: string, accountId: string, imageName: string }) {
-    return `https://${props.projectId}.api.retter.io/${props.projectId}/CALL/API/getImage/${props.accountId}?` + queryString.stringify({filename: props.imageName})
+export function getImageBaseURL(props: { projectId: string, accountId: string }) {
+    return `https://${props.projectId}.api.retter.io/${props.projectId}/CALL/API/getImage/${props.accountId}`
 }
 
 export function randomString(l = 10) {
@@ -154,10 +153,9 @@ export function manipulateRequestProductAttributes(data: ProductData, product: P
                         for (let j = 0; j < product.attributes[i].data.length; j++) {
                             if (product.attributes[i].data[j].value) {
                                 product.attributes[i].data[j].meta = {
-                                    url: getImageURL({
+                                    baseUrl: getImageBaseURL({
                                         projectId: data.context.projectId,
-                                        accountId: getProductClassAccountId(data),
-                                        imageName: product.attributes[i].data[j].value
+                                        accountId: getProductClassAccountId(data)
                                     })
                                 }
                             }
