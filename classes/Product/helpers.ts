@@ -13,6 +13,8 @@ import {
 } from "PIMModelsPackage";
 import {Classes} from "./rio";
 import {PIMMiddlewarePackage} from "PIMMiddlewarePackage";
+import * as querystring from "querystring";
+import {PIMRepository} from "PIMRepositoryPackage";
 
 const middleware = new PIMMiddlewarePackage()
 
@@ -21,14 +23,6 @@ const rdk = new RDK();
 
 export function getProductClassAccountId(data: ProductData) {
     return data.context.instanceId.split("-").shift()
-}
-
-export function getImageFileName(accountId: string, imageId: string, extension: string) {
-    return `${accountId}-${imageId}.${extension}`
-}
-
-export function getImageBaseURL(props: { projectId: string, accountId: string }) {
-    return `https://${props.projectId}.api.retter.io/${props.projectId}/CALL/API/getImage/${props.accountId}`
 }
 
 export function randomString(l = 10) {
@@ -143,7 +137,7 @@ export function getAttributeAsLabelValue(product: Product, productSettings: GetP
 }
 
 
-export function manipulateRequestProductAttributes(data: ProductData, product: Product | ProductModel, productSettings: GetProductsSettingsResult, catalogSettings: GetCatalogSettingsResult ) {
+export function manipulateRequestProductAttributes(data: ProductData, product: Product | ProductModel, productSettings: GetProductsSettingsResult, catalogSettings: GetCatalogSettingsResult) {
     if (product.attributes && product.attributes.length) {
         for (let i = 0; i < product.attributes.length; i++) {
             const attributeProperty = productSettings.attributes.find(ap => ap.code === product.attributes[i].code)
@@ -153,10 +147,7 @@ export function manipulateRequestProductAttributes(data: ProductData, product: P
                         for (let j = 0; j < product.attributes[i].data.length; j++) {
                             if (product.attributes[i].data[j].value) {
                                 product.attributes[i].data[j].meta = {
-                                    baseUrl: getImageBaseURL({
-                                        projectId: data.context.projectId,
-                                        accountId: getProductClassAccountId(data)
-                                    })
+                                    url: PIMRepository.getImageBaseURL(data.context.projectId, getProductClassAccountId(data)) + "?" + querystring.stringify({filename: product.attributes[i].data[j].value})
                                 }
                             }
                         }
@@ -204,9 +195,9 @@ export function manipulateRequestProductAttributes(data: ProductData, product: P
             } else {
                 productAttribute.data.push({value: defaultValue})
             }
-            if(!product.attributes){
+            if (!product.attributes) {
                 product.attributes = [productAttribute]
-            }else{
+            } else {
                 product.attributes.push(productAttribute)
             }
         }

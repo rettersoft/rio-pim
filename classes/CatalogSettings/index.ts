@@ -2,6 +2,7 @@ import {Data, Response} from "@retter/rdk";
 import {randomString} from "./helpers";
 import {AccountIDInput} from "./rio";
 import {Category, Channel} from "PIMModelsPackage";
+import {deleteUploadedTempImage} from "./categories";
 
 export interface CatalogSettingsPublicState {
     categories: Category[]
@@ -11,10 +12,22 @@ export interface CatalogSettingsPublicState {
     updateToken: string
 }
 
-export type CatalogSettingsData<Input = any, Output = any> = Data<Input, Output, CatalogSettingsPublicState>
+export interface CatalogSettingsPrivateState {
+    savedImages: string[]
+    tempImages: string[]
+}
+
+export interface ImageResponse {
+    imageId: string
+    extension: string
+    filename: string
+}
+
+export type CatalogSettingsData<Input = any, Output = any> = Data<Input, Output, CatalogSettingsPublicState, CatalogSettingsPrivateState>
 
 export async function authorizer(data: CatalogSettingsData): Promise<Response> {
     const isDeveloper = data.context.identity === "developer"
+    const isThisClassInstance = data.context.identity === "CatalogSettings" && data.context.userId === data.context.instanceId
 
     if ([
         "addCategory",
@@ -26,12 +39,19 @@ export async function authorizer(data: CatalogSettingsData): Promise<Response> {
         "deleteChannel",
         "getCatalogSettings",
         "upsertCategories",
-        "upsertChannels"
+        "upsertChannels",
+        "uploadTempImage",
+        "deleteUploadedTempImage"
     ].includes(data.context.methodName)) {
         return {statusCode: 200}
     }
 
     switch (data.context.methodName) {
+        case 'checkUploadedImage':
+            if (isThisClassInstance || isDeveloper) {
+                return {statusCode: 200}
+            }
+            break
         case 'DESTROY':
             if (data.context.identity === "AccountManager") {
                 return {statusCode: 200}

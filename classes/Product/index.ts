@@ -2,13 +2,11 @@ import RDK, {Data, Response} from "@retter/rdk";
 import {
     checkUpdateToken, deleteProductClassInstanceCheck,
     finalizeProductOperation,
-    getImageFileName,
     getProductClassAccountId,
     manipulateRequestProductAttributes,
     randomString
 } from "./helpers";
 import {Classes, InternalDestinationEventHandlerInput, WebhookEventOperation, WebhookEventType} from "./rio";
-import {Env} from "./env";
 import {Buffer} from "buffer";
 import {v4 as uuidv4} from 'uuid';
 import {getProductAttributeKeyMap} from "./keysets";
@@ -16,7 +14,16 @@ import {ModelsRepository} from "./models-repository";
 import {checkProduct, checkProductModel, checkProductModelVariant, checkVariantAxesForInit} from "./validations";
 import {ClassesRepository} from "./classes-repository";
 import {PIMMiddlewarePackage} from "PIMMiddlewarePackage";
-import {AttributeTypes, AxesValuesList, Code, DataType, IMAGE, Product, ProductModel} from "PIMModelsPackage";
+import {
+    AttributeTypes,
+    AxesValuesList,
+    Code,
+    DataType,
+    IMAGE,
+    Product,
+    ProductModel,
+    TEMP_IMAGE_TTL_IN_SECONDS
+} from "PIMModelsPackage";
 import {PIMRepository} from "PIMRepositoryPackage";
 import InternalDestination = Classes.InternalDestination;
 
@@ -59,6 +66,7 @@ export interface GetProductOutputData {
 
 export async function authorizer(data: ProductData): Promise<Response> {
     const isDeveloper = data.context.identity === "developer"
+    const isThisClassInstance = data.context.identity === "Product" && data.context.userId === data.context.instanceId
 
     if ([
         "getProduct",
@@ -73,7 +81,7 @@ export async function authorizer(data: ProductData): Promise<Response> {
 
     switch (data.context.methodName) {
         case 'checkUploadedImage':
-            if (data.context.identity === "Product" || isDeveloper) {
+            if (isThisClassInstance || isDeveloper) {
                 return {statusCode: 200}
             }
             break
@@ -545,7 +553,7 @@ export async function uploadTempImage(data: ProductData): Promise<ProductData> {
     }
 
     const imageId = uuidv4().replace(new RegExp("-", "g"), "")
-    const imageFileName = getImageFileName(accountId, imageId, data.request.body.extension)
+    const imageFileName = PIMRepository.buildImageName(accountId, imageId, data.request.body.extension)
     await rdk.setFile({body: data.request.body.image, filename: imageFileName})
 
     const response: ImageResponse = {
@@ -555,7 +563,7 @@ export async function uploadTempImage(data: ProductData): Promise<ProductData> {
     }
 
     data.tasks.push({
-        after: parseInt(Env.get("TEMP_IMAGE_TTL_IN_SECONDS")),
+        after: TEMP_IMAGE_TTL_IN_SECONDS,
         method: "checkUploadedImage",
         payload: response
     })
@@ -595,7 +603,7 @@ export async function checkUploadedImage(data: ProductData): Promise<ProductData
 export async function getUploadedImage(data: ProductData): Promise<ProductData> {
     const filename = data.request.queryStringParams.filename
 
-    const result = await PIMRepository.getProductImageByRDK(getProductClassAccountId(data), {filename})
+    const result = await PIMRepository.getImageByRDK(getProductClassAccountId(data), {filename})
 
     data.response = {
         statusCode: 200,

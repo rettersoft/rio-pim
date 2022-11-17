@@ -23,6 +23,7 @@ import {
     TEXT,
     TEXTAREA
 } from "PIMModelsPackage";
+import {PIMRepository} from "PIMRepositoryPackage";
 
 const rdk = new RDK()
 
@@ -38,22 +39,7 @@ export function checkProductGroups(props: { product: Product, productSettings: G
 
 export function checkProductCategories(props: { product: Product | ProductModel, catalogSettings: GetCatalogSettingsResult }) {
     if (props.product.categories.length) {
-        const getCategoriesInOneLevel = (categories: Category[], data = [], parentCode?: string) => {
-            if (categories.length >= 1) {
-                for (const category of categories) {
-                    const code = [parentCode, category.code].filter(Boolean).join("#")
-                    data.push({
-                        code,
-                        parent: parentCode,
-                    })
-                    getCategoriesInOneLevel(category.subCategories, data, code)
-                }
-            } else {
-                return []
-            }
-            return data
-        }
-        const categoriesInOneLevel = getCategoriesInOneLevel(props.catalogSettings.categories)
+        const categoriesInOneLevel = PIMRepository.getCategoriesInOneLevel(props.catalogSettings.categories)
         for (const category of props.product.categories) {
             if (!categoriesInOneLevel.find(c => c.code === category)) {
                 throw new Error(`Category not found! (${category})`)
@@ -96,11 +82,19 @@ export async function validateProductAttributes(props: { productFamily: string, 
             if (productAttribute.data.find(d => d.scope)) {
                 throw new Error(`${productAttribute.code} is not scopable!`)
             }
+        } else {
+            if (productAttribute.data.find(d => d.scope === undefined || d.scope === "" || d.scope === null)) {
+                throw new Error(`${productAttribute.code} is scopable!`)
+            }
         }
 
         if (attributeProperty.localizable === false) {
             if (productAttribute.data.find(d => d.locale)) {
                 throw new Error(`${productAttribute.code} is not localizable!`)
+            }
+        } else {
+            if (productAttribute.data.find(d => d.locale === undefined || d.locale === "" || d.locale === null)) {
+                throw new Error(`${productAttribute.code} is localizable!`)
             }
         }
 

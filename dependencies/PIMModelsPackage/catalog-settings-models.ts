@@ -5,6 +5,8 @@ export const Category = Z.lazy(() => {
     return Z.object({
         code: Code,
         label: Label.optional(),
+        image: Z.string().optional(),
+        meta: Z.any().optional(),
         subCategories: Z.array(Category).default([])
     })
 })

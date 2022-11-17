@@ -6,7 +6,20 @@ authorizer: index.authorizer
 getInstanceId: index.getInstanceId
 dependencies:
   - PIMModelsPackage
+  - PIMRepositoryPackage
 methods:
+  - method: uploadTempImage
+    type: WRITE
+    handler: categories.uploadTempImage
+
+  - method: deleteUploadedTempImage
+    type: WRITE
+    handler: categories.deleteUploadedTempImage
+
+  - method: checkUploadedImage
+    type: WRITE
+    handler: categories.checkUploadedImage
+
   - method: addCategory
     type: WRITE
     handler: categories.addCategory

@@ -14,6 +14,8 @@ export const RESERVED_ATTRIBUTE_GROUP_CODE = "other"
 
 export const IMAGE_CACHE_TTL_IN_SECONDS = 86400
 
+export const TEMP_IMAGE_TTL_IN_SECONDS = 43200
+
 export const Currencies: CurrencyConst[] = [
     {
         "id": "AFN",

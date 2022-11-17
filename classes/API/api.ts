@@ -1,10 +1,11 @@
 import {APIData} from "./index";
-import {Classes, GetProductsInput} from "./rio";
+import {Classes, GetImageByRDKModel, GetProductsInput} from "./rio";
 import {ElasticHelper} from "./elastic";
 import {SearchTotalHits} from "@elastic/elasticsearch/lib/api/types";
 import RDK from "@retter/rdk";
 import {checkAuthorization} from "./middleware";
 import {PIMRepository} from "PIMRepositoryPackage";
+import {GetImageInputForAPI} from "./custom-models";
 
 const rdk = new RDK();
 
@@ -125,8 +126,17 @@ export async function deleteProduct(data: APIData): Promise<APIData> {
 
 export async function getImage(data: APIData): Promise<APIData> {
     //await checkAuthorization(data)
+    const d = GetImageInputForAPI.safeParse(data.request.queryStringParams)
 
-    const result = await PIMRepository.getProductImageByRDK(data.context.instanceId, data.request.queryStringParams as any)
+    if(d.success === false){
+        data.response = {
+            statusCode: 400,
+            body: {message: "Invalid api parameters! (Model validation failed)", error: d.error}
+        }
+        return data
+    }
+
+    const result = await PIMRepository.getImageByRDK(data.context.instanceId, d.data as any)
     data.response = {
         statusCode: 200,
         body: result.fileData,
