@@ -743,7 +743,7 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
             case ExportJobs.Enum.group_type_export:
                 dat = [];
                 getProductsSettingsResult.body.productSettings.groupTypes.forEach(a => {
-                    let obj = a
+                    let obj = _.omit(a, "label")
                     if (a.label && a.label.length) {
                         a.label.forEach(al => {
                             obj[`label-${al.locale}`] = al.value
