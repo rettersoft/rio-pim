@@ -35,6 +35,7 @@ import {
     ProductExportXLSXSettings,
     ProductModelExportCSVSettings,
     ProductModelExportXLSXSettings,
+    RESERVED_ATTRIBUTE_GROUP_CODE,
     RESERVED_ID_ATTRIBUTE_CODE
 } from "PIMModelsPackage";
 import _ from "lodash";
@@ -680,7 +681,7 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
                 break
             case ExportJobs.Enum.attribute_group_export:
                 dat = [];
-                getProductsSettingsResult.body.productSettings.attributeGroups.forEach(a => {
+                getProductsSettingsResult.body.productSettings.attributeGroups.filter(ag => ag.code !== RESERVED_ATTRIBUTE_GROUP_CODE).forEach(a => {
                     let obj = _.omit(a, "label")
                     if (a.label && a.label.length) {
                         a.label.forEach(al => {
