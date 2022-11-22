@@ -50,7 +50,7 @@ export const BaseAttributeImportModel = Z.object({
     localizable: Z.boolean(),
     scopable: Z.boolean(),
     isLocaleSpecific: Z.boolean(),
-    availableLocales: Z.string(),
+    availableLocales: Z.string().optional(),
     isUnique: Z.boolean()
 })
 export const SpecificAttributesImportModel = {

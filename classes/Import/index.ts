@@ -28,7 +28,8 @@ import {
     FamilyAttribute,
     FamilyVariant,
     GlobalProductImportSettings,
-    GlobalProductModelImportSettings, Group,
+    GlobalProductModelImportSettings,
+    Group,
     GroupType,
     ImportJob,
     ImportJobs,
@@ -765,7 +766,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                         } else {
                             switch (attributeImportItem.data.type) {
                                 case AttributeTypes.Enum.SIMPLESELECT:
-                                    const simpleselectImportModel = SpecificAttributesImportModel.SIMPLESELECT.safeParse(attributeImportItem)
+                                    const simpleselectImportModel = SpecificAttributesImportModel.SIMPLESELECT.safeParse(attributeImportItem.data)
                                     if (simpleselectImportModel.success === false) {
                                         job.failed += 1
                                     } else {
@@ -788,7 +789,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                     }
                                     break
                                 case AttributeTypes.Enum.IMAGE:
-                                    const imageImportModel = SpecificAttributesImportModel.IMAGE.safeParse(attributeImportItem)
+                                    const imageImportModel = SpecificAttributesImportModel.IMAGE.safeParse(attributeImportItem.data)
                                     if (imageImportModel.success === false) {
                                         job.failed += 1
                                     } else {
@@ -813,7 +814,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                     }
                                     break
                                 case AttributeTypes.Enum.BOOLEAN:
-                                    const booleanImportModel = SpecificAttributesImportModel.BOOLEAN.safeParse(attributeImportItem)
+                                    const booleanImportModel = SpecificAttributesImportModel.BOOLEAN.safeParse(attributeImportItem.data)
                                     if (booleanImportModel.success === false) {
                                         job.failed += 1
                                     } else {
@@ -837,7 +838,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                     }
                                     break
                                 case AttributeTypes.Enum.MULTISELECT:
-                                    const multiselectImportModel = SpecificAttributesImportModel.MULTISELECT.safeParse(attributeImportItem)
+                                    const multiselectImportModel = SpecificAttributesImportModel.MULTISELECT.safeParse(attributeImportItem.data)
                                     if (multiselectImportModel.success === false) {
                                         job.failed += 1
                                     } else {
@@ -860,7 +861,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                     }
                                     break
                                 case AttributeTypes.Enum.IDENTIFIER:
-                                    const identifierImportModel = SpecificAttributesImportModel.IDENTIFIER.safeParse(attributeImportItem)
+                                    const identifierImportModel = SpecificAttributesImportModel.IDENTIFIER.safeParse(attributeImportItem.data)
                                     if (identifierImportModel.success === false) {
                                         job.failed += 1
                                     } else {
@@ -886,7 +887,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                     }
                                     break
                                 case AttributeTypes.Enum.TEXTAREA:
-                                    const textareaImportModel = SpecificAttributesImportModel.TEXTAREA.safeParse(attributeImportItem)
+                                    const textareaImportModel = SpecificAttributesImportModel.TEXTAREA.safeParse(attributeImportItem.data)
                                     if (textareaImportModel.success === false) {
                                         job.failed += 1
                                     } else {
@@ -910,7 +911,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                     }
                                     break
                                 case AttributeTypes.Enum.PRICE:
-                                    const priceImportModel = SpecificAttributesImportModel.PRICE.safeParse(attributeImportItem)
+                                    const priceImportModel = SpecificAttributesImportModel.PRICE.safeParse(attributeImportItem.data)
                                     if (priceImportModel.success === false) {
                                         job.failed += 1
                                     } else {
@@ -936,7 +937,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                     }
                                     break
                                 case AttributeTypes.Enum.DATE:
-                                    const dateImportModel = SpecificAttributesImportModel.DATE.safeParse(attributeImportItem)
+                                    const dateImportModel = SpecificAttributesImportModel.DATE.safeParse(attributeImportItem.data)
                                     if (dateImportModel.success === false) {
                                         job.failed += 1
                                     } else {
@@ -961,7 +962,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                     }
                                     break
                                 case AttributeTypes.Enum.NUMBER:
-                                    const numberImportModel = SpecificAttributesImportModel.NUMBER.safeParse(attributeImportItem)
+                                    const numberImportModel = SpecificAttributesImportModel.NUMBER.safeParse(attributeImportItem.data)
                                     if (numberImportModel.success === false) {
                                         job.failed += 1
                                     } else {
@@ -988,7 +989,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                     }
                                     break
                                 case AttributeTypes.Enum.TEXT:
-                                    const textImportModel = SpecificAttributesImportModel.TEXT.safeParse(attributeImportItem)
+                                    const textImportModel = SpecificAttributesImportModel.TEXT.safeParse(attributeImportItem.data)
                                     if (textImportModel.success === false) {
                                         job.failed += 1
                                     } else {
@@ -1228,6 +1229,8 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
             job.finishedAt = new Date()
             await unlockExecution()
         }
+
+        if (job.status === JobStatus.Enum.RUNNING) job.status = JobStatus.Enum.DONE
 
         await saveJobToDB(job, data.context.instanceId)
 
