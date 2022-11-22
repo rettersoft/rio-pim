@@ -9,10 +9,15 @@ dependencies:
   - PIMRepositoryPackage
 methods:
 
-  - method: eventHandler
+  - method: webhookEventHandler
     inputModel: InternalDestinationEventHandlerInput
     type: QUEUED_WRITE
-    handler: index.eventHandler
+    handler: index.webhookEventHandler
+
+  - method: elasticEventHandler
+    inputModel: InternalDestinationEventHandlerInput
+    type: QUEUED_WRITE
+    handler: index.elasticEventHandler
 
   - method: upsertWebhook
     type: WRITE

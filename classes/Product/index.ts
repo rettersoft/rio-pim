@@ -1,8 +1,10 @@
 import RDK, {Data, Response} from "@retter/rdk";
 import {
-    checkUpdateToken, deleteProductClassInstanceCheck,
+    checkUpdateToken,
+    deleteProductClassInstanceCheck,
     finalizeProductOperation,
     getProductClassAccountId,
+    getProductParentAttributes,
     manipulateRequestProductAttributes,
     randomString
 } from "./helpers";
@@ -30,6 +32,19 @@ import InternalDestination = Classes.InternalDestination;
 const middleware = new PIMMiddlewarePackage()
 
 const rdk = new RDK()
+
+
+interface SendEventInput{
+    instanceId: string,
+    source?: {
+        axesValues?: AxesValuesList,
+        parent?: string,
+        dataType: DataType,
+        data: Product | ProductModel, meta: { createdAt: string, updatedAt: string }
+    },
+    method: WebhookEventOperation,
+    type: WebhookEventType
+}
 
 export interface ProductPrivateState {
     dataSource?: Product | ProductModel
@@ -214,7 +229,19 @@ export async function init(data: ProductData): Promise<ProductData> {
     data.state.private.updatedAt = new Date().toISOString()
     data.state.private.updateToken = randomString()
 
-    await sendProductEvent({
+    const family = productSettings.families.find(f => f.code === data.state.private.dataSource.family)
+
+    if (!family) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Product family not found!"
+            }
+        }
+        return data
+    }
+
+    const elasticEventData: SendEventInput = {
         instanceId: data.context.instanceId,
         method: WebhookEventOperation.Create,
         type: data.state.private.dataType === DataType.Enum.PRODUCT ? WebhookEventType.Product : WebhookEventType.ProductModel,
@@ -227,8 +254,17 @@ export async function init(data: ProductData): Promise<ProductData> {
                 createdAt: data.state.private.createdAt,
                 updatedAt: data.state.private.updatedAt
             }
-        },
-    })
+        }
+    }
+
+    const webhookEventData = JSON.parse(JSON.stringify(elasticEventData))
+    const parentAttributes = await getProductParentAttributes(data.state.private.dataType, data.state.private.parent, getProductClassAccountId(data))
+    webhookEventData.source.data.attributes = [...(webhookEventData.source.data.attributes || []), ...parentAttributes].filter(pa => family.attributes.find(fa => fa.attribute === pa.code))
+
+    await Promise.all([
+        sendElasticProductEvent(elasticEventData),
+        sendWebhookProductEvent(webhookEventData)
+    ])
 
     data.response = {
         statusCode: 200,
@@ -274,7 +310,8 @@ export async function getProduct(data: ProductData): Promise<ProductData<any, Ge
     }
 
     const sourceData = data.state.private.dataSource
-    sourceData.attributes = (sourceData.attributes || []).filter(pa => family.attributes.find(fa => fa.attribute === pa.code))
+    const parentAttributes = await getProductParentAttributes(data.state.private.dataType, data.state.private.parent, getProductClassAccountId(data))
+    sourceData.attributes = [...(sourceData.attributes || []), ...parentAttributes].filter(pa => family.attributes.find(fa => fa.attribute === pa.code))
 
     data.response = {
         statusCode: 200,
@@ -353,21 +390,42 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
     data.state.private.updateToken = randomString()
     data.state.private.updatedAt = new Date().toISOString()
 
-    await sendProductEvent({
+    const family = productSettings.families.find(f => f.code === data.state.private.dataSource.family)
+
+    if (!family) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Product family not found!"
+            }
+        }
+        return data
+    }
+
+    const elasticEventData: SendEventInput = {
         instanceId: data.context.instanceId,
-        method: WebhookEventOperation.Update,
+        method: WebhookEventOperation.Create,
         type: data.state.private.dataType === DataType.Enum.PRODUCT ? WebhookEventType.Product : WebhookEventType.ProductModel,
         source: {
             axesValues: data.state.private.axesValues,
             parent: data.state.private.parent,
             dataType: data.state.private.dataType,
-            data: data.state.private.dataSource,
+            data: source,
             meta: {
                 createdAt: data.state.private.createdAt,
                 updatedAt: data.state.private.updatedAt
             }
-        },
-    })
+        }
+    }
+
+    const webhookEventData = JSON.parse(JSON.stringify(elasticEventData))
+    const parentAttributes = await getProductParentAttributes(data.state.private.dataType, data.state.private.parent, getProductClassAccountId(data))
+    webhookEventData.source.data.attributes = [...(webhookEventData.source.data.attributes || []), ...parentAttributes].filter(pa => family.attributes.find(fa => fa.attribute === pa.code))
+
+    await Promise.all([
+        sendElasticProductEvent(elasticEventData),
+        sendWebhookProductEvent(webhookEventData)
+    ])
 
     data.response = {
         statusCode: 200,
@@ -443,25 +501,22 @@ export async function destroy(data: ProductData): Promise<ProductData> {
         }
     }
 
-    await sendProductEvent({
-        instanceId: data.context.instanceId,
-        method: WebhookEventOperation.Delete,
-        type: data.state.private.dataType === DataType.Enum.PRODUCT ? WebhookEventType.Product : WebhookEventType.ProductModel
-    })
+    await Promise.all([
+        sendWebhookProductEvent({
+            instanceId: data.context.instanceId,
+            method: WebhookEventOperation.Delete,
+            type: data.state.private.dataType === DataType.Enum.PRODUCT ? WebhookEventType.Product : WebhookEventType.ProductModel
+        }),
+        sendElasticProductEvent({
+            instanceId: data.context.instanceId,
+            method: WebhookEventOperation.Delete,
+            type: data.state.private.dataType === DataType.Enum.PRODUCT ? WebhookEventType.Product : WebhookEventType.ProductModel
+        })
+    ])
     return data
 }
 
-async function sendProductEvent(props: {
-    instanceId: string,
-    source?: {
-        axesValues?: AxesValuesList,
-        parent?: string,
-        dataType: DataType,
-        data: Product | ProductModel, meta: { createdAt: string, updatedAt: string }
-    },
-    method: WebhookEventOperation,
-    type: WebhookEventType
-}) {
+async function sendWebhookProductEvent(props: SendEventInput) {
     try {
         const event: InternalDestinationEventHandlerInput = {
             eventDocument: props.source,
@@ -469,7 +524,21 @@ async function sendProductEvent(props: {
             eventOperation: props.method,
             eventType: props.type
         }
-        await new InternalDestination(props.instanceId.split("-").shift()).eventHandler(event)
+        await new InternalDestination(props.instanceId.split("-").shift()).webhookEventHandler(event)
+    } catch (e) {
+    }
+
+}
+
+async function sendElasticProductEvent(props: SendEventInput) {
+    try {
+        const event: InternalDestinationEventHandlerInput = {
+            eventDocument: props.source,
+            eventDocumentId: props.instanceId,
+            eventOperation: props.method,
+            eventType: props.type
+        }
+        await new InternalDestination(props.instanceId.split("-").shift()).elasticEventHandler(event)
     } catch (e) {
     }
 

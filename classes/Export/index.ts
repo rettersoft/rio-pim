@@ -10,6 +10,7 @@ import {
     getExportFileName,
     getJobFromDB,
     getJobPartKey,
+    getProductParentAttributes,
     json2CSV,
     json2XLSX,
     lockExecution,
@@ -25,9 +26,11 @@ import {
     ExportJob,
     ExportJobs,
     ExportProfile,
-    ExportProfileContent, FamilyAttribute,
+    ExportProfileContent,
+    FamilyAttribute,
     GlobalProductModelExportSettings,
     JobStatus,
+    ProductAttribute,
     ProductExportCSVSettings,
     ProductExportXLSXSettings,
     ProductModelExportCSVSettings,
@@ -513,10 +516,26 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
         let dat = [];
         switch (jobSettings.job) {
             case ExportJobs.Enum.product_export:
+                const productModelsCache: { key: string, attributes: ProductAttribute[] }[] = []
                 const products = await getAllProducts(data.context.instanceId)
                 const preparedData = []
-                products.forEach(product => {
+                for (const product of products) {
+
+                    const getProductParentAttributesForceCache = async () => {
+                        const key = [product.dataType, product.parent, data.context.instanceId].join(",")
+                        let attrs = productModelsCache.find(i => i.key === key)?.attributes
+                        if (!attrs) {
+                            attrs = await getProductParentAttributes(product.dataType as any, product.parent, data.context.instanceId);
+                            productModelsCache.push({key, attributes: attrs})
+                        }
+                        return attrs
+                    }
                     const productAttributeValues = {};
+
+                    const family = getProductsSettingsResult.body.productSettings.families.find(f => f.code === product.data.family)
+
+                    const parentAttributes = await getProductParentAttributesForceCache();
+                    product.data.attributes = [...(product.data.attributes || []), ...parentAttributes].filter(pa => (family?.attributes || []).find(fa => fa.attribute === pa.code));
 
                     (product.data.attributes || []).forEach((productAttribute) => {
                         const attributeSettings: BaseAttribute = getProductsSettingsResult.body.productSettings.attributes.find(a => a.code === productAttribute.code)
@@ -550,7 +569,7 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
                         parent: product.parent,
                         ...productAttributeValues
                     })
-                })
+                }
                 fileData = preparedData
                 job.total = fileData.length
                 break

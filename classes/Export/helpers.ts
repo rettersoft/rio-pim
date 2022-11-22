@@ -1,7 +1,7 @@
 import * as XLSX from "xlsx";
 import RDK from "@retter/rdk";
 import {Classes, DataType} from "./rio";
-import {ExportJob, Product, ProductModel} from "PIMModelsPackage";
+import {ExportJob, Product, ProductAttribute, ProductModel} from "PIMModelsPackage";
 
 const rdk = new RDK();
 const JOB_PART_KEY_PREFIX = "ExportJob"
@@ -170,4 +170,16 @@ export async function getExecutionsByJobCode(accountId: string, jobCode: string)
     } else {
         return undefined
     }
+}
+
+
+export async function getProductParentAttributes(dataType: DataType, parent: string, accountId: string): Promise<ProductAttribute[]> {
+    if (dataType === DataType.Product && parent) {
+        const parentData = await new Classes.Product(accountId + "-" + parent).getProduct()
+        if (parentData.statusCode >= 200 && parentData.statusCode < 300 && parentData.body && parentData.body.data && parentData.body.data.attributes && parentData.body.data.attributes.length) {
+            return parentData.body.data.attributes
+        }
+
+    }
+    return []
 }

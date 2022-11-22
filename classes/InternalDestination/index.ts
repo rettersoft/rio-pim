@@ -1,8 +1,8 @@
 import {Data, Response} from "@retter/rdk";
 import {AccountIDInput, InternalDestinationEventHandlerInput} from "./rio";
-import {sendToElastic, sendWebhookEvent} from "./helpers";
 import {v4 as uuidv4} from "uuid"
 import {Webhook} from "PIMModelsPackage";
+import {sendToElastic, sendWebhookEvent} from "./helpers";
 
 
 export interface InternalDestinationPrivateState {
@@ -30,12 +30,11 @@ export async function authorizer(data: InternalDestinationData): Promise<Respons
         return {statusCode: 200}
     }
 
+    if (["webhookEventHandler", "elasticEventHandler"].includes(data.context.methodName) && canSendEvent) {
+        return {statusCode: 200}
+    }
+
     switch (data.context.methodName) {
-        case 'eventHandler':
-            if (canSendEvent) {
-                return {statusCode: 200}
-            }
-            break
         case 'DESTROY':
             if (data.context.identity === "AccountManager") {
                 return {statusCode: 200}
@@ -74,11 +73,13 @@ export async function getState(data: InternalDestinationData): Promise<Response>
     return {statusCode: 200, body: data.state};
 }
 
-export async function eventHandler(data: InternalDestinationData<InternalDestinationEventHandlerInput>): Promise<InternalDestinationData> {
-    await Promise.all([
-        sendWebhookEvent(data.state.private.webhook, data.request.body),
-        sendToElastic(data.request.body, data.context.instanceId)
-    ])
+export async function webhookEventHandler(data: InternalDestinationData<InternalDestinationEventHandlerInput>): Promise<InternalDestinationData> {
+    await sendWebhookEvent(data.state.private.webhook, data.request.body)
+    return data
+}
+
+export async function elasticEventHandler(data: InternalDestinationData<InternalDestinationEventHandlerInput>): Promise<InternalDestinationData> {
+    await sendToElastic(data.request.body, data.context.instanceId)
     return data
 }
 

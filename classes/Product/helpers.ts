@@ -225,9 +225,9 @@ export async function deleteProductClassInstanceCheck(data: ProductData) {
     }
 }
 
-export async function getProductParentAttributes(data: ProductData): Promise<ProductAttribute[]> {
-    if (data.state.private.dataType === DataType.Enum.PRODUCT && data.state.private.parent) {
-        const parentData = await new Classes.Product(getProductClassAccountId(data) + "-" + data.state.private.parent).getProduct()
+export async function getProductParentAttributes(dataType: DataType, parent: string, accountId: string): Promise<ProductAttribute[]> {
+    if (dataType === DataType.Enum.PRODUCT && parent) {
+        const parentData = await new Classes.Product(accountId + "-" + parent).getProduct()
         if (parentData.statusCode >= 200 && parentData.statusCode < 300 && parentData.body && parentData.body.data && parentData.body.data.attributes && parentData.body.data.attributes.length) {
             return parentData.body.data.attributes
         }
