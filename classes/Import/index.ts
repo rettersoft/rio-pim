@@ -28,7 +28,7 @@ import {
     FamilyAttribute,
     FamilyVariant,
     GlobalProductImportSettings,
-    GlobalProductModelImportSettings,
+    GlobalProductModelImportSettings, Group,
     GroupType,
     ImportJob,
     ImportJobs,
@@ -644,7 +644,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                     }
                     break
                 case ImportJobs.Enum.group_type_import:
-                    const groupTypesRequestData = []
+                    const groupTypesRequestData: GroupType[] = []
                     for (const item of importData) {
                         const groupTypeImportItem = GroupTypeImportItem.safeParse(item)
                         if (groupTypeImportItem.success === false) {
@@ -657,7 +657,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                             if (groupTypeData.success === false) {
                                 job.failed += 1
                             } else {
-                                groupTypesRequestData.push(groupTypeData)
+                                groupTypesRequestData.push(groupTypeData.data)
                             }
                         }
                     }
@@ -675,13 +675,13 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                     }
                     break
                 case ImportJobs.Enum.group_import:
-                    const groupsRequestData = []
+                    const groupsRequestData: Group[] = []
                     for (const item of importData) {
                         const groupImportItem = GroupImportItem.safeParse(item)
                         if (groupImportItem.success === false) {
                             job.failed += 1
                         } else {
-                            const groupData = GroupType.safeParse({
+                            const groupData = Group.safeParse({
                                 code: groupImportItem.data.code,
                                 type: groupImportItem.data.type,
                                 label: getLabelsFromImportedFileItem(item)
@@ -689,7 +689,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                             if (groupData.success === false) {
                                 job.failed += 1
                             } else {
-                                groupsRequestData.push(groupData)
+                                groupsRequestData.push(groupData.data)
                             }
                         }
                     }
@@ -733,13 +733,13 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                         }
                     })
 
-                    const categoriesRequestData = []
+                    const categoriesRequestData: Category[] = []
                     for (const categoryTree of categoryTrees) {
                         const categoryData = Category.safeParse(categoryTree)
                         if (categoryData.success === false) {
                             job.failed += 1
                         } else {
-                            categoriesRequestData.push(categoryData)
+                            categoriesRequestData.push(categoryData.data)
                         }
                     }
 
@@ -757,7 +757,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                     }
                     break
                 case ImportJobs.Enum.attribute_import:
-                    const attributesRequestData = []
+                    const attributesRequestData: BaseAttribute[] = []
                     for (const item of importData) {
                         const attributeImportItem = BaseAttributeImportModel.safeParse(item)
                         if (attributeImportItem.success === false) {
@@ -783,7 +783,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                         if (simpleselectSpecificAttributeModel.success === false) {
                                             job.failed += 1
                                         } else {
-                                            attributesRequestData.push(simpleselectSpecificAttributeModel)
+                                            attributesRequestData.push(simpleselectSpecificAttributeModel.data)
                                         }
                                     }
                                     break
@@ -808,7 +808,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                         if (imageSpecificAttributeModel.success === false) {
                                             job.failed += 1
                                         } else {
-                                            attributesRequestData.push(imageSpecificAttributeModel)
+                                            attributesRequestData.push(imageSpecificAttributeModel.data)
                                         }
                                     }
                                     break
@@ -832,7 +832,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                         if (booleanSpecificAttributeModel.success === false) {
                                             job.failed += 1
                                         } else {
-                                            attributesRequestData.push(booleanSpecificAttributeModel)
+                                            attributesRequestData.push(booleanSpecificAttributeModel.data)
                                         }
                                     }
                                     break
@@ -855,7 +855,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                         if (booleanSpecificAttributeModel.success === false) {
                                             job.failed += 1
                                         } else {
-                                            attributesRequestData.push(booleanSpecificAttributeModel)
+                                            attributesRequestData.push(booleanSpecificAttributeModel.data)
                                         }
                                     }
                                     break
@@ -881,7 +881,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                         if (identifierSpecificAttributeModel.success === false) {
                                             job.failed += 1
                                         } else {
-                                            attributesRequestData.push(identifierSpecificAttributeModel)
+                                            attributesRequestData.push(identifierSpecificAttributeModel.data)
                                         }
                                     }
                                     break
@@ -905,7 +905,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                         if (textareaSpecificAttributeModel.success === false) {
                                             job.failed += 1
                                         } else {
-                                            attributesRequestData.push(textareaSpecificAttributeModel)
+                                            attributesRequestData.push(textareaSpecificAttributeModel.data)
                                         }
                                     }
                                     break
@@ -931,7 +931,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                         if (priceSpecificAttributeModel.success === false) {
                                             job.failed += 1
                                         } else {
-                                            attributesRequestData.push(priceSpecificAttributeModel)
+                                            attributesRequestData.push(priceSpecificAttributeModel.data)
                                         }
                                     }
                                     break
@@ -956,7 +956,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                         if (dateSpecificAttributeModel.success === false) {
                                             job.failed += 1
                                         } else {
-                                            attributesRequestData.push(dateSpecificAttributeModel)
+                                            attributesRequestData.push(dateSpecificAttributeModel.data)
                                         }
                                     }
                                     break
@@ -983,7 +983,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                         if (numberSpecificAttributeModel.success === false) {
                                             job.failed += 1
                                         } else {
-                                            attributesRequestData.push(numberSpecificAttributeModel)
+                                            attributesRequestData.push(numberSpecificAttributeModel.data)
                                         }
                                     }
                                     break
@@ -1009,7 +1009,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                         if (textSpecificAttributeModel.success === false) {
                                             job.failed += 1
                                         } else {
-                                            attributesRequestData.push(textSpecificAttributeModel)
+                                            attributesRequestData.push(textSpecificAttributeModel.data)
                                         }
                                     }
                                     break
@@ -1054,7 +1054,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                     if (attributeOptionsPreVerifiedItems.length) {
                         const groupedByAttribute = _.groupBy(attributeOptionsPreVerifiedItems, "attribute")
                         if (Object.keys(groupedByAttribute).length) {
-                            const requestData = []
+                            const requestData: AttributeOption[] = []
 
                             Object.keys(groupedByAttribute).forEach(key => {
                                 let attributeOptionObject: AttributeOption = {
@@ -1096,7 +1096,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                     }
                     break
                 case ImportJobs.Enum.attribute_group_import:
-                    const attributeGroupsRequestData = []
+                    const attributeGroupsRequestData: AttributeGroup[] = []
                     for (const item of importData) {
                         const attributeGroupImportItem = AttributeGroupImportItem.safeParse(item)
                         if (attributeGroupImportItem.success === false) {
@@ -1109,7 +1109,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                             if (attributeGroupData.success === false) {
                                 job.failed += 1
                             } else {
-                                attributeGroupsRequestData.push(attributeGroupData)
+                                attributeGroupsRequestData.push(attributeGroupData.data)
                             }
                         }
                     }
@@ -1127,7 +1127,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                     }
                     break
                 case ImportJobs.Enum.family_import:
-                    const familiesRequestData = []
+                    const familiesRequestData: Family[] = []
                     for (const item of importData) {
                         const familyImportItem = FamilyImportItem.safeParse(item)
                         if (familyImportItem.success === false) {
@@ -1165,7 +1165,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                             if (familyData.success === false) {
                                 job.failed += 1
                             } else {
-                                familiesRequestData.push(familyData)
+                                familiesRequestData.push(familyData.data)
                             }
                         }
                     }
@@ -1183,7 +1183,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                     }
                     break
                 case ImportJobs.Enum.family_variant_import:
-                    const familyVariantsRequestData = []
+                    const familyVariantsRequestData: FamilyVariant[] = []
                     for (const item of importData) {
                         const familyVariantImportItem = FamilyVariantImportItem.safeParse(item)
                         if (familyVariantImportItem.success === false) {
@@ -1198,7 +1198,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                             if (familyVariantData.success === false) {
                                 job.failed += 1
                             } else {
-                                familyVariantsRequestData.push(familyVariantData)
+                                familyVariantsRequestData.push(familyVariantData.data)
                             }
                         }
                     }
