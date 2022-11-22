@@ -20,7 +20,10 @@ export function checkUpdateToken(data: CatalogSettingsData) {
 
 export async function sendEvent(accountId: string, event: InternalDestinationEventHandlerInput){
     try{
-        await (await Classes.InternalDestination.getInstance({instanceId: accountId})).eventHandler(event)
+        await Promise.all([
+            new Classes.InternalDestination(accountId).webhookEventHandler(event),
+            new Classes.InternalDestination(accountId).elasticEventHandler(event)
+        ])
     }catch (e) {
         console.warn(e)
     }

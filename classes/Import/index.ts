@@ -766,7 +766,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                         } else {
                             switch (attributeImportItem.data.type) {
                                 case AttributeTypes.Enum.SIMPLESELECT:
-                                    const simpleselectImportModel = SpecificAttributesImportModel.SIMPLESELECT.safeParse(attributeImportItem.data)
+                                    const simpleselectImportModel = SpecificAttributesImportModel.SIMPLESELECT.safeParse({...item, ...attributeImportItem.data})
                                     if (simpleselectImportModel.success === false) {
                                         job.failed += 1
                                     } else {
@@ -778,7 +778,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                             scopable: simpleselectImportModel.data.scopable,
                                             label: getLabelsFromImportedFileItem(simpleselectImportModel),
                                             isLocaleSpecific: simpleselectImportModel.data.isLocaleSpecific,
-                                            availableLocales: simpleselectImportModel.data.availableLocales.split(","),
+                                            availableLocales: simpleselectImportModel.data.availableLocales ? simpleselectImportModel.data.availableLocales.split(",") : [],
                                             isUnique: simpleselectImportModel.data.isUnique,
                                         })
                                         if (simpleselectSpecificAttributeModel.success === false) {
@@ -789,7 +789,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                     }
                                     break
                                 case AttributeTypes.Enum.IMAGE:
-                                    const imageImportModel = SpecificAttributesImportModel.IMAGE.safeParse(attributeImportItem.data)
+                                    const imageImportModel = SpecificAttributesImportModel.IMAGE.safeParse({...item, ...attributeImportItem.data})
                                     if (imageImportModel.success === false) {
                                         job.failed += 1
                                     } else {
@@ -801,7 +801,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                             scopable: imageImportModel.data.scopable,
                                             label: getLabelsFromImportedFileItem(imageImportModel),
                                             isLocaleSpecific: imageImportModel.data.isLocaleSpecific,
-                                            availableLocales: imageImportModel.data.availableLocales,
+                                            availableLocales: imageImportModel.data.availableLocales ? imageImportModel.data.availableLocales.split(",") : [],
                                             isUnique: imageImportModel.data.isUnique,
                                             maxFileSizeInMB: imageImportModel.data.maxFileSizeInMB,
                                             allowedExtensions: imageImportModel.data.allowedExtensions.split(",")
@@ -814,7 +814,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                     }
                                     break
                                 case AttributeTypes.Enum.BOOLEAN:
-                                    const booleanImportModel = SpecificAttributesImportModel.BOOLEAN.safeParse(attributeImportItem.data)
+                                    const booleanImportModel = SpecificAttributesImportModel.BOOLEAN.safeParse({...item, ...attributeImportItem.data})
                                     if (booleanImportModel.success === false) {
                                         job.failed += 1
                                     } else {
@@ -826,7 +826,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                             scopable: booleanImportModel.data.scopable,
                                             label: getLabelsFromImportedFileItem(booleanImportModel),
                                             isLocaleSpecific: booleanImportModel.data.isLocaleSpecific,
-                                            availableLocales: booleanImportModel.data.availableLocales,
+                                            availableLocales: booleanImportModel.data.availableLocales ? booleanImportModel.data.availableLocales.split(",") : [],
                                             isUnique: booleanImportModel.data.isUnique,
                                             defaultValue: booleanImportModel.data.defaultValue
                                         })
@@ -838,7 +838,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                     }
                                     break
                                 case AttributeTypes.Enum.MULTISELECT:
-                                    const multiselectImportModel = SpecificAttributesImportModel.MULTISELECT.safeParse(attributeImportItem.data)
+                                    const multiselectImportModel = SpecificAttributesImportModel.MULTISELECT.safeParse({...item, ...attributeImportItem.data})
                                     if (multiselectImportModel.success === false) {
                                         job.failed += 1
                                     } else {
@@ -850,7 +850,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                             scopable: multiselectImportModel.data.scopable,
                                             label: getLabelsFromImportedFileItem(multiselectImportModel),
                                             isLocaleSpecific: multiselectImportModel.data.isLocaleSpecific,
-                                            availableLocales: multiselectImportModel.data.availableLocales,
+                                            availableLocales: multiselectImportModel.data.availableLocales ? multiselectImportModel.data.availableLocales.split(",") : [],
                                             isUnique: multiselectImportModel.data.isUnique,
                                         })
                                         if (booleanSpecificAttributeModel.success === false) {
@@ -861,7 +861,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                     }
                                     break
                                 case AttributeTypes.Enum.IDENTIFIER:
-                                    const identifierImportModel = SpecificAttributesImportModel.IDENTIFIER.safeParse(attributeImportItem.data)
+                                    const identifierImportModel = SpecificAttributesImportModel.IDENTIFIER.safeParse({...item, ...attributeImportItem.data})
                                     if (identifierImportModel.success === false) {
                                         job.failed += 1
                                     } else {
@@ -873,7 +873,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                             scopable: identifierImportModel.data.scopable,
                                             label: getLabelsFromImportedFileItem(identifierImportModel),
                                             isLocaleSpecific: identifierImportModel.data.isLocaleSpecific,
-                                            availableLocales: identifierImportModel.data.availableLocales,
+                                            availableLocales: identifierImportModel.data.availableLocales ? identifierImportModel.data.availableLocales.split(",") : [],
                                             isUnique: identifierImportModel.data.isUnique,
                                             maxCharacters: identifierImportModel.data.maxCharacters,
                                             validationRule: identifierImportModel.data.validationRule,
@@ -887,7 +887,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                     }
                                     break
                                 case AttributeTypes.Enum.TEXTAREA:
-                                    const textareaImportModel = SpecificAttributesImportModel.TEXTAREA.safeParse(attributeImportItem.data)
+                                    const textareaImportModel = SpecificAttributesImportModel.TEXTAREA.safeParse({...item, ...attributeImportItem.data})
                                     if (textareaImportModel.success === false) {
                                         job.failed += 1
                                     } else {
@@ -899,7 +899,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                             scopable: textareaImportModel.data.scopable,
                                             label: getLabelsFromImportedFileItem(textareaImportModel),
                                             isLocaleSpecific: textareaImportModel.data.isLocaleSpecific,
-                                            availableLocales: textareaImportModel.data.availableLocales,
+                                            availableLocales: textareaImportModel.data.availableLocales ? textareaImportModel.data.availableLocales.split(",") : [],
                                             isUnique: textareaImportModel.data.isUnique,
                                             maxCharacters: textareaImportModel.data.maxCharacters,
                                         })
@@ -911,7 +911,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                     }
                                     break
                                 case AttributeTypes.Enum.PRICE:
-                                    const priceImportModel = SpecificAttributesImportModel.PRICE.safeParse(attributeImportItem.data)
+                                    const priceImportModel = SpecificAttributesImportModel.PRICE.safeParse({...item, ...attributeImportItem.data})
                                     if (priceImportModel.success === false) {
                                         job.failed += 1
                                     } else {
@@ -923,7 +923,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                             scopable: priceImportModel.data.scopable,
                                             label: getLabelsFromImportedFileItem(priceImportModel),
                                             isLocaleSpecific: priceImportModel.data.isLocaleSpecific,
-                                            availableLocales: priceImportModel.data.availableLocales,
+                                            availableLocales: priceImportModel.data.availableLocales ? priceImportModel.data.availableLocales.split(",") : [],
                                             isUnique: priceImportModel.data.isUnique,
                                             decimalsAllowed: priceImportModel.data.decimalsAllowed,
                                             minNumber: priceImportModel.data.minNumber,
@@ -937,7 +937,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                     }
                                     break
                                 case AttributeTypes.Enum.DATE:
-                                    const dateImportModel = SpecificAttributesImportModel.DATE.safeParse(attributeImportItem.data)
+                                    const dateImportModel = SpecificAttributesImportModel.DATE.safeParse({...item, ...attributeImportItem.data})
                                     if (dateImportModel.success === false) {
                                         job.failed += 1
                                     } else {
@@ -949,7 +949,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                             scopable: dateImportModel.data.scopable,
                                             label: getLabelsFromImportedFileItem(dateImportModel),
                                             isLocaleSpecific: dateImportModel.data.isLocaleSpecific,
-                                            availableLocales: dateImportModel.data.availableLocales,
+                                            availableLocales: dateImportModel.data.availableLocales ? dateImportModel.data.availableLocales.split(",") : [],
                                             isUnique: dateImportModel.data.isUnique,
                                             minDate: dateImportModel.data.minDate,
                                             maxDate: dateImportModel.data.maxDate,
@@ -962,7 +962,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                     }
                                     break
                                 case AttributeTypes.Enum.NUMBER:
-                                    const numberImportModel = SpecificAttributesImportModel.NUMBER.safeParse(attributeImportItem.data)
+                                    const numberImportModel = SpecificAttributesImportModel.NUMBER.safeParse({...item, ...attributeImportItem.data})
                                     if (numberImportModel.success === false) {
                                         job.failed += 1
                                     } else {
@@ -974,7 +974,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                             scopable: numberImportModel.data.scopable,
                                             label: getLabelsFromImportedFileItem(numberImportModel),
                                             isLocaleSpecific: numberImportModel.data.isLocaleSpecific,
-                                            availableLocales: numberImportModel.data.availableLocales,
+                                            availableLocales: numberImportModel.data.availableLocales ? numberImportModel.data.availableLocales.split(",") : [],
                                             isUnique: numberImportModel.data.isUnique,
                                             negativeAllowed: numberImportModel.data.negativeAllowed,
                                             decimalsAllowed: numberImportModel.data.decimalsAllowed,
@@ -989,7 +989,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                     }
                                     break
                                 case AttributeTypes.Enum.TEXT:
-                                    const textImportModel = SpecificAttributesImportModel.TEXT.safeParse(attributeImportItem.data)
+                                    const textImportModel = SpecificAttributesImportModel.TEXT.safeParse({...item, ...attributeImportItem.data})
                                     if (textImportModel.success === false) {
                                         job.failed += 1
                                     } else {
@@ -1001,7 +1001,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                             scopable: textImportModel.data.scopable,
                                             label: getLabelsFromImportedFileItem(textImportModel),
                                             isLocaleSpecific: textImportModel.data.isLocaleSpecific,
-                                            availableLocales: textImportModel.data.availableLocales,
+                                            availableLocales: textImportModel.data.availableLocales ? textImportModel.data.availableLocales.split(",") : [],
                                             isUnique: textImportModel.data.isUnique,
                                             maxCharacters: textImportModel.data.maxCharacters,
                                             validationRule: textImportModel.data.validationRule,
@@ -1084,10 +1084,16 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                     await new Classes.ProductSettings(data.context.instanceId).upsertAttributeSelectOptions({
                                         attributeOptions: requestData
                                     })
-                                    job.processed = requestData.length
+                                    job.processed = requestData.reduce<number>((acc, val) => {
+                                        acc += val.options.length
+                                        return acc
+                                    }, 0)
                                     job.status = JobStatus.Enum.DONE
                                 } catch (e) {
-                                    job.failed += requestData.length
+                                    job.failed += requestData.reduce<number>((acc, val) => {
+                                        acc += val.options.length
+                                        return acc
+                                    }, 0)
                                     job.status = JobStatus.Enum.FAILED
                                 }
                             }

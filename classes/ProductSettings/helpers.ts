@@ -1,5 +1,6 @@
 import {ProductSettingsData} from "./index";
 import {Classes, InternalDestinationEventHandlerInput} from "./rio";
+import {date} from "zod";
 
 
 export function randomString(l = 10) {
@@ -21,7 +22,10 @@ export function checkUpdateToken(data: ProductSettingsData) {
 
 export async function sendEvent(accountId: string, event: InternalDestinationEventHandlerInput){
     try{
-        await (await Classes.InternalDestination.getInstance({instanceId: accountId})).eventHandler(event)
+        await Promise.all([
+            new Classes.InternalDestination(accountId).webhookEventHandler(event),
+            new Classes.InternalDestination(accountId).elasticEventHandler(event)
+        ])
     }catch (e) {
         console.warn(e)
     }

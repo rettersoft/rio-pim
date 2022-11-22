@@ -191,7 +191,7 @@ export async function upsertAttributes(data: ProductSettingsData): Promise<Produ
         return data
     }
 
-    result.data.forEach(attribute => {
+    for (const attribute of data.request.body.attributes) {
         const result = SpecificAttributes[attribute.type].safeParse(attribute)
 
         if (result.success === false) {
@@ -215,7 +215,7 @@ export async function upsertAttributes(data: ProductSettingsData): Promise<Produ
         } else {
             data.state.public.attributes[oldIndex] = attribute
         }
-    })
+    }
 
     data.state.public.updateToken = randomString()
 
