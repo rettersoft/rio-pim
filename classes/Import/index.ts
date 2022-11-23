@@ -59,6 +59,7 @@ import {
     SpecificAttributesImportModel
 } from "./custom-models";
 import _ from "lodash";
+import {PIMRepository} from "PIMRepositoryPackage";
 
 const rdk = new RDK();
 
@@ -742,10 +743,10 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                             }
                         }).filter(Boolean)
                     }
-                    const categoryTrees = preVerifiedData.filter(item => !item.parent).map(item => {
+                    const categoryTrees = importData.filter(item => !item.parent).map(item => {
                         return {
                             code: item.code,
-                            subCategories: buildCategoryTree(preVerifiedData.filter(item => item.parent), item.code)
+                            subCategories: buildCategoryTree(importData.filter(item => item.parent), item.code)
                         }
                     })
 
@@ -760,20 +761,21 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                     }
 
                     if (categoriesRequestData.length) {
+                        const totalCategories = PIMRepository.getCategoriesInOneLevel(categoriesRequestData).length
                         try {
                             const res = await new Classes.CatalogSettings(data.context.instanceId).upsertCategories({
                                 categories: categoriesRequestData
                             })
                             if (res.statusCode >= 400) {
-                                job.failed += categoriesRequestData.length
+                                job.failed += totalCategories
                                 job.failReason = res.body.message || "unhandled error"
                                 job.status = JobStatus.Enum.FAILED
                             } else {
-                                job.processed = categoriesRequestData.length
+                                job.processed = totalCategories
                                 job.status = JobStatus.Enum.DONE
                             }
                         } catch (e) {
-                            job.failed += categoriesRequestData.length
+                            job.failed += totalCategories
                             job.failReason = e.toString()
                             job.status = JobStatus.Enum.FAILED
                         }

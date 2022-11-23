@@ -173,7 +173,6 @@ export async function updateCategory(data: CatalogSettingsData): Promise<Catalog
 }
 
 export async function upsertCategories(data: CatalogSettingsData): Promise<CatalogSettingsData> {
-
     checkUpdateToken(data)
 
     const result = Categories.safeParse(data.request.body.categories)
@@ -196,7 +195,6 @@ export async function upsertCategories(data: CatalogSettingsData): Promise<Catal
             data.state.public.categories[oldIndex] = datum
         }
     }
-
 
     data.state.public.updateToken = randomString()
     return data

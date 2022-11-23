@@ -125,6 +125,6 @@ export const FamilyVariantImportItem = Z.object({
 })
 
 export const CategoryImportItem = Z.object({
-    code: Code,
+    code: Z.string(),
     parent: Z.string().optional(),
 })
