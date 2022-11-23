@@ -39,6 +39,9 @@ export async function addCategory(data: CatalogSettingsData): Promise<CatalogSet
     data.state.public.categories.push(result.data)
     data.state.public.updateToken = randomString()
 
+    if (!data.state.private.savedImages) data.state.private.savedImages = []
+    if (!data.state.private.tempImages) data.state.private.tempImages = []
+
     await sendEvent(data.context.instanceId, {
         eventDocument: result.data,
         eventDocumentId: data.context.instanceId + "-" + result.data.code,
@@ -66,6 +69,9 @@ export async function removeCategory(data: CatalogSettingsData): Promise<Catalog
 
     data.state.public.categories = data.state.public.categories.filter(c => c.code !== data.request.body.code)
     data.state.public.updateToken = randomString()
+
+    if (!data.state.private.savedImages) data.state.private.savedImages = []
+    if (!data.state.private.tempImages) data.state.private.tempImages = []
 
     const removedImages = []
     const allAttachedImages = getAttachedImages(data.state.public.categories)
@@ -117,6 +123,9 @@ export async function updateCategory(data: CatalogSettingsData): Promise<Catalog
     data.state.public.categories[cIndex] = result.data
     data.state.public.updateToken = randomString()
 
+    if (!data.state.private.savedImages) data.state.private.savedImages = []
+    if (!data.state.private.tempImages) data.state.private.tempImages = []
+
     const modifyMetaData = (category) => {
         if (category.image) {
             category.meta = {
@@ -133,8 +142,6 @@ export async function updateCategory(data: CatalogSettingsData): Promise<Catalog
     modifyMetaData(result.data)
 
     getAttachedImages([result.data]).forEach(image => {
-        if (!data.state.private.savedImages) data.state.private.savedImages = []
-        if (!data.state.private.tempImages) data.state.private.tempImages = []
         data.state.private.tempImages = data.state.private.tempImages.filter(ti => ti !== image)
         if (!data.state.private.savedImages.find(si => si === image)) {
             data.state.private.savedImages.push(image)
