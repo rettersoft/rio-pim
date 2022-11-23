@@ -42,7 +42,8 @@ import {
     ProductModel,
     ProductModelImportCSVSettings,
     ProductModelImportXLSXSettings,
-    SpecificAttributes
+    SpecificAttributes,
+    UpsertFamilyVariantsInputVariantItem
 } from "PIMModelsPackage";
 import {
     AttributeGroupImportItem,
@@ -1244,7 +1245,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                     }
                     break
                 case ImportJobs.Enum.family_variant_import:
-                    const familyVariantsRequestData: FamilyVariant[] = []
+                    const familyVariantsRequestData: UpsertFamilyVariantsInputVariantItem[] = []
                     for (const item of importData) {
                         const familyVariantImportItem = FamilyVariantImportItem.safeParse(item)
                         if (familyVariantImportItem.success === false) {
@@ -1259,14 +1260,22 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                             if (familyVariantData.success === false) {
                                 job.failed += 1
                             } else {
-                                familyVariantsRequestData.push(familyVariantData.data)
+                                const oldIndex = familyVariantsRequestData.findIndex(r => r.familyCode === familyVariantImportItem.data.family)
+                                if (oldIndex !== -1) {
+                                    familyVariantsRequestData[oldIndex].variants.push(familyVariantData.data)
+                                } else {
+                                    familyVariantsRequestData.push({
+                                        familyCode: familyVariantImportItem.data.family,
+                                        variants: [familyVariantData.data]
+                                    })
+                                }
                             }
                         }
                     }
                     if (familyVariantsRequestData.length) {
                         try {
                             const res = await new Classes.ProductSettings(data.context.instanceId).upsertFamilyVariants({
-                                familyVariants: familyVariantsRequestData
+                                variants: familyVariantsRequestData
                             })
                             if (res.statusCode >= 400) {
                                 job.failed += familyVariantsRequestData.length

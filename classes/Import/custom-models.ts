@@ -119,6 +119,7 @@ export const FamilyImportItem = Z.object({
 
 export const FamilyVariantImportItem = Z.object({
     code: Code,
+    family: Code,
     axes: Z.string(),
     attributes: Z.string(),
 })

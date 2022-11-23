@@ -736,6 +736,7 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
                                 obj[`label-${al.locale}`] = al.value
                             })
                         }
+                        dat.push(obj)
                     })
                 })
                 fileData = dat

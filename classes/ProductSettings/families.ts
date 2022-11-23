@@ -9,8 +9,7 @@ import {
     Families,
     Family,
     FamilyVariant,
-    FamilyVariants,
-    RESERVED_ID_ATTRIBUTE_CODE
+    RESERVED_ID_ATTRIBUTE_CODE, UpsertFamilyVariantsInput
 } from "PIMModelsPackage";
 import API = Classes.API;
 
@@ -155,7 +154,7 @@ export async function upsertFamilies(data: ProductSettingsData): Promise<Product
 
 export async function upsertFamilyVariants(data: ProductSettingsData): Promise<ProductSettingsData> {
     checkUpdateToken(data)
-    const result = FamilyVariants.safeParse(data.request.body.variants)
+    const result = UpsertFamilyVariantsInput.safeParse(data.request.body)
     if (result.success === false) {
         data.response = {
             statusCode: 400,
@@ -167,32 +166,21 @@ export async function upsertFamilyVariants(data: ProductSettingsData): Promise<P
         return data
     }
 
-    const familyCode = Code.safeParse(data.request.body.code)
-    if (familyCode.success === false) {
-        data.response = {
-            statusCode: 400,
-            body: {
-                message: "Model validation fail!",
-                error: familyCode.error
+    for (const variant of result.data.variants) {
+        const familyIndex = data.state.public.families.findIndex(f=>f.code === variant.familyCode)
+        if(familyIndex !== -1){
+            for (const familyVariant of variant.variants) {
+                const oldIndex = data.state.public.families[familyIndex].variants.findIndex(v => v.code === familyVariant.code)
+                if (oldIndex === -1) {
+                    data.state.public.families[familyIndex].variants.push(familyVariant)
+                } else {
+                    data.state.public.families[familyIndex].variants[oldIndex] = familyVariant
+                }
             }
         }
-        return data
     }
 
-    const familyIndex = data.state.public.families.findIndex(f => f.code = familyCode.data)
-
-    result.data.forEach(familyVariant => {
-        const oldIndex = data.state.public.families[familyIndex].variants.findIndex(v => v.code === familyVariant.code)
-        if (oldIndex === -1) {
-            data.state.public.families[familyIndex].variants.push(familyVariant)
-        } else {
-            data.state.public.families[familyIndex].variants[oldIndex] = familyVariant
-        }
-    })
-
-
     data.state.public.updateToken = randomString()
-
 
     return data
 }

@@ -172,3 +172,14 @@ export const Group = Z.object({
 })
 export type Group = Z.infer<typeof Group>
 export const Groups = Z.array(Group)
+
+
+/** Method Models*/
+export const UpsertFamilyVariantsInputVariantItem = Z.object({
+    familyCode: Code,
+    variants: FamilyVariants
+})
+export type UpsertFamilyVariantsInputVariantItem = Z.infer<typeof UpsertFamilyVariantsInputVariantItem>
+export const UpsertFamilyVariantsInput = Z.object({
+    variants: Z.array(UpsertFamilyVariantsInputVariantItem)
+})
