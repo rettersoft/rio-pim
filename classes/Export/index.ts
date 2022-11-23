@@ -540,24 +540,26 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
 
                     (product.data.attributes || []).forEach((productAttribute) => {
                         const attributeSettings: BaseAttribute = getProductsSettingsResult.body.productSettings.attributes.find(a => a.code === productAttribute.code)
-                        const globalSettings: GlobalProductModelExportSettings = jobSettings.globalSettings
+                        if(attributeSettings){
+                            const globalSettings: GlobalProductModelExportSettings = jobSettings.globalSettings
 
-                        if (attributeSettings.localizable && attributeSettings.scopable) {
-                            globalSettings.content.locales.forEach(locale => {
-                                productAttributeValues[`attribute-${productAttribute.code}-${globalSettings.content.channel}-${locale}`] =
-                                    productAttribute.data.find(d => d.locale === locale && d.scope === globalSettings.content.channel)?.value
-                            })
-                        } else if (attributeSettings.localizable && !attributeSettings.scopable) {
-                            globalSettings.content.locales.forEach(locale => {
-                                productAttributeValues[`attribute-${productAttribute.code}-${locale}`] =
-                                    productAttribute.data.find(d => d.locale === locale)?.value
-                            })
-                        } else if (!attributeSettings.localizable && attributeSettings.scopable) {
-                            productAttributeValues[`attribute-${productAttribute.code}-${globalSettings.content.channel}`] =
-                                productAttribute.data.find(d => d.scope === globalSettings.content.channel)?.value
-                        } else {
-                            productAttributeValues[`attribute-${productAttribute.code}`] =
-                                productAttribute.data.find(d => d.value !== undefined)?.value
+                            if (attributeSettings.localizable && attributeSettings.scopable) {
+                                globalSettings.content.locales.forEach(locale => {
+                                    productAttributeValues[`attribute-${productAttribute.code}-${globalSettings.content.channel}-${locale}`] =
+                                        productAttribute.data.find(d => d.locale === locale && d.scope === globalSettings.content.channel)?.value
+                                })
+                            } else if (attributeSettings.localizable && !attributeSettings.scopable) {
+                                globalSettings.content.locales.forEach(locale => {
+                                    productAttributeValues[`attribute-${productAttribute.code}-${locale}`] =
+                                        productAttribute.data.find(d => d.locale === locale)?.value
+                                })
+                            } else if (!attributeSettings.localizable && attributeSettings.scopable) {
+                                productAttributeValues[`attribute-${productAttribute.code}-${globalSettings.content.channel}`] =
+                                    productAttribute.data.find(d => d.scope === globalSettings.content.channel)?.value
+                            } else {
+                                productAttributeValues[`attribute-${productAttribute.code}`] =
+                                    productAttribute.data.find(d => d.value !== undefined)?.value
+                            }
                         }
                     })
 
@@ -581,25 +583,27 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
                     const productModelAttributeValues = {};
 
                     (productModel.data.attributes || []).forEach(attribute => {
-                        const attributeSettings: BaseAttribute = getProductsSettingsResult.body.productSettings.attributes.find(a => a.code === attribute)
-                        const globalSettings: GlobalProductModelExportSettings = jobSettings.globalSettings
+                        const attributeSettings: BaseAttribute = getProductsSettingsResult.body.productSettings.attributes.find(a => a.code === attribute.code)
+                        if(attributeSettings){
+                            const globalSettings: GlobalProductModelExportSettings = jobSettings.globalSettings
 
-                        if (attributeSettings.localizable && attributeSettings.scopable) {
-                            globalSettings.content.locales.forEach(locale => {
-                                productModelAttributeValues[`attribute-${attribute}-${globalSettings.content.channel}-${locale}`] =
-                                    attribute.data.find(d => d.locale === locale && d.scope === globalSettings.content.channel)?.value
-                            })
-                        } else if (attributeSettings.localizable && !attributeSettings.scopable) {
-                            globalSettings.content.locales.forEach(locale => {
-                                productModelAttributeValues[`attribute-${attribute}-${locale}`] =
-                                    attribute.data.find(d => d.locale === locale)?.value
-                            })
-                        } else if (!attributeSettings.localizable && attributeSettings.scopable) {
-                            productModelAttributeValues[`attribute-${attribute}-${globalSettings.content.channel}`] =
-                                attribute.data.find(d => d.scope === globalSettings.content.channel)?.value
-                        } else {
-                            productModelAttributeValues[`attribute-${attribute}`] =
-                                attribute.data.find(d => d.value !== undefined)?.value
+                            if (attributeSettings.localizable && attributeSettings.scopable) {
+                                globalSettings.content.locales.forEach(locale => {
+                                    productModelAttributeValues[`attribute-${attribute.code}-${globalSettings.content.channel}-${locale}`] =
+                                        attribute.data.find(d => d.locale === locale && d.scope === globalSettings.content.channel)?.value
+                                })
+                            } else if (attributeSettings.localizable && !attributeSettings.scopable) {
+                                globalSettings.content.locales.forEach(locale => {
+                                    productModelAttributeValues[`attribute-${attribute.code}-${locale}`] =
+                                        attribute.data.find(d => d.locale === locale)?.value
+                                })
+                            } else if (!attributeSettings.localizable && attributeSettings.scopable) {
+                                productModelAttributeValues[`attribute-${attribute.code}-${globalSettings.content.channel}`] =
+                                    attribute.data.find(d => d.scope === globalSettings.content.channel)?.value
+                            } else {
+                                productModelAttributeValues[`attribute-${attribute.code}`] =
+                                    attribute.data.find(d => d.value !== undefined)?.value
+                            }
                         }
                     })
                     preparedDataForProductModel.push({
