@@ -117,7 +117,23 @@ export async function upsertFamilies(data: ProductSettingsData): Promise<Product
         return data
     }
 
-    result.data.forEach(family => {
+    for (const family of result.data) {
+        if (!family.attributes) family.attributes = [{attribute: RESERVED_ID_ATTRIBUTE_CODE, requiredChannels: []}]
+        else family.attributes = [{
+            attribute: RESERVED_ID_ATTRIBUTE_CODE,
+            requiredChannels: []
+        }, ...family.attributes.filter(fa => fa.attribute !== RESERVED_ID_ATTRIBUTE_CODE)]
+
+        if (family.attributeAsLabel && (family.attributes || []).findIndex(fa => fa.attribute === family.attributeAsLabel) === -1) {
+            data.response = {
+                statusCode: 400,
+                body: {
+                    message: `Attribute as label not found in family attributes! Attribute: (${family.attributeAsLabel}) Family: ${family.code}`,
+                }
+            }
+            return data
+        }
+
         const oldIndex = data.state.public.families.findIndex(f => f.code === family.code)
         if (oldIndex === -1) {
             data.state.public.families.push(family)
@@ -128,7 +144,7 @@ export async function upsertFamilies(data: ProductSettingsData): Promise<Product
             data.state.public.families[oldIndex].attributeAsImage = family.attributeAsImage
             data.state.public.families[oldIndex].attributeAsLabel = family.attributeAsLabel
         }
-    })
+    }
 
 
     data.state.public.updateToken = randomString()

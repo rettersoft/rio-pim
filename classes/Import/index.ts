@@ -664,13 +664,20 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                     }
                     if (groupTypesRequestData.length) {
                         try {
-                            await new Classes.ProductSettings(data.context.instanceId).upsertGroupTypes({
+                            const res = await new Classes.ProductSettings(data.context.instanceId).upsertGroupTypes({
                                 groupTypes: groupTypesRequestData
                             })
-                            job.processed = groupTypesRequestData.length
-                            job.status = JobStatus.Enum.DONE
+                            if (res.statusCode >= 400) {
+                                job.failed += groupTypesRequestData.length
+                                job.failReason = res.body.message || "unhandled error"
+                                job.status = JobStatus.Enum.FAILED
+                            } else {
+                                job.processed = groupTypesRequestData.length
+                                job.status = JobStatus.Enum.DONE
+                            }
                         } catch (e) {
                             job.failed += groupTypesRequestData.length
+                            job.failReason = e.toString()
                             job.status = JobStatus.Enum.FAILED
                         }
                     }
@@ -696,13 +703,20 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                     }
                     if (groupsRequestData.length) {
                         try {
-                            await new Classes.ProductSettings(data.context.instanceId).upsertGroups({
+                            const res = await new Classes.ProductSettings(data.context.instanceId).upsertGroups({
                                 groups: groupsRequestData
                             })
-                            job.processed = groupsRequestData.length
-                            job.status = JobStatus.Enum.DONE
+                            if (res.statusCode >= 400) {
+                                job.failed += groupsRequestData.length
+                                job.failReason = res.body.message || "unhandled error"
+                                job.status = JobStatus.Enum.FAILED
+                            } else {
+                                job.processed = groupsRequestData.length
+                                job.status = JobStatus.Enum.DONE
+                            }
                         } catch (e) {
                             job.failed += groupsRequestData.length
+                            job.failReason = e.toString()
                             job.status = JobStatus.Enum.FAILED
                         }
                     }
@@ -746,13 +760,20 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
 
                     if (categoriesRequestData.length) {
                         try {
-                            await new Classes.CatalogSettings(data.context.instanceId).upsertCategories({
+                            const res = await new Classes.CatalogSettings(data.context.instanceId).upsertCategories({
                                 categories: categoriesRequestData
                             })
-                            job.processed = categoriesRequestData.length
-                            job.status = JobStatus.Enum.DONE
+                            if (res.statusCode >= 400) {
+                                job.failed += categoriesRequestData.length
+                                job.failReason = res.body.message || "unhandled error"
+                                job.status = JobStatus.Enum.FAILED
+                            } else {
+                                job.processed = categoriesRequestData.length
+                                job.status = JobStatus.Enum.DONE
+                            }
                         } catch (e) {
                             job.failed += categoriesRequestData.length
+                            job.failReason = e.toString()
                             job.status = JobStatus.Enum.FAILED
                         }
                     }
@@ -1022,13 +1043,20 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                     }
                     if (attributesRequestData.length) {
                         try {
-                            await new Classes.ProductSettings(data.context.instanceId).upsertAttributes({
+                            const res = await new Classes.ProductSettings(data.context.instanceId).upsertAttributes({
                                 attributes: attributesRequestData
                             })
-                            job.processed = attributesRequestData.length
-                            job.status = JobStatus.Enum.DONE
+                            if (res.statusCode >= 400) {
+                                job.failed += attributesRequestData.length
+                                job.failReason = res.body.message || "unhandled error"
+                                job.status = JobStatus.Enum.FAILED
+                            } else {
+                                job.processed = attributesRequestData.length
+                                job.status = JobStatus.Enum.DONE
+                            }
                         } catch (e) {
                             job.failed += attributesRequestData.length
+                            job.failReason = e.toString()
                             job.status = JobStatus.Enum.FAILED
                         }
                     }
@@ -1081,24 +1109,35 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                             })
                             if (requestData.length) {
                                 try {
-                                    await new Classes.ProductSettings(data.context.instanceId).upsertAttributeSelectOptions({
+                                    const res = await new Classes.ProductSettings(data.context.instanceId).upsertAttributeSelectOptions({
                                         attributeOptions: requestData
                                     })
-                                    job.processed = requestData.reduce<number>((acc, val) => {
-                                        acc += val.options.length
-                                        return acc
-                                    }, 0)
-                                    job.status = JobStatus.Enum.DONE
+                                    if (res.statusCode >= 400) {
+                                        job.failed += requestData.reduce<number>((acc, val) => {
+                                            acc += val.options.length
+                                            return acc
+                                        }, 0)
+                                        job.failReason = res.body.message || "unhandled error"
+                                        job.status = JobStatus.Enum.FAILED
+                                    } else {
+                                        job.processed = requestData.reduce<number>((acc, val) => {
+                                            acc += val.options.length
+                                            return acc
+                                        }, 0)
+                                        job.status = JobStatus.Enum.DONE
+                                    }
                                 } catch (e) {
                                     job.failed += requestData.reduce<number>((acc, val) => {
                                         acc += val.options.length
                                         return acc
                                     }, 0)
+                                    job.failReason = e.toString()
                                     job.status = JobStatus.Enum.FAILED
                                 }
                             }
                         } else {
                             job.failed += attributeOptionsPreVerifiedItems.length
+                            job.failReason = "Grouped by attribute data is empty"
                         }
                     }
                     break
@@ -1122,13 +1161,20 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                     }
                     if (attributeGroupsRequestData.length) {
                         try {
-                            await new Classes.ProductSettings(data.context.instanceId).upsertAttributeGroups({
+                            const res = await new Classes.ProductSettings(data.context.instanceId).upsertAttributeGroups({
                                 attributeGroups: attributeGroupsRequestData
                             })
-                            job.processed = attributeGroupsRequestData.length
-                            job.status = JobStatus.Enum.DONE
+                            if (res.statusCode >= 400) {
+                                job.failed += attributeGroupsRequestData.length
+                                job.failReason = res.body.message || "unhandled error"
+                                job.status = JobStatus.Enum.FAILED
+                            } else {
+                                job.processed = attributeGroupsRequestData.length
+                                job.status = JobStatus.Enum.DONE
+                            }
                         } catch (e) {
                             job.failed += attributeGroupsRequestData.length
+                            job.failReason = e.toString()
                             job.status = JobStatus.Enum.FAILED
                         }
                     }
@@ -1140,7 +1186,13 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                         if (familyImportItem.success === false) {
                             job.failed += 1
                         } else {
-                            const familyAttributes: FamilyAttribute[] = []
+                            const familyAttributes: FamilyAttribute[] = [];
+                            (familyImportItem.data.attributes || "").split(",").forEach(a => {
+                                familyAttributes.push({
+                                    attribute: a,
+                                    requiredChannels: []
+                                })
+                            })
                             //get family attribute required channels from item
                             Object.keys(item).forEach(key => {
                                 if (key.startsWith("requirements-")) {
@@ -1150,12 +1202,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                         const attributes: string[] = item[key].split(",")
                                         attributes.forEach(att => {
                                             const oldIndex = familyAttributes.findIndex(fa => fa.attribute === att)
-                                            if (oldIndex === -1) {
-                                                familyAttributes.push({
-                                                    attribute: att,
-                                                    requiredChannels: [channel]
-                                                })
-                                            } else {
+                                            if (oldIndex !== -1) {
                                                 familyAttributes[oldIndex].requiredChannels.push(channel)
                                             }
                                         })
@@ -1178,13 +1225,20 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                     }
                     if (familiesRequestData.length) {
                         try {
-                            await new Classes.ProductSettings(data.context.instanceId).upsertFamilies({
+                            const res = await new Classes.ProductSettings(data.context.instanceId).upsertFamilies({
                                 families: familiesRequestData
                             })
-                            job.processed = familiesRequestData.length
-                            job.status = JobStatus.Enum.DONE
+                            if (res.statusCode >= 400) {
+                                job.failed += familiesRequestData.length
+                                job.failReason = res.body.message || "unhandled error"
+                                job.status = JobStatus.Enum.FAILED
+                            } else {
+                                job.processed = familiesRequestData.length
+                                job.status = JobStatus.Enum.DONE
+                            }
                         } catch (e) {
                             job.failed += familiesRequestData.length
+                            job.failReason = e.toString()
                             job.status = JobStatus.Enum.FAILED
                         }
                     }
@@ -1211,13 +1265,20 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                     }
                     if (familyVariantsRequestData.length) {
                         try {
-                            await new Classes.ProductSettings(data.context.instanceId).upsertFamilyVariants({
+                            const res = await new Classes.ProductSettings(data.context.instanceId).upsertFamilyVariants({
                                 familyVariants: familyVariantsRequestData
                             })
-                            job.processed = familyVariantsRequestData.length
-                            job.status = JobStatus.Enum.DONE
+                            if (res.statusCode >= 400) {
+                                job.failed += familyVariantsRequestData.length
+                                job.failReason = res.body.message || "unhandled error"
+                                job.status = JobStatus.Enum.FAILED
+                            } else {
+                                job.processed = familyVariantsRequestData.length
+                                job.status = JobStatus.Enum.DONE
+                            }
                         } catch (e) {
                             job.failed += familyVariantsRequestData.length
+                            job.failReason = e.toString()
                             job.status = JobStatus.Enum.FAILED
                         }
                     }
@@ -1228,6 +1289,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
         } else {
             job.processed = 0
             job.failed = 0
+            job.failReason = "empty data"
             job.status = JobStatus.Enum.DONE
         }
 
