@@ -896,7 +896,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                             availableLocales: imageImportModel.data.availableLocales ? imageImportModel.data.availableLocales.split(",") : [],
                                             isUnique: imageImportModel.data.isUnique,
                                             maxFileSizeInMB: imageImportModel.data.maxFileSizeInMB,
-                                            allowedExtensions: imageImportModel.data.allowedExtensions.split(",")
+                                            allowedExtensions: imageImportModel.data.allowedExtensions ? imageImportModel.data.allowedExtensions.split(",") : undefined
                                         })
                                         if (imageSpecificAttributeModel.success === false) {
                                             job.failed += 1
