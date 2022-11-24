@@ -67,7 +67,7 @@ export interface ImportPrivateState {
 }
 
 export interface ImportPublicState {
-    runningJob?: ImportJob
+    lastExecution?: ImportJob
 }
 
 export type ImportData<Input = any, Output = any> = Data<Input, Output, ImportPublicState, ImportPrivateState>
@@ -1455,11 +1455,11 @@ export async function importProcess(data: ImportData): Promise<ImportData> {
     if (job.failed + job.processed === job.total) {
         job.status = JobStatus.Enum.DONE
         job.finishedAt = new Date()
-        data.state.public.runningJob = undefined
         await unlockExecution()
-    } else {
-        data.state.public.runningJob = job
     }
+
+    data.state.public.lastExecution = job
+
     await saveJobToDB(job, data.context.instanceId)
 
     return data
