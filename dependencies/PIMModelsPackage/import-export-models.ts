@@ -41,7 +41,7 @@ export type JobStatus = Z.infer<typeof JobStatus>
 
 
 const BaseJob = Z.object({
-    uid: Z.string().min(32).max(32),
+    uid: Z.string(),
     code: Code,
     connector: Connectors,
     status: JobStatus,

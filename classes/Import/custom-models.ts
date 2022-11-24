@@ -17,7 +17,7 @@ export const ProductModelImportItem = Z.object({
     code: Code,
     family: Code,
     variant: Code,
-    categories: Z.string()
+    categories: Z.string().optional()
 })
 
 export const AttributeGroupImportItem = Z.object({
