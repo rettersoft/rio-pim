@@ -39,7 +39,7 @@ export class ElasticHelper {
             if (props.filters.dataType) query.bool.must.push({match: {"dataType": props.filters.dataType}})
         }
 
-        if (props && props.filters.isVariant !== undefined) {
+        if (props && props.filters && props.filters.isVariant !== undefined) {
             if (props.filters.isVariant) {
                 query.bool.must.push({exists: {field: "parent"}})
             } else {
