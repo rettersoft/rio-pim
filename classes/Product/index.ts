@@ -34,7 +34,7 @@ const middleware = new PIMMiddlewarePackage()
 const rdk = new RDK()
 
 
-interface SendEventInput{
+interface SendEventInput {
     instanceId: string,
     source?: {
         axesValues?: AxesValuesList,
@@ -107,7 +107,7 @@ export async function authorizer(data: ProductData): Promise<Response> {
         case 'GET':
             return {statusCode: 200}
         case 'INIT':
-            if (isDeveloper || ["system_user", "API"].includes(data.context.identity)) {
+            if (isDeveloper || ["system_user", "API", "Import"].includes(data.context.identity)) {
                 return {statusCode: 200}
             }
             break
@@ -160,7 +160,7 @@ export async function getInstanceId(data: ProductData): Promise<string> {
 export async function init(data: ProductData): Promise<ProductData> {
     const accountId = getProductClassAccountId(data)
 
-    if (data.context.identity !== "API") {
+    if (!["API", "Import"].includes(data.context.identity)) {
         await middleware.checkUserRole({accountId, userId: data.context.userId, identity: data.context.identity})
     }
 
