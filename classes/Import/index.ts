@@ -396,15 +396,17 @@ export async function deleteImportProfile(data: ImportData): Promise<ImportData>
 
     try {
         if (executions.length) {
-            const workers = []
-            for (const execution of executions) {
-                workers.push(rdk.removeFromDatabase({
-                    partKey: getJobPartKey(data.context.instanceId, execution.code),
-                    sortKey: execution.uid
-                }))
-                workers.push(rdk.deleteFile({filename: getImportFileName(data.context.instanceId, execution.code, execution.uid, execution.connector)}))
+            for (const chunkElement of _.chunk(executions, 5)) {
+                const pipeline = rdk.pipeline()
+                for (const execution of executions) {
+                    pipeline.removeFromDatabase({
+                        partKey: getJobPartKey(data.context.instanceId, execution.code),
+                        sortKey: execution.uid
+                    })
+                    pipeline.deleteFile({filename: getImportFileName(data.context.instanceId, execution.code, execution.uid, execution.connector)})
+                }
+                await pipeline.send()
             }
-            await Promise.all(workers)
         }
     } catch (e) {
         console.log(e)
@@ -616,6 +618,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
         }
 
         const productImportProcessData = []
+        const productModelImportProcessData = []
 
         if (importData.length) {
             switch (jobSettings.job) {
@@ -649,7 +652,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                             } else {
                                 const productModelAttributes: ProductAttribute[] = []
                                 for (const key of Object.keys(item)) {
-                                    if (key.startsWith("attributes-")) {
+                                    if (key.startsWith("attribute-")) {
                                         const splits = key.split("-")
                                         const attributeCode = splits[1]
                                         if (splits.length === 0 || !attributeCode) {
@@ -698,13 +701,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                 if (productModelRequestData.success === false) {
                                     job.failed += 1
                                 } else {
-                                    try {
-                                        await new Classes.Import(data.context.instanceId).importProcess({
-                                            item: productModelRequestData.data
-                                        })
-                                    } catch (e) {
-                                        job.failed += 1
-                                    }
+                                    productModelImportProcessData.push(productModelRequestData.data)
                                 }
                             }
                         }
@@ -1378,6 +1375,25 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
 
         await saveJobToDB(job, data.context.instanceId)
 
+        if ([ImportJobs.Enum.product_import, ImportJobs.Enum.product_model_import].includes(jobSettings.job)) {
+            switch (jobSettings.job) {
+                case ImportJobs.Enum.product_model_import:
+                    for (const chunkElement of _.chunk(productModelImportProcessData, 10)) {
+                        const pipeline = rdk.pipeline()
+                        chunkElement.map(item => {
+                            pipeline.methodCall({
+                                classId: "Import",
+                                instanceId: data.context.instanceId,
+                                methodName: "importProcess",
+                                body: {item}
+                            })
+                        })
+                        await pipeline.send()
+                    }
+                    break
+            }
+        }
+
         data.response = {
             statusCode: 200,
             body: {
@@ -1434,14 +1450,28 @@ export async function importProcess(data: ImportData): Promise<ImportData> {
     switch (job.code) {
         case ImportJobs.Enum.product_model_import:
             try {
-                await Classes.Product.getInstance({
+                const res = await Classes.Product.getInstance({
                     body: {
                         accountId: data.context.instanceId,
                         dataType: DataType.Enum.PRODUCT_MODEL,
                         data: item
                     }
                 })
-                job.processed += 1
+                if (!res.isNewInstance) {
+                    const result = await res.updateProduct({
+                        accountId: data.context.instanceId,
+                        dataType: DataType.Enum.PRODUCT_MODEL,
+                        data: item
+                    })
+                    if (result.statusCode >= 400) {
+                        job.failed += 1
+                        job.failReason = result.body?.message || "unhandled error"
+                    } else {
+                        job.processed += 1
+                    }
+                } else {
+                    job.processed += 1
+                }
             } catch (e) {
                 job.failed += 1
                 job.failReason = e.toString()

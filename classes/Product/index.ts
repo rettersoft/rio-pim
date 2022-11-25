@@ -335,7 +335,7 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
 
     checkUpdateToken(data)
 
-    if (data.context.identity !== "AccountManager" && data.context.identity !== "API") {
+    if (!["AccountManager", "API", "Import"].includes(data.context.identity)) {
         await middleware.checkUserRole({accountId, userId: data.context.userId, identity: data.context.identity})
     }
 

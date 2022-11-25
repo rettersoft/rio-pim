@@ -404,15 +404,17 @@ export async function deleteExportProfile(data: ExportData): Promise<ExportData>
 
     try {
         if (executions.length) {
-            const workers = []
-            for (const execution of executions) {
-                workers.push(rdk.removeFromDatabase({
-                    partKey: getJobPartKey(data.context.instanceId, execution.code),
-                    sortKey: execution.uid
-                }))
-                workers.push(rdk.deleteFile({filename: getExportFileName(data.context.instanceId, execution.code, execution.uid, execution.connector)}))
+            for (const chunkElement of _.chunk(executions, 5)) {
+                const pipeline = rdk.pipeline()
+                for (const execution of executions) {
+                    pipeline.removeFromDatabase({
+                        partKey: getJobPartKey(data.context.instanceId, execution.code),
+                        sortKey: execution.uid
+                    })
+                    pipeline.deleteFile({filename: getExportFileName(data.context.instanceId, execution.code, execution.uid, execution.connector)})
+                }
+                await pipeline.send()
             }
-            await Promise.all(workers)
         }
     } catch (e) {
         console.log(e)
@@ -540,7 +542,7 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
 
                     (product.data.attributes || []).forEach((productAttribute) => {
                         const attributeSettings: BaseAttribute = getProductsSettingsResult.body.productSettings.attributes.find(a => a.code === productAttribute.code)
-                        if(attributeSettings){
+                        if (attributeSettings) {
                             const globalSettings: GlobalProductModelExportSettings = jobSettings.globalSettings
 
                             if (attributeSettings.localizable && attributeSettings.scopable) {
@@ -584,7 +586,7 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
 
                     (productModel.data.attributes || []).forEach(attribute => {
                         const attributeSettings: BaseAttribute = getProductsSettingsResult.body.productSettings.attributes.find(a => a.code === attribute.code)
-                        if(attributeSettings){
+                        if (attributeSettings) {
                             const globalSettings: GlobalProductModelExportSettings = jobSettings.globalSettings
 
                             if (attributeSettings.localizable && attributeSettings.scopable) {
