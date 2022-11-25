@@ -628,6 +628,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                         const productImportItem = ProductImportItem.safeParse(item)
                         if (productImportItem.success === false) {
                             job.failed += 1
+                            job.failReason = "Import item format is not valid!"
                         } else {
                             const productAttributes: ProductAttribute[] = []
                             for (const key of Object.keys(item)) {
@@ -680,6 +681,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                             })
                             if (productModelRequestData.success === false) {
                                 job.failed += 1
+                                job.failReason = "Product model is not valid!"
                             } else {
                                 productImportProcessData.push(productModelRequestData.data)
                             }
@@ -695,6 +697,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                         const productModelImportItem = ProductModelImportItem.safeParse(item)
                         if (productModelImportItem.success === false) {
                             job.failed += 1
+                            job.failReason = "Import item format is not valid!"
                         } else {
                             const productModelAttributes: ProductAttribute[] = []
                             for (const key of Object.keys(item)) {

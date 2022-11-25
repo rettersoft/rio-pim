@@ -9,8 +9,8 @@ export const ProductImportItem = Z.object({
     sku: Z.string().max(255).min(1).regex(new RegExp("^([A-Za-z0-9_])*$", "g")),
     family: Code,
     enabled: Z.boolean(),
-    groups: Z.string(),
-    categories: Z.string()
+    groups: Z.string().optional(),
+    categories: Z.string().optional()
 })
 
 export const ProductModelImportItem = Z.object({
