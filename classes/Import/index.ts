@@ -35,6 +35,7 @@ import {
     ImportJobs,
     ImportProfile,
     JobStatus,
+    Product,
     ProductAttribute,
     ProductImportCSVSettings,
     ProductImportXLSXSettings,
@@ -624,15 +625,64 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
             switch (jobSettings.job) {
                 case ImportJobs.Enum.product_import:
                     for (const item of importData) {
-                        const itemModel = ProductImportItem.safeParse(item)
-                        if (itemModel.success === false) {
+                        const productImportItem = ProductImportItem.safeParse(item)
+                        if (productImportItem.success === false) {
                             job.failed += 1
                         } else {
-                            productImportProcessData.push({
-                                item,
-                                attributes: getProductsSettingsResult.productSettings.attributes,
-                                job
+                            const productAttributes: ProductAttribute[] = []
+                            for (const key of Object.keys(item)) {
+                                if (key.startsWith("attribute-")) {
+                                    const splits = key.split("-")
+                                    const attributeCode = splits[1]
+                                    if (splits.length === 0 || !attributeCode) {
+                                        job.failed += 1
+                                    } else {
+                                        const attributeSettings: BaseAttribute = getProductsSettingsResult.productSettings.attributes.find(a => a.code === attributeCode)
+                                        if (attributeSettings) {
+                                            const productModelAttribute: ProductAttribute = {
+                                                code: attributeCode,
+                                                data: []
+                                            }
+                                            if (attributeSettings.localizable && attributeSettings.scopable) {
+                                                // Note: export `attribute-${productAttribute.code}-${globalSettings.content.channel}-${locale}`
+                                                productModelAttribute.data.push({
+                                                    locale: splits[3], scope: splits[2], value: item[key]
+                                                })
+                                            } else if (attributeSettings.localizable && !attributeSettings.scopable) {
+                                                // Note: export `attribute-${productAttribute.code}-${locale}`
+                                                productModelAttribute.data.push({
+                                                    locale: splits[2], value: item[key]
+                                                })
+                                            } else if (!attributeSettings.localizable && attributeSettings.scopable) {
+                                                // Note: export `attribute-${productAttribute.code}-${globalSettings.content.channel}`
+                                                productModelAttribute.data.push({
+                                                    scope: splits[2], value: item[key]
+                                                })
+                                            } else {
+                                                // Note: export `attribute-${productAttribute.code}`
+                                                productModelAttribute.data.push({
+                                                    value: item[key]
+                                                })
+                                            }
+                                            productAttributes.push(productModelAttribute)
+                                        }
+                                    }
+                                }
+                            }
+
+                            const productModelRequestData = Product.safeParse({
+                                sku: productImportItem.data.sku,
+                                family: productImportItem.data.family,
+                                enabled: productImportItem.data.enabled,
+                                groups: productImportItem.data.groups ? productImportItem.data.groups.split(",") : undefined,
+                                categories: productImportItem.data.categories ? productImportItem.data.categories.split(",") : [],
+                                attributes: productAttributes.length ? productAttributes : undefined,
                             })
+                            if (productModelRequestData.success === false) {
+                                job.failed += 1
+                            } else {
+                                productImportProcessData.push(productModelRequestData.data)
+                            }
                         }
                     }
                     if (job.total === job.failed) {
@@ -642,67 +692,62 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                     break
                 case ImportJobs.Enum.product_model_import:
                     for (const item of importData) {
-                        const itemModel = ProductModelImportItem.safeParse(item)
-                        if (itemModel.success === false) {
+                        const productModelImportItem = ProductModelImportItem.safeParse(item)
+                        if (productModelImportItem.success === false) {
                             job.failed += 1
                         } else {
-                            const productModelImportItem = ProductModelImportItem.safeParse(item)
-                            if (productModelImportItem.success === false) {
-                                job.failed += 1
-                            } else {
-                                const productModelAttributes: ProductAttribute[] = []
-                                for (const key of Object.keys(item)) {
-                                    if (key.startsWith("attribute-")) {
-                                        const splits = key.split("-")
-                                        const attributeCode = splits[1]
-                                        if (splits.length === 0 || !attributeCode) {
-                                            job.failed += 1
-                                        } else {
-                                            const attributeSettings: BaseAttribute = getProductsSettingsResult.productSettings.attributes.find(a => a.code === attributeCode)
-                                            if (attributeSettings) {
-                                                const productModelAttribute: ProductAttribute = {
-                                                    code: attributeCode,
-                                                    data: []
-                                                }
-                                                if (attributeSettings.localizable && attributeSettings.scopable) {
-                                                    // Note: export `attribute-${productAttribute.code}-${globalSettings.content.channel}-${locale}`
-                                                    productModelAttribute.data.push({
-                                                        locale: splits[3], scope: splits[2], value: item[key]
-                                                    })
-                                                } else if (attributeSettings.localizable && !attributeSettings.scopable) {
-                                                    // Note: export `attribute-${productAttribute.code}-${locale}`
-                                                    productModelAttribute.data.push({
-                                                        locale: splits[2], value: item[key]
-                                                    })
-                                                } else if (!attributeSettings.localizable && attributeSettings.scopable) {
-                                                    // Note: export `attribute-${productAttribute.code}-${globalSettings.content.channel}`
-                                                    productModelAttribute.data.push({
-                                                        scope: splits[2], value: item[key]
-                                                    })
-                                                } else {
-                                                    // Note: export `attribute-${productAttribute.code}`
-                                                    productModelAttribute.data.push({
-                                                        value: item[key]
-                                                    })
-                                                }
-                                                productModelAttributes.push(productModelAttribute)
+                            const productModelAttributes: ProductAttribute[] = []
+                            for (const key of Object.keys(item)) {
+                                if (key.startsWith("attribute-")) {
+                                    const splits = key.split("-")
+                                    const attributeCode = splits[1]
+                                    if (splits.length === 0 || !attributeCode) {
+                                        job.failed += 1
+                                    } else {
+                                        const attributeSettings: BaseAttribute = getProductsSettingsResult.productSettings.attributes.find(a => a.code === attributeCode)
+                                        if (attributeSettings) {
+                                            const productModelAttribute: ProductAttribute = {
+                                                code: attributeCode,
+                                                data: []
                                             }
+                                            if (attributeSettings.localizable && attributeSettings.scopable) {
+                                                // Note: export `attribute-${productAttribute.code}-${globalSettings.content.channel}-${locale}`
+                                                productModelAttribute.data.push({
+                                                    locale: splits[3], scope: splits[2], value: item[key]
+                                                })
+                                            } else if (attributeSettings.localizable && !attributeSettings.scopable) {
+                                                // Note: export `attribute-${productAttribute.code}-${locale}`
+                                                productModelAttribute.data.push({
+                                                    locale: splits[2], value: item[key]
+                                                })
+                                            } else if (!attributeSettings.localizable && attributeSettings.scopable) {
+                                                // Note: export `attribute-${productAttribute.code}-${globalSettings.content.channel}`
+                                                productModelAttribute.data.push({
+                                                    scope: splits[2], value: item[key]
+                                                })
+                                            } else {
+                                                // Note: export `attribute-${productAttribute.code}`
+                                                productModelAttribute.data.push({
+                                                    value: item[key]
+                                                })
+                                            }
+                                            productModelAttributes.push(productModelAttribute)
                                         }
                                     }
                                 }
+                            }
 
-                                const productModelRequestData = ProductModel.safeParse({
-                                    code: productModelImportItem.data.code,
-                                    family: productModelImportItem.data.family,
-                                    variant: productModelImportItem.data.variant,
-                                    categories: productModelImportItem.data.categories ? productModelImportItem.data.categories.split(",") : [],
-                                    attributes: productModelAttributes.length ? productModelAttributes : undefined,
-                                })
-                                if (productModelRequestData.success === false) {
-                                    job.failed += 1
-                                } else {
-                                    productModelImportProcessData.push(productModelRequestData.data)
-                                }
+                            const productModelRequestData = ProductModel.safeParse({
+                                code: productModelImportItem.data.code,
+                                family: productModelImportItem.data.family,
+                                variant: productModelImportItem.data.variant,
+                                categories: productModelImportItem.data.categories ? productModelImportItem.data.categories.split(",") : [],
+                                attributes: productModelAttributes.length ? productModelAttributes : undefined,
+                            })
+                            if (productModelRequestData.success === false) {
+                                job.failed += 1
+                            } else {
+                                productModelImportProcessData.push(productModelRequestData.data)
                             }
                         }
                     }
@@ -1377,6 +1422,20 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
 
         if ([ImportJobs.Enum.product_import, ImportJobs.Enum.product_model_import].includes(jobSettings.job)) {
             switch (jobSettings.job) {
+                case ImportJobs.Enum.product_import:
+                    for (const chunkElement of _.chunk(productImportProcessData, 10)) {
+                        const pipeline = rdk.pipeline()
+                        chunkElement.map(item => {
+                            pipeline.methodCall({
+                                classId: "Import",
+                                instanceId: data.context.instanceId,
+                                methodName: "importProcess",
+                                body: {item}
+                            })
+                        })
+                        await pipeline.send()
+                    }
+                    break
                 case ImportJobs.Enum.product_model_import:
                     for (const chunkElement of _.chunk(productModelImportProcessData, 10)) {
                         const pipeline = rdk.pipeline()
@@ -1447,39 +1506,41 @@ export async function importProcess(data: ImportData): Promise<ImportData> {
     }
 
     const item = data.request.body.item
+    const reqData = {
+        accountId: data.context.instanceId,
+        dataType: undefined,
+        data: item
+    }
     switch (job.code) {
+        case ImportJobs.Enum.product_import:
+            reqData.dataType = DataType.Enum.PRODUCT
+            break
         case ImportJobs.Enum.product_model_import:
-            try {
-                const res = await Classes.Product.getInstance({
-                    body: {
-                        accountId: data.context.instanceId,
-                        dataType: DataType.Enum.PRODUCT_MODEL,
-                        data: item
-                    }
-                })
-                if (!res.isNewInstance) {
-                    const result = await res.updateProduct({
-                        accountId: data.context.instanceId,
-                        dataType: DataType.Enum.PRODUCT_MODEL,
-                        data: item
-                    })
-                    if (result.statusCode >= 400) {
-                        job.failed += 1
-                        job.failReason = result.body?.message || "unhandled error"
-                    } else {
-                        job.processed += 1
-                    }
-                } else {
-                    job.processed += 1
-                }
-            } catch (e) {
-                job.failed += 1
-                job.failReason = e.toString()
-            }
+            reqData.dataType = DataType.Enum.PRODUCT_MODEL
             break
         default:
             job.failed += 1
             break
+    }
+
+    try {
+        const res = await Classes.Product.getInstance({
+            body: reqData
+        })
+        if (!res.isNewInstance) {
+            const result = await res.updateProduct(reqData)
+            if (result.statusCode >= 400) {
+                job.failed += 1
+                job.failReason = result.body?.message || "unhandled error"
+            } else {
+                job.processed += 1
+            }
+        } else {
+            job.processed += 1
+        }
+    } catch (e) {
+        job.failed += 1
+        job.failReason = e.toString()
     }
 
     if (job.failed + job.processed === job.total) {
