@@ -39,6 +39,7 @@ import {
     RESERVED_ID_ATTRIBUTE_CODE
 } from "PIMModelsPackage";
 import _ from "lodash";
+import {PIMRepository} from "PIMRepositoryPackage";
 
 
 const rdk = new RDK();
@@ -510,10 +511,10 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
     }
 
     try {
-        const getProductsSettingsResult = await new Classes.ProductSettings(data.context.instanceId).getProductSettings()
-        if (getProductsSettingsResult.statusCode >= 400) {
-            throw new Error("Product settings error!")
-        }
+        const [productSettings, catalogSettings] = await Promise.all([
+            PIMRepository.getProductsSettings(data.context.instanceId),
+            PIMRepository.getCatalogSettings(data.context.instanceId)
+        ])
 
         let fileData;
         let dat = [];
@@ -535,13 +536,13 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
                     }
                     const productAttributeValues = {};
 
-                    const family = getProductsSettingsResult.body.productSettings.families.find(f => f.code === product.data.family)
+                    const family = productSettings.families.find(f => f.code === product.data.family)
 
                     const parentAttributes = await getProductParentAttributesForceCache();
                     product.data.attributes = [...(product.data.attributes || []), ...parentAttributes].filter(pa => (family?.attributes || []).find(fa => fa.attribute === pa.code));
 
                     (product.data.attributes || []).forEach((productAttribute) => {
-                        const attributeSettings: BaseAttribute = getProductsSettingsResult.body.productSettings.attributes.find(a => a.code === productAttribute.code)
+                        const attributeSettings: BaseAttribute = productSettings.attributes.find(a => a.code === productAttribute.code)
                         if (attributeSettings) {
                             const globalSettings: GlobalProductModelExportSettings = jobSettings.globalSettings
 
@@ -585,7 +586,7 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
                     const productModelAttributeValues = {};
 
                     (productModel.data.attributes || []).forEach(attribute => {
-                        const attributeSettings: BaseAttribute = getProductsSettingsResult.body.productSettings.attributes.find(a => a.code === attribute.code)
+                        const attributeSettings: BaseAttribute = productSettings.attributes.find(a => a.code === attribute.code)
                         if (attributeSettings) {
                             const globalSettings: GlobalProductModelExportSettings = jobSettings.globalSettings
 
@@ -620,11 +621,7 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
                 job.total = fileData.length
                 break
             case ExportJobs.Enum.category_export:
-                const getCatalogSettingsResponse = await new Classes.CatalogSettings(data.context.instanceId).getCatalogSettings()
-                if (getCatalogSettingsResponse.statusCode >= 400) {
-                    throw new Error("Catalog settings not found!")
-                }
-                const categories: Category[] = getCatalogSettingsResponse.body.categories
+                const categories: Category[] = catalogSettings.categories
                 const getCategories = (categories: Category[], data = [], parentCode?: string) => {
                     if (categories.length >= 1) {
                         for (const category of categories) {
@@ -652,7 +649,7 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
                 break
             case ExportJobs.Enum.attribute_export:
                 dat = [];
-                getProductsSettingsResult.body.productSettings.attributes.forEach(a => {
+                productSettings.attributes.forEach(a => {
                     let obj = _.omit(a, "label")
                     if (a.label && a.label.length) {
                         a.label.forEach(al => {
@@ -668,7 +665,7 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
                 break
             case ExportJobs.Enum.attribute_option_export:
                 dat = [];
-                (getProductsSettingsResult.body.productSettings.attributeOptions as AttributeOption[]).forEach(fd => {
+                (productSettings.attributeOptions as AttributeOption[]).forEach(fd => {
                     fd.options.forEach(fdo => {
                         let obj = {
                             attribute: fd.code,
@@ -687,7 +684,7 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
                 break
             case ExportJobs.Enum.attribute_group_export:
                 dat = [];
-                getProductsSettingsResult.body.productSettings.attributeGroups.filter(ag => ag.code !== RESERVED_ATTRIBUTE_GROUP_CODE).forEach(a => {
+                productSettings.attributeGroups.filter(ag => ag.code !== RESERVED_ATTRIBUTE_GROUP_CODE).forEach(a => {
                     let obj = _.omit(a, "label")
                     if (a.label && a.label.length) {
                         a.label.forEach(al => {
@@ -702,7 +699,7 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
             case ExportJobs.Enum.family_export:
                 dat = [];
                 const requirements = {}
-                getProductsSettingsResult.body.productSettings.families.forEach(family => {
+                productSettings.families.forEach(family => {
                     let obj = {
                         code: family.code,
                         attributes: family.attributes.map(attr => attr.attribute).filter(a => a !== RESERVED_ID_ATTRIBUTE_CODE).join(","),
@@ -729,7 +726,7 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
                 break
             case ExportJobs.Enum.family_variant_export:
                 dat = [];
-                getProductsSettingsResult.body.productSettings.families.forEach(family => {
+                productSettings.families.forEach(family => {
                     family.variants.forEach(variant => {
                         let obj = {
                             code: variant.code,
@@ -750,7 +747,7 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
                 break
             case ExportJobs.Enum.group_type_export:
                 dat = [];
-                getProductsSettingsResult.body.productSettings.groupTypes.forEach(a => {
+                productSettings.groupTypes.forEach(a => {
                     let obj = _.omit(a, "label")
                     if (a.label && a.label.length) {
                         a.label.forEach(al => {
@@ -764,7 +761,7 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
                 break
             case ExportJobs.Enum.group_export:
                 dat = [];
-                getProductsSettingsResult.body.productSettings.groups.forEach(a => {
+                productSettings.groups.forEach(a => {
                     let obj = _.omit(a, "label")
                     if (a.label && a.label.length) {
                         a.label.forEach(al => {

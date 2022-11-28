@@ -167,8 +167,8 @@ export async function init(data: ProductData): Promise<ProductData> {
     const dataType = ModelsRepository.getDataType(data.request.body.dataType)
 
     const [productSettings, catalogSettings] = await Promise.all([
-        ClassesRepository.getProductsSettings(accountId),
-        ClassesRepository.getCatalogSettings(accountId)
+        PIMRepository.getProductsSettings(accountId),
+        PIMRepository.getCatalogSettings(accountId)
     ])
 
     let source: Product | ProductModel;
@@ -216,6 +216,8 @@ export async function init(data: ProductData): Promise<ProductData> {
         default:
             throw new Error("Invalid data type!")
     }
+
+    PIMRepository.eliminateProductData(source, productSettings, catalogSettings)
 
     await finalizeProductOperation(data, source.attributes, productSettings)
 
@@ -287,31 +289,13 @@ export async function getState(data: ProductData): Promise<Response> {
 export async function getProduct(data: ProductData): Promise<ProductData<any, GetProductOutputData>> {
     const accountId = getProductClassAccountId(data)
 
-    const getProductsSettingsResult = await new Classes.ProductSettings(accountId).getProductSettings()
-    if (getProductsSettingsResult.statusCode >= 400) {
-        data.response = {
-            statusCode: 400,
-            body: {
-                message: "Product settings error!"
-            }
-        }
-        return data
-    }
-    const family = getProductsSettingsResult.body.productSettings.families.find(f => f.code === data.state.private.dataSource.family)
-
-    if (!family) {
-        data.response = {
-            statusCode: 400,
-            body: {
-                message: "Product family not found!"
-            }
-        }
-        return data
-    }
+    const [productSettings, catalogSettings] = await Promise.all([
+        PIMRepository.getProductsSettings(accountId),
+        PIMRepository.getCatalogSettings(accountId)
+    ])
 
     const sourceData = data.state.private.dataSource
-    const parentAttributes = await getProductParentAttributes(data.state.private.dataType, data.state.private.parent, getProductClassAccountId(data))
-    sourceData.attributes = [...(sourceData.attributes || []), ...parentAttributes].filter(pa => family.attributes.find(fa => fa.attribute === pa.code))
+    PIMRepository.eliminateProductData(sourceData, productSettings, catalogSettings)
 
     data.response = {
         statusCode: 200,
@@ -343,8 +327,8 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
 
 
     const [productSettings, catalogSettings] = await Promise.all([
-        ClassesRepository.getProductsSettings(accountId),
-        ClassesRepository.getCatalogSettings(accountId)
+        PIMRepository.getProductsSettings(accountId),
+        PIMRepository.getCatalogSettings(accountId)
     ])
 
     let source: Product | ProductModel;
@@ -381,6 +365,8 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
         default:
             throw new Error("Invalid data type!")
     }
+
+    PIMRepository.eliminateProductData(source, productSettings, catalogSettings)
 
     await finalizeProductOperation(data, source.attributes, productSettings)
 

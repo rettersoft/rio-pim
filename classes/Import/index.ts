@@ -607,15 +607,13 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
 
         job.total = importData.length
 
-        let getProductsSettingsResult;
+        let [productSettings, catalogSettings] = [undefined, undefined];
 
         if ([ImportJobs.Enum.product_import, ImportJobs.Enum.product_model_import].includes(jobSettings.job)) {
-            const res = await new Classes.ProductSettings(data.context.instanceId).getProductSettings()
-            if (res.statusCode >= 400) {
-                throw new Error("Product settings error!")
-            } else {
-                getProductsSettingsResult = res.body
-            }
+            [productSettings, catalogSettings] = await Promise.all([
+                PIMRepository.getProductsSettings(data.context.instanceId),
+                PIMRepository.getCatalogSettings(data.context.instanceId)
+            ])
         }
 
         const productImportProcessData = []
@@ -638,7 +636,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                     if (splits.length === 0 || !attributeCode) {
                                         job.failed += 1
                                     } else {
-                                        const attributeSettings: BaseAttribute = getProductsSettingsResult.productSettings.attributes.find(a => a.code === attributeCode)
+                                        const attributeSettings: BaseAttribute = productSettings.attributes.find(a => a.code === attributeCode)
                                         if (attributeSettings) {
                                             const productModelAttribute: ProductAttribute = {
                                                 code: attributeCode,
@@ -671,7 +669,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                 }
                             }
 
-                            const productModelRequestData = Product.safeParse({
+                            const productRequestData = Product.safeParse({
                                 sku: productImportItem.data.sku,
                                 family: productImportItem.data.family,
                                 enabled: productImportItem.data.enabled,
@@ -679,11 +677,12 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                 categories: productImportItem.data.categories ? productImportItem.data.categories.split(",") : [],
                                 attributes: productAttributes.length ? productAttributes : undefined,
                             })
-                            if (productModelRequestData.success === false) {
+                            if (productRequestData.success === false) {
                                 job.failed += 1
                                 job.failReason = "Product model is not valid!"
                             } else {
-                                productImportProcessData.push(productModelRequestData.data)
+                                PIMRepository.eliminateProductData(productRequestData.data, productSettings, catalogSettings)
+                                productImportProcessData.push(productRequestData.data)
                             }
                         }
                     }
@@ -707,7 +706,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                     if (splits.length === 0 || !attributeCode) {
                                         job.failed += 1
                                     } else {
-                                        const attributeSettings: BaseAttribute = getProductsSettingsResult.productSettings.attributes.find(a => a.code === attributeCode)
+                                        const attributeSettings: BaseAttribute = productSettings.attributes.find(a => a.code === attributeCode)
                                         if (attributeSettings) {
                                             const productModelAttribute: ProductAttribute = {
                                                 code: attributeCode,
@@ -750,6 +749,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                             if (productModelRequestData.success === false) {
                                 job.failed += 1
                             } else {
+                                PIMRepository.eliminateProductData(productModelRequestData.data, productSettings, catalogSettings)
                                 productModelImportProcessData.push(productModelRequestData.data)
                             }
                         }

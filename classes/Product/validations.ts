@@ -1,6 +1,6 @@
 import RDK from "@retter/rdk"
 import {getProductAttributeKeyMap, getProductAxeKeyMap} from "./keysets";
-import {ClassesRepository, GetCatalogSettingsResult, GetProductsSettingsResult} from "./classes-repository";
+import {ClassesRepository} from "./classes-repository";
 import {ModelsRepository} from "./models-repository";
 import {
     AttributeOption,
@@ -23,7 +23,7 @@ import {
     TEXT,
     TEXTAREA
 } from "PIMModelsPackage";
-import {PIMRepository} from "PIMRepositoryPackage";
+import {GetCatalogSettingsResult, GetProductsSettingsResult, PIMRepository} from "PIMRepositoryPackage";
 
 const rdk = new RDK()
 

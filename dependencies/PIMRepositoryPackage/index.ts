@@ -1,5 +1,34 @@
-import {Category, CustomValidations, IMAGE_CACHE_TTL_IN_SECONDS} from "PIMModelsPackage";
+import {
+    AttributeGroup,
+    AttributeOption,
+    BaseAttribute,
+    Category,
+    Channel,
+    CustomValidations,
+    Family,
+    Group,
+    GroupType,
+    IMAGE_CACHE_TTL_IN_SECONDS,
+    Product,
+    ProductModel
+} from "PIMModelsPackage";
 import {Classes, GetImageByRDKModel} from "./rio";
+
+export interface GetCatalogSettingsResult {
+    categories: Category[]
+    enabledCurrencies: string[]
+    enabledLocales: string[]
+    channels: Channel[]
+}
+
+export interface GetProductsSettingsResult {
+    attributes: BaseAttribute[],
+    attributeOptions: AttributeOption[],
+    families: Family[],
+    attributeGroups: AttributeGroup[],
+    groupTypes: GroupType[],
+    groups: Group[],
+}
 
 const IMAGE_NAME_SEPARATOR = "-"
 
@@ -56,7 +85,7 @@ export class PIMRepository {
     }
 
 
-    static getCategoriesInOneLevel(categories: Category[], data: {code: string, parent?: string}[] = [], parentCode?: string) {
+    static getCategoriesInOneLevel(categories: Category[], data: { code: string, parent?: string }[] = [], parentCode?: string) {
         if (categories.length >= 1) {
             for (const category of categories) {
                 const code = [parentCode, category.code].filter(Boolean).join("#")
@@ -72,6 +101,35 @@ export class PIMRepository {
         return data
     }
 
+    static eliminateProductData(data: Product | ProductModel, productSettings: GetProductsSettingsResult, catalogSettings: GetCatalogSettingsResult) {
+        const family = productSettings.families.find(family => family.code === data.family)
+        if (data.attributes && family) {
+            data.attributes = data.attributes.filter(a => (family.attributes || []).find(fa => fa.attribute === a.code))
+        }
+        if (data.categories) {
+            const categories = this.getCategoriesInOneLevel(catalogSettings.categories)
+            data.categories = data.categories.filter(cat => categories.find(category => category.code === cat))
+        }
+        if ((data as any).groups) {
+            (data as Product).groups = (data as Product).groups.filter(group => (productSettings.groups || []).find(g => g.code === group))
+        }
+    }
+
+    static async getProductsSettings(accountId: string): Promise<GetProductsSettingsResult> {
+        const getProductsSettingsResult = await new Classes.ProductSettings(accountId).getProductSettings()
+        if (!getProductsSettingsResult || getProductsSettingsResult.statusCode >= 400 || !getProductsSettingsResult.body) {
+            throw new Error("Product settings error!")
+        }
+        return getProductsSettingsResult.body.productSettings
+    }
+
+    static async getCatalogSettings(accountId: string): Promise<GetCatalogSettingsResult> {
+        const getProductsSettingsResult = await new Classes.CatalogSettings(accountId).getCatalogSettings()
+        if (!getProductsSettingsResult || getProductsSettingsResult.statusCode >= 400 || !getProductsSettingsResult.body) {
+            throw new Error("Catalog settings error!")
+        }
+        return getProductsSettingsResult.body
+    }
 
 
 }
