@@ -49,6 +49,15 @@ export async function addCategory(data: CatalogSettingsData): Promise<CatalogSet
         eventType: WebhookEventType.Category
     })
 
+    data.response = {
+        statusCode: 200,
+        body: {
+            meta: {
+                updateToken: data.state.public.updateToken
+            }
+        }
+    }
+
     return data
 }
 
@@ -91,6 +100,15 @@ export async function removeCategory(data: CatalogSettingsData): Promise<Catalog
         eventOperation: WebhookEventOperation.Delete,
         eventType: WebhookEventType.Category
     })
+
+    data.response = {
+        statusCode: 200,
+        body: {
+            meta: {
+                updateToken: data.state.public.updateToken
+            }
+        }
+    }
 
     return data
 }
@@ -169,6 +187,15 @@ export async function updateCategory(data: CatalogSettingsData): Promise<Catalog
         eventType: WebhookEventType.Category
     })
 
+    data.response = {
+        statusCode: 200,
+        body: {
+            meta: {
+                updateToken: data.state.public.updateToken
+            }
+        }
+    }
+
     return data
 }
 
@@ -197,6 +224,14 @@ export async function upsertCategories(data: CatalogSettingsData): Promise<Catal
     }
 
     data.state.public.updateToken = randomString()
+    data.response = {
+        statusCode: 200,
+        body: {
+            meta: {
+                updateToken: data.state.public.updateToken
+            }
+        }
+    }
     return data
 }
 
