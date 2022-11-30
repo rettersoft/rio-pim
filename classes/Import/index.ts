@@ -642,25 +642,26 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                                 code: attributeCode,
                                                 data: []
                                             }
+                                            const val = attributeSettings.type === AttributeTypes.Enum.MULTISELECT && typeof item[key] === "string" ? item[key].split(",") : item[key]
                                             if (attributeSettings.localizable && attributeSettings.scopable) {
                                                 // Note: export `attribute-${productAttribute.code}-${globalSettings.content.channel}-${locale}`
                                                 productModelAttribute.data.push({
-                                                    locale: splits[3], scope: splits[2], value: item[key]
+                                                    locale: splits[3], scope: splits[2], value: val
                                                 })
                                             } else if (attributeSettings.localizable && !attributeSettings.scopable) {
                                                 // Note: export `attribute-${productAttribute.code}-${locale}`
                                                 productModelAttribute.data.push({
-                                                    locale: splits[2], value: item[key]
+                                                    locale: splits[2], value: val
                                                 })
                                             } else if (!attributeSettings.localizable && attributeSettings.scopable) {
                                                 // Note: export `attribute-${productAttribute.code}-${globalSettings.content.channel}`
                                                 productModelAttribute.data.push({
-                                                    scope: splits[2], value: item[key]
+                                                    scope: splits[2], value: val
                                                 })
                                             } else {
                                                 // Note: export `attribute-${productAttribute.code}`
                                                 productModelAttribute.data.push({
-                                                    value: item[key]
+                                                    value: val
                                                 })
                                             }
                                             productAttributes.push(productModelAttribute)
@@ -712,25 +713,26 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                                 code: attributeCode,
                                                 data: []
                                             }
+                                            const val = attributeSettings.type === AttributeTypes.Enum.MULTISELECT && typeof item[key] === "string" ? item[key].split(",") : item[key]
                                             if (attributeSettings.localizable && attributeSettings.scopable) {
                                                 // Note: export `attribute-${productAttribute.code}-${globalSettings.content.channel}-${locale}`
                                                 productModelAttribute.data.push({
-                                                    locale: splits[3], scope: splits[2], value: item[key]
+                                                    locale: splits[3], scope: splits[2], value: val
                                                 })
                                             } else if (attributeSettings.localizable && !attributeSettings.scopable) {
                                                 // Note: export `attribute-${productAttribute.code}-${locale}`
                                                 productModelAttribute.data.push({
-                                                    locale: splits[2], value: item[key]
+                                                    locale: splits[2], value: val
                                                 })
                                             } else if (!attributeSettings.localizable && attributeSettings.scopable) {
                                                 // Note: export `attribute-${productAttribute.code}-${globalSettings.content.channel}`
                                                 productModelAttribute.data.push({
-                                                    scope: splits[2], value: item[key]
+                                                    scope: splits[2], value: val
                                                 })
                                             } else {
                                                 // Note: export `attribute-${productAttribute.code}`
                                                 productModelAttribute.data.push({
-                                                    value: item[key]
+                                                    value: val
                                                 })
                                             }
                                             productModelAttributes.push(productModelAttribute)

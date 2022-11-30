@@ -19,6 +19,7 @@ import {
 } from "./helpers";
 import {
     AttributeOption,
+    AttributeTypes,
     BaseAttribute,
     Category,
     Code,
@@ -548,20 +549,24 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
 
                             if (attributeSettings.localizable && attributeSettings.scopable) {
                                 globalSettings.content.locales.forEach(locale => {
+                                    const val = productAttribute.data.find(d => d.locale === locale && d.scope === globalSettings.content.channel)?.value
                                     productAttributeValues[`attribute-${productAttribute.code}-${globalSettings.content.channel}-${locale}`] =
-                                        productAttribute.data.find(d => d.locale === locale && d.scope === globalSettings.content.channel)?.value
+                                        attributeSettings.type === AttributeTypes.Enum.MULTISELECT && Array.isArray(val) ? val.join(",") : val
                                 })
                             } else if (attributeSettings.localizable && !attributeSettings.scopable) {
                                 globalSettings.content.locales.forEach(locale => {
+                                    const val = productAttribute.data.find(d => d.locale === locale)?.value
                                     productAttributeValues[`attribute-${productAttribute.code}-${locale}`] =
-                                        productAttribute.data.find(d => d.locale === locale)?.value
+                                        attributeSettings.type === AttributeTypes.Enum.MULTISELECT && Array.isArray(val) ? val.join(",") : val
                                 })
                             } else if (!attributeSettings.localizable && attributeSettings.scopable) {
+                                const val = productAttribute.data.find(d => d.scope === globalSettings.content.channel)?.value
                                 productAttributeValues[`attribute-${productAttribute.code}-${globalSettings.content.channel}`] =
-                                    productAttribute.data.find(d => d.scope === globalSettings.content.channel)?.value
+                                    attributeSettings.type === AttributeTypes.Enum.MULTISELECT && Array.isArray(val) ? val.join(",") : val
                             } else {
+                                const val = productAttribute.data.find(d => d.value !== undefined)?.value
                                 productAttributeValues[`attribute-${productAttribute.code}`] =
-                                    productAttribute.data.find(d => d.value !== undefined)?.value
+                                    attributeSettings.type === AttributeTypes.Enum.MULTISELECT && Array.isArray(val) ? val.join(",") : val
                             }
                         }
                     })
@@ -592,20 +597,24 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
 
                             if (attributeSettings.localizable && attributeSettings.scopable) {
                                 globalSettings.content.locales.forEach(locale => {
+                                    const val = attribute.data.find(d => d.locale === locale && d.scope === globalSettings.content.channel)?.value
                                     productModelAttributeValues[`attribute-${attribute.code}-${globalSettings.content.channel}-${locale}`] =
-                                        attribute.data.find(d => d.locale === locale && d.scope === globalSettings.content.channel)?.value
+                                        attributeSettings.type === AttributeTypes.Enum.MULTISELECT && Array.isArray(val) ? val.join(",") : val
                                 })
                             } else if (attributeSettings.localizable && !attributeSettings.scopable) {
                                 globalSettings.content.locales.forEach(locale => {
+                                    const val = attribute.data.find(d => d.locale === locale)?.value
                                     productModelAttributeValues[`attribute-${attribute.code}-${locale}`] =
-                                        attribute.data.find(d => d.locale === locale)?.value
+                                        attributeSettings.type === AttributeTypes.Enum.MULTISELECT && Array.isArray(val) ? val.join(",") : val
                                 })
                             } else if (!attributeSettings.localizable && attributeSettings.scopable) {
+                                const val = attribute.data.find(d => d.scope === globalSettings.content.channel)?.value
                                 productModelAttributeValues[`attribute-${attribute.code}-${globalSettings.content.channel}`] =
-                                    attribute.data.find(d => d.scope === globalSettings.content.channel)?.value
+                                    attributeSettings.type === AttributeTypes.Enum.MULTISELECT && Array.isArray(val) ? val.join(",") : val
                             } else {
+                                const val = attribute.data.find(d => d.value !== undefined)?.value
                                 productModelAttributeValues[`attribute-${attribute.code}`] =
-                                    attribute.data.find(d => d.value !== undefined)?.value
+                                    attributeSettings.type === AttributeTypes.Enum.MULTISELECT && Array.isArray(val) ? val.join(",") : val
                             }
                         }
                     })

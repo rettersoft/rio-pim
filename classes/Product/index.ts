@@ -400,7 +400,7 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
 
     const elasticEventData: SendEventInput = {
         instanceId: data.context.instanceId,
-        method: WebhookEventOperation.Create,
+        method: WebhookEventOperation.Update,
         type: data.state.private.dataType === DataType.Enum.PRODUCT ? WebhookEventType.Product : WebhookEventType.ProductModel,
         source: {
             axesValues: data.state.private.axesValues,
