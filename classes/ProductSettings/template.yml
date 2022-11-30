@@ -129,9 +129,13 @@ methods:
     type: WRITE
     handler: groups.deleteGroup
 
-  - method: addProductToGroup
+  - method: addProductsToGroup
     type: WRITE
-    handler: groups.addProductToGroup
+    handler: groups.addProductsToGroup
+
+  - method: removeProductsFromGroup
+    type: WRITE
+    handler: groups.removeProductsFromGroup
 
 
   - method: getProductSettings

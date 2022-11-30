@@ -36,3 +36,7 @@ methods:
   - method: deleteInstance
     type: WRITE
     handler: index.deleteInstance
+
+  - method: updateGroups
+    type: WRITE
+    handler: index.updateGroups

@@ -57,7 +57,8 @@ export async function authorizer(data: ProductSettingsData): Promise<Response> {
         "createGroup",
         "updateGroup",
         "deleteGroup",
-        "addProductToGroup",
+        "addProductsToGroup",
+        "removeProductsFromGroup",
         "getProductSettings"
     ].includes(data.context.methodName)) {
         return {statusCode: 200}

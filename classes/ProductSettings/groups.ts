@@ -1,7 +1,10 @@
 import {ProductSettingsData} from "./index";
 import {checkUpdateToken, randomString, sendEvent} from "./helpers";
 import {WebhookEventOperation, WebhookEventType} from "./rio";
-import {Code, Group, Groups, GroupType, GroupTypes} from "PIMModelsPackage";
+import {Code, Codes, Group, Groups, GroupType, GroupTypes} from "PIMModelsPackage";
+import RDK from "@retter/rdk";
+
+const rdk = new RDK();
 
 
 export async function createGroupType(data: ProductSettingsData): Promise<ProductSettingsData> {
@@ -295,10 +298,132 @@ export async function deleteGroup(data: ProductSettingsData): Promise<ProductSet
     return data
 }
 
-export async function addProductToGroup(data: ProductSettingsData): Promise<ProductSettingsData> {
-    checkUpdateToken(data)
+export async function addProductsToGroup(data: ProductSettingsData): Promise<ProductSettingsData> {
 
-    //TODO when product ready
+    const group = Code.safeParse(data.request.body.group)
+    if (group.success === false) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Model validation error!",
+                error: group.error
+            }
+        }
+        return data
+    }
+
+    if (!data.state.public.groups.find(g => g.code === group.data)) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Group not found!"
+            }
+        }
+        return data
+    }
+
+    const skuList = Codes.safeParse(data.request.body.skuList)
+    if (skuList.success === false) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Model validation error!",
+                error: skuList.error
+            }
+        }
+        return data
+    }
+
+    if (skuList.data.length > 10) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Maximum allowed list size exceeded. Maximum limit is 10."
+            }
+        }
+        return data
+    }
+
+    const pipeline = rdk.pipeline()
+
+    skuList.data.forEach(sku => {
+        pipeline.methodCall({
+            classId: "Product",
+            instanceId: [data.context.instanceId, sku].join("-"),
+            methodName: "updateGroups",
+            body: {
+                opType: "add",
+                groups: [group.data]
+            }
+        })
+    })
+
+    await pipeline.send()
+
+    return data
+}
+
+export async function removeProductsFromGroup(data: ProductSettingsData): Promise<ProductSettingsData> {
+
+    const group = Code.safeParse(data.request.body.group)
+    if (group.success === false) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Model validation error!",
+                error: group.error
+            }
+        }
+        return data
+    }
+
+    if (!data.state.public.groups.find(g => g.code === group.data)) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Group not found!"
+            }
+        }
+        return data
+    }
+
+    const skuList = Codes.safeParse(data.request.body.skuList)
+    if (skuList.success === false) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Model validation error!",
+                error: skuList.error
+            }
+        }
+        return data
+    }
+
+    if (skuList.data.length > 10) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Maximum allowed list size exceeded. Maximum limit is 10."
+            }
+        }
+        return data
+    }
+
+    const pipeline = rdk.pipeline()
+
+    skuList.data.forEach(sku => {
+        pipeline.methodCall({
+            classId: "Product",
+            instanceId: [data.context.instanceId, sku].join("-"),
+            methodName: "updateGroups",
+            body: {
+                opType: "remove",
+                groups: [group.data]
+            }
+        })
+    })
+
+    await pipeline.send()
 
     return data
 }

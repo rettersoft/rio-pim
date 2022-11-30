@@ -14,12 +14,12 @@ import {v4 as uuidv4} from 'uuid';
 import {getProductAttributeKeyMap} from "./keysets";
 import {ModelsRepository} from "./models-repository";
 import {checkProduct, checkProductModel, checkProductModelVariant, checkVariantAxesForInit} from "./validations";
-import {ClassesRepository} from "./classes-repository";
 import {PIMMiddlewarePackage} from "PIMMiddlewarePackage";
 import {
     AttributeTypes,
     AxesValuesList,
     Code,
+    Codes,
     DataType,
     IMAGE,
     Product,
@@ -27,6 +27,7 @@ import {
     TEMP_IMAGE_TTL_IN_SECONDS
 } from "PIMModelsPackage";
 import {PIMRepository} from "PIMRepositoryPackage";
+import _ from "lodash";
 import InternalDestination = Classes.InternalDestination;
 
 const middleware = new PIMMiddlewarePackage()
@@ -95,6 +96,11 @@ export async function authorizer(data: ProductData): Promise<Response> {
     }
 
     switch (data.context.methodName) {
+        case 'updateGroups':
+            if (data.context.identity === "ProductSettings" && data.context.userId === getProductClassAccountId(data)) {
+                return {statusCode: 200}
+            }
+            break
         case 'checkUploadedImage':
             if (isThisClassInstance || isDeveloper) {
                 return {statusCode: 200}
@@ -668,6 +674,71 @@ export async function getUploadedImage(data: ProductData): Promise<ProductData> 
             "content-type": result.contentType,
             "cache-control": result.cacheControl
         }
+    }
+
+    return data
+}
+
+export async function updateGroups(data: ProductData): Promise<ProductData> {
+
+    const opType = data.request.body.opType
+
+    if (!opType || opType === "" || !["remove", "add"].includes(opType)) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Invalid optype!"
+            }
+        }
+        return data
+    }
+
+    const codes = Codes.safeParse(data.request.body.groups)
+
+    if (codes.success === false) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Model validation error!"
+            }
+        }
+        return data
+    }
+
+    if (data.state.private.dataType === DataType.Enum.PRODUCT) {
+        switch (opType) {
+            case "remove":
+                codes.data.forEach(d => {
+                    (data.state.private.dataSource as Product).groups = ((data.state.private.dataSource as Product).groups || []).filter(g => g !== d)
+                });
+                break
+            case "add":
+                (data.state.private.dataSource as Product).groups = _.uniq([...((data.state.private.dataSource as Product).groups || []), ...codes.data]);
+                break
+            default:
+                throw new Error("Invalid optype!")
+        }
+
+        data.state.private.updatedAt = new Date().toISOString()
+        const eventData: SendEventInput = {
+            instanceId: data.context.instanceId,
+            method: WebhookEventOperation.Create,
+            type: data.state.private.dataType === DataType.Enum.PRODUCT ? WebhookEventType.Product : WebhookEventType.ProductModel,
+            source: {
+                axesValues: data.state.private.axesValues,
+                parent: data.state.private.parent,
+                dataType: data.state.private.dataType,
+                data: data.state.private.dataSource,
+                meta: {
+                    createdAt: data.state.private.createdAt,
+                    updatedAt: data.state.private.updatedAt
+                }
+            }
+        }
+        await Promise.all([
+            sendWebhookProductEvent(eventData),
+            sendElasticProductEvent(eventData)
+        ])
     }
 
     return data
