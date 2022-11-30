@@ -726,7 +726,7 @@ export async function updateGroups(data: ProductData): Promise<ProductData> {
         data.state.private.updatedAt = new Date().toISOString()
         const eventData: SendEventInput = {
             instanceId: data.context.instanceId,
-            method: WebhookEventOperation.Create,
+            method: WebhookEventOperation.Update,
             type: data.state.private.dataType === DataType.Enum.PRODUCT ? WebhookEventType.Product : WebhookEventType.ProductModel,
             source: {
                 axesValues: data.state.private.axesValues,

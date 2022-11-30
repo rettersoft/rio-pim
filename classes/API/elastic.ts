@@ -28,7 +28,9 @@ export class ElasticHelper {
 
         const query = {
             bool: {
-                must: []
+                must: [],
+                must_not: [],
+                should: []
             }
         }
 
@@ -37,13 +39,12 @@ export class ElasticHelper {
             if (props.filters.parent) query.bool.must.push({match: {"parent": props.filters.parent}})
             if (props.filters.variant) query.bool.must.push({match: {"data.variant": props.filters.variant}})
             if (props.filters.dataType) query.bool.must.push({match: {"dataType": props.filters.dataType}})
-        }
-
-        if (props && props.filters && props.filters.isVariant !== undefined) {
-            if (props.filters.isVariant) {
-                query.bool.must.push({exists: {field: "parent"}})
-            } else {
-                query.bool["must_not"] = [{exists: {field: "parent"}}]
+            if (props.filters.isVariant !== undefined) {
+                query.bool[(props.filters.isVariant ? "must" : "must_not")].push({exists: {field: "parent"}})
+            }
+            if (props.filters.group) {
+                const forceGroupFilter = props.filters.forceGroupFilter === undefined ? true : props.filters.forceGroupFilter
+                query.bool[(forceGroupFilter ? "must" : "should")].push({match_phrase: {"data.groups": props.filters.group}})
             }
         }
 

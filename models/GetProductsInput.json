@@ -33,6 +33,12 @@
         },
         "isVariant": {
           "type": "boolean"
+        },
+        "group": {
+          "type": "string"
+        },
+        "forceGroupFilter": {
+          "type": "boolean"
         }
       }
     }
