@@ -1,6 +1,5 @@
 import {ProductData} from "./index";
 import {getProductAttributeKeyMap} from "./keysets";
-import {GetCatalogSettingsResult, GetProductsSettingsResult} from "./classes-repository";
 import RDK from "@retter/rdk";
 import {
     AttributeTypes,
@@ -14,7 +13,8 @@ import {
 import {Classes} from "./rio";
 import {PIMMiddlewarePackage} from "PIMMiddlewarePackage";
 import * as querystring from "querystring";
-import {PIMRepository} from "PIMRepositoryPackage";
+import {GetCatalogSettingsResult, GetProductsSettingsResult, PIMRepository} from "PIMRepositoryPackage";
+import _ from "lodash";
 
 const middleware = new PIMMiddlewarePackage()
 
@@ -53,11 +53,13 @@ export async function finalizeProductOperation(data: ProductData, requestAttribu
     const removedImages = getProductRemovedImages(requestAttributes, (data.state.private.dataSource?.attributes || []), productSettings.attributes)
     if (removedImages.length) {
         //remove images
-        const removeImageWorkers = []
-        removedImages.forEach(ri => {
-            removeImageWorkers.push(rdk.deleteFile({filename: ri}))
-        })
-        await Promise.all(removeImageWorkers)
+        for (const chunkElement of _.chunk(removedImages, 10)) {
+            const pipeline = rdk.pipeline()
+            chunkElement.forEach(ri => {
+                pipeline.deleteFile({filename: ri})
+            })
+            await pipeline.send()
+        }
     }
 
     for (const requestAttribute of requestAttributes) {
@@ -158,7 +160,9 @@ export function manipulateRequestProductAttributes(data: ProductData, product: P
     }
 
     // fill default BOOLEANS
-    productSettings.attributes.filter(a => a.type === AttributeTypes.Enum.BOOLEAN && (a as BOOLEAN).defaultValue !== undefined).forEach(attributeProperty => {
+    const productFamilyAttributes = productSettings.families.find(family => family.code === product.family)?.attributes || []
+    productSettings.attributes.filter(a => a.type === AttributeTypes.Enum.BOOLEAN && (a as BOOLEAN).defaultValue !== undefined &&
+        productFamilyAttributes.find(pfa => pfa.attribute === a.code)).forEach(attributeProperty => {
         const aIndex = (product.attributes || []).findIndex(a => a.code === attributeProperty.code)
         if (aIndex === -1) {
             const defaultValue = (attributeProperty as BOOLEAN).defaultValue

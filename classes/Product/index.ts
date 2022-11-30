@@ -223,6 +223,8 @@ export async function init(data: ProductData): Promise<ProductData> {
             throw new Error("Invalid data type!")
     }
 
+    if (source.attributes === undefined) source.attributes = []
+
     PIMRepository.eliminateProductData(source, productSettings, catalogSettings)
 
     await finalizeProductOperation(data, source.attributes, productSettings)
@@ -337,7 +339,9 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
         PIMRepository.getCatalogSettings(accountId)
     ])
 
-    let source: Product | ProductModel;
+    let source: Product | ProductModel = {...data.state.private.dataSource, ...data.request.body.data};
+
+    if (source.attributes === undefined) source.attributes = []
 
     switch (dataType) {
         case DataType.Enum.PRODUCT:
@@ -346,7 +350,7 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
                     accountId,
                     catalogSettings,
                     axesValues: data.request.body.axesValues,
-                    data: {...data.state.private.dataSource, ...data.request.body.data},
+                    data: source,
                     parent: data.request.body.parent,
                     productSettings
                 })
@@ -354,7 +358,7 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
             } else {
                 source = await checkProduct({
                     accountId,
-                    data: {...data.state.private.dataSource, ...data.request.body.data},
+                    data: source,
                     catalogSettings,
                     productSettings
                 })
