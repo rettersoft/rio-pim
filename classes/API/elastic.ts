@@ -26,6 +26,8 @@ export class ElasticHelper {
         const pageFrom = props?.pageFrom || 0
         const pageSize = props?.pageSize || 50
 
+        const sort = []
+
         const query = {
             bool: {
                 must: [],
@@ -48,6 +50,18 @@ export class ElasticHelper {
             }
         }
 
+        if (props && props.sorts) {
+            if (props.sorts.family) sort.push({"data.family.enum": props.sorts.family})
+            if (props.sorts.id) {
+                sort.push({"data.sku.enum": props.sorts.id})
+                sort.push({"data.code.enum": props.sorts.id})
+            }
+            if (props.sorts.createdAt) sort.push({"meta.createdAt": props.sorts.createdAt})
+            if (props.sorts.updatedAt) sort.push({"meta.updatedAt": props.sorts.updatedAt})
+            if (props.sorts.enabled) sort.push({"data.enabled": props.sorts.enabled})
+            if (props.sorts.label) sort.push({"attributeAsLabel": props.sorts.label})
+        }
+
         if (props && props.searchText) {
             query.bool.must.push({
                 query_string: {
@@ -63,6 +77,7 @@ export class ElasticHelper {
             from: pageFrom,
             size: pageSize,
             query,
+            sort
         })
 
         return {

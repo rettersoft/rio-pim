@@ -12,6 +12,35 @@
     "searchText": {
       "type": "string"
     },
+    "sorts": {
+      "type": "object",
+      "properties": {
+        "family": {
+          "type": "string",
+          "enum": ["asc", "desc"]
+        },
+        "enabled": {
+          "type": "string",
+          "enum": ["asc", "desc"]
+        },
+        "id": {
+          "type": "string",
+          "enum": ["asc", "desc"]
+        },
+        "createdAt": {
+          "type": "string",
+          "enum": ["asc", "desc"]
+        },
+        "updatedAt": {
+          "type": "string",
+          "enum": ["asc", "desc"]
+        },
+        "label": {
+          "type": "string",
+          "enum": ["asc", "desc"]
+        }
+      }
+    },
     "filters": {
       "type": "object",
       "properties": {

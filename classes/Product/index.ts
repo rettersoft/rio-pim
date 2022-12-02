@@ -3,6 +3,7 @@ import {
     checkUpdateToken,
     deleteProductClassInstanceCheck,
     finalizeProductOperation,
+    findAttributeAsLabel,
     getProductClassAccountId,
     getProductParentAttributes,
     manipulateRequestProductAttributes,
@@ -21,6 +22,7 @@ import {
     Code,
     Codes,
     DataType,
+    Family,
     IMAGE,
     PIMRepository,
     Product,
@@ -38,6 +40,7 @@ const rdk = new RDK()
 interface SendEventInput {
     instanceId: string,
     source?: {
+        attributeAsLabel?: string,
         axesValues?: AxesValuesList,
         parent?: string,
         dataType: DataType,
@@ -256,6 +259,7 @@ export async function init(data: ProductData): Promise<ProductData> {
         method: WebhookEventOperation.Create,
         type: data.state.private.dataType === DataType.Enum.PRODUCT ? WebhookEventType.Product : WebhookEventType.ProductModel,
         source: {
+            attributeAsLabel: findAttributeAsLabel(family, source),
             axesValues: data.state.private.axesValues,
             parent: data.state.private.parent,
             dataType: data.state.private.dataType,
@@ -268,8 +272,8 @@ export async function init(data: ProductData): Promise<ProductData> {
     }
 
     const webhookEventData = JSON.parse(JSON.stringify(elasticEventData))
-    const parentAttributes = await getProductParentAttributes(data.state.private.dataType, data.state.private.parent, getProductClassAccountId(data))
-    webhookEventData.source.data.attributes = [...(webhookEventData.source.data.attributes || []), ...parentAttributes].filter(pa => family.attributes.find(fa => fa.attribute === pa.code))
+    const parentAttributes = (await getProductParentAttributes(data.state.private.dataType, data.state.private.parent, getProductClassAccountId(data)) || []).filter(pa => family.attributes.find(fa => fa.attribute === pa.code))
+    webhookEventData.source.data.attributes = [...(webhookEventData.source.data.attributes || []), ...parentAttributes]
 
     await Promise.all([
         sendElasticProductEvent(elasticEventData),
@@ -386,7 +390,7 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
     data.state.private.updateToken = randomString()
     data.state.private.updatedAt = new Date().toISOString()
 
-    const family = productSettings.families.find(f => f.code === data.state.private.dataSource.family)
+    const family: Family | undefined = productSettings.families.find(f => f.code === data.state.private.dataSource.family)
 
     if (!family) {
         data.response = {
@@ -403,6 +407,7 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
         method: WebhookEventOperation.Update,
         type: data.state.private.dataType === DataType.Enum.PRODUCT ? WebhookEventType.Product : WebhookEventType.ProductModel,
         source: {
+            attributeAsLabel: findAttributeAsLabel(family, source),
             axesValues: data.state.private.axesValues,
             parent: data.state.private.parent,
             dataType: data.state.private.dataType,
@@ -415,8 +420,8 @@ export async function updateProduct(data: ProductData): Promise<ProductData> {
     }
 
     const webhookEventData = JSON.parse(JSON.stringify(elasticEventData))
-    const parentAttributes = await getProductParentAttributes(data.state.private.dataType, data.state.private.parent, getProductClassAccountId(data))
-    webhookEventData.source.data.attributes = [...(webhookEventData.source.data.attributes || []), ...parentAttributes].filter(pa => family.attributes.find(fa => fa.attribute === pa.code))
+    const parentAttributes = (await getProductParentAttributes(data.state.private.dataType, data.state.private.parent, getProductClassAccountId(data)) || []).filter(pa => family.attributes.find(fa => fa.attribute === pa.code))
+    webhookEventData.source.data.attributes = [...(webhookEventData.source.data.attributes || []), ...parentAttributes]
 
     await Promise.all([
         sendElasticProductEvent(elasticEventData),

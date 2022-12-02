@@ -6,6 +6,7 @@ import {
     BaseAttribute,
     BOOLEAN,
     DataType,
+    Family,
     GetCatalogSettingsResult,
     GetProductsSettingsResult,
     PIMRepository,
@@ -268,4 +269,15 @@ export async function getProductParentAttributes(dataType: DataType, parent: str
 
     }
     return []
+}
+
+
+export function findAttributeAsLabel(family: Family, product: Product | ProductModel) {
+    let attributeAsLabel = product.sku || product.code
+    const d = (product.attributes || []).find(pa => pa.code === family.attributeAsLabel)
+    if (d) {
+        attributeAsLabel = d.data.find(dat => dat.value !== undefined && typeof dat.value === "string" && dat.value !== "")
+    }
+
+    return attributeAsLabel || ""
 }
