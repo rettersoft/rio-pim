@@ -7,7 +7,6 @@ getInstanceId: index.getInstanceId
 dependencies:
   - PIMMiddlewarePackage
   - PIMModelsPackage
-  - PIMRepositoryPackage
 methods:
   - method: addAttributeGroup
     type: WRITE

@@ -7,14 +7,13 @@ import {
     AttributeTypes,
     AxesValuesList,
     BaseAttribute,
-    Category,
     DATE,
     Family,
-    FamilyVariant,
+    FamilyVariant, GetCatalogSettingsResult, GetProductsSettingsResult,
     IDENTIFIER,
     IMAGE,
     NUMBER,
-    PimImageExtensions,
+    PimImageExtensions, PIMRepository,
     PimValidationRules,
     PRICE,
     Product,
@@ -23,7 +22,6 @@ import {
     TEXT,
     TEXTAREA
 } from "PIMModelsPackage";
-import {GetCatalogSettingsResult, GetProductsSettingsResult, PIMRepository} from "PIMRepositoryPackage";
 
 const rdk = new RDK()
 
@@ -233,8 +231,24 @@ export async function validateProductAttributes(props: { productFamily: string, 
                 }
                 break
             case AttributeTypes.Enum.MULTISELECT:
+                const multipleSelectOptions = props.productSettings.attributeOptions.find(ao => ao.code === productAttribute.code)
+                for (const datum of productAttribute.data.filter(d => d.value !== undefined)) {
+                    if (Array.isArray(datum.value)) {
+                        for (const valueElement of datum.value) {
+                            if (!multipleSelectOptions.options.find(mao => mao.code === valueElement)) {
+                                throw new Error(`Illegal option! (code: ${productAttribute.code}, option: ${valueElement})`)
+                            }
+                        }
+                    }
+                }
                 break
             case AttributeTypes.Enum.SIMPLESELECT:
+                const simpleSelectOptions = props.productSettings.attributeOptions.find(ao => ao.code === productAttribute.code)
+                for (const datum of productAttribute.data.filter(d => d.value !== undefined)) {
+                    if (!simpleSelectOptions.options.find(mao => mao.code === datum.value)) {
+                        throw new Error(`Illegal option! (code: ${productAttribute.code}, option: ${datum.value})`)
+                    }
+                }
                 break
             case AttributeTypes.Enum.DATE:
                 const DATE: DATE = attributeProperty

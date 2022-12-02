@@ -1,9 +1,8 @@
 import {CatalogSettingsData, ImageResponse} from "./index";
 import {checkUpdateToken, randomString, sendEvent} from "./helpers";
 import {WebhookEventOperation, WebhookEventType} from "./rio";
-import {Categories, Category, PimImageExtensions, TEMP_IMAGE_TTL_IN_SECONDS} from "PIMModelsPackage";
+import {Categories, Category, PimImageExtensions, PIMRepository, TEMP_IMAGE_TTL_IN_SECONDS} from "PIMModelsPackage";
 import {Buffer} from "buffer";
-import {PIMRepository} from "PIMRepositoryPackage";
 import {v4 as uuidv4} from "uuid";
 import RDK from "@retter/rdk";
 import * as querystring from "querystring";

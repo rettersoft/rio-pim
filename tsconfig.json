@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "lib": ["ES2015", "dom"],
+      "lib": ["ES2015", "dom"],
         "module": "commonjs",
         "target": "es5",
         "sourceMap": true,
@@ -9,8 +9,7 @@
         "downlevelIteration": true,
         "paths": {
           "PIMMiddlewarePackage": ["dependencies/PIMMiddlewarePackage"],
-          "PIMModelsPackage": ["dependencies/PIMModelsPackage"],
-          "PIMRepositoryPackage": ["dependencies/PIMRepositoryPackage"],
+          "PIMModelsPackage": ["dependencies/PIMModelsPackage"]
         }
     },
     "exclude": [

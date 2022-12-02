@@ -31,6 +31,7 @@ import {
     FamilyAttribute,
     GlobalProductModelExportSettings,
     JobStatus,
+    PIMRepository,
     ProductAttribute,
     ProductExportCSVSettings,
     ProductExportXLSXSettings,
@@ -40,7 +41,6 @@ import {
     RESERVED_ID_ATTRIBUTE_CODE
 } from "PIMModelsPackage";
 import _ from "lodash";
-import {PIMRepository} from "PIMRepositoryPackage";
 
 
 const rdk = new RDK();
@@ -551,22 +551,22 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
                                 globalSettings.content.locales.forEach(locale => {
                                     const val = productAttribute.data.find(d => d.locale === locale && d.scope === globalSettings.content.channel)?.value
                                     productAttributeValues[`attribute-${productAttribute.code}-${globalSettings.content.channel}-${locale}`] =
-                                        attributeSettings.type === AttributeTypes.Enum.MULTISELECT && Array.isArray(val) ? val.join(",") : val
+                                        [AttributeTypes.Enum.MULTISELECT, AttributeTypes.Enum.IMAGE_LIST].includes(attributeSettings.type) && Array.isArray(val) ? val.join(",") : val
                                 })
                             } else if (attributeSettings.localizable && !attributeSettings.scopable) {
                                 globalSettings.content.locales.forEach(locale => {
                                     const val = productAttribute.data.find(d => d.locale === locale)?.value
                                     productAttributeValues[`attribute-${productAttribute.code}-${locale}`] =
-                                        attributeSettings.type === AttributeTypes.Enum.MULTISELECT && Array.isArray(val) ? val.join(",") : val
+                                        [AttributeTypes.Enum.MULTISELECT, AttributeTypes.Enum.IMAGE_LIST].includes(attributeSettings.type) && Array.isArray(val) ? val.join(",") : val
                                 })
                             } else if (!attributeSettings.localizable && attributeSettings.scopable) {
                                 const val = productAttribute.data.find(d => d.scope === globalSettings.content.channel)?.value
                                 productAttributeValues[`attribute-${productAttribute.code}-${globalSettings.content.channel}`] =
-                                    attributeSettings.type === AttributeTypes.Enum.MULTISELECT && Array.isArray(val) ? val.join(",") : val
+                                    [AttributeTypes.Enum.MULTISELECT, AttributeTypes.Enum.IMAGE_LIST].includes(attributeSettings.type) && Array.isArray(val) ? val.join(",") : val
                             } else {
                                 const val = productAttribute.data.find(d => d.value !== undefined)?.value
                                 productAttributeValues[`attribute-${productAttribute.code}`] =
-                                    attributeSettings.type === AttributeTypes.Enum.MULTISELECT && Array.isArray(val) ? val.join(",") : val
+                                    [AttributeTypes.Enum.MULTISELECT, AttributeTypes.Enum.IMAGE_LIST].includes(attributeSettings.type) && Array.isArray(val) ? val.join(",") : val
                             }
                         }
                     })
@@ -599,22 +599,22 @@ export async function executeExport(data: ExportData): Promise<ExportData> {
                                 globalSettings.content.locales.forEach(locale => {
                                     const val = attribute.data.find(d => d.locale === locale && d.scope === globalSettings.content.channel)?.value
                                     productModelAttributeValues[`attribute-${attribute.code}-${globalSettings.content.channel}-${locale}`] =
-                                        attributeSettings.type === AttributeTypes.Enum.MULTISELECT && Array.isArray(val) ? val.join(",") : val
+                                        [AttributeTypes.Enum.MULTISELECT, AttributeTypes.Enum.IMAGE_LIST].includes(attributeSettings.type) && Array.isArray(val) ? val.join(",") : val
                                 })
                             } else if (attributeSettings.localizable && !attributeSettings.scopable) {
                                 globalSettings.content.locales.forEach(locale => {
                                     const val = attribute.data.find(d => d.locale === locale)?.value
                                     productModelAttributeValues[`attribute-${attribute.code}-${locale}`] =
-                                        attributeSettings.type === AttributeTypes.Enum.MULTISELECT && Array.isArray(val) ? val.join(",") : val
+                                        [AttributeTypes.Enum.MULTISELECT, AttributeTypes.Enum.IMAGE_LIST].includes(attributeSettings.type) && Array.isArray(val) ? val.join(",") : val
                                 })
                             } else if (!attributeSettings.localizable && attributeSettings.scopable) {
                                 const val = attribute.data.find(d => d.scope === globalSettings.content.channel)?.value
                                 productModelAttributeValues[`attribute-${attribute.code}-${globalSettings.content.channel}`] =
-                                    attributeSettings.type === AttributeTypes.Enum.MULTISELECT && Array.isArray(val) ? val.join(",") : val
+                                    [AttributeTypes.Enum.MULTISELECT, AttributeTypes.Enum.IMAGE_LIST].includes(attributeSettings.type) && Array.isArray(val) ? val.join(",") : val
                             } else {
                                 const val = attribute.data.find(d => d.value !== undefined)?.value
                                 productModelAttributeValues[`attribute-${attribute.code}`] =
-                                    attributeSettings.type === AttributeTypes.Enum.MULTISELECT && Array.isArray(val) ? val.join(",") : val
+                                    [AttributeTypes.Enum.MULTISELECT, AttributeTypes.Enum.IMAGE_LIST].includes(attributeSettings.type) && Array.isArray(val) ? val.join(",") : val
                             }
                         }
                     })

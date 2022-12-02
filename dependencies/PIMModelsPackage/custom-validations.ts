@@ -1,5 +1,5 @@
 import {PimImageExtensions} from "./product-settings-models";
-import {PIMRepository} from "../PIMRepositoryPackage";
+import {PIMRepository} from "./repository";
 
 
 export class CustomValidations {

@@ -6,7 +6,6 @@ getInstanceId: index.getInstanceId
 authorizer: index.authorizer
 dependencies:
   - PIMModelsPackage
-  - PIMRepositoryPackage
 methods:
 
   - method: webhookEventHandler

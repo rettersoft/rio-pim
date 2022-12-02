@@ -6,7 +6,6 @@ authorizer: index.authorizer
 getInstanceId: index.getInstanceId
 dependencies:
   - PIMModelsPackage
-  - PIMRepositoryPackage
 methods:
   - method: uploadTempImage
     type: WRITE

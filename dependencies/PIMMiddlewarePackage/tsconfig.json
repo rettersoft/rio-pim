@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "outDir": "dist",
+    "paths": {
+      "PIMModelsPackage": ["../PIMModelsPackage"]
+    }
+  },
+  "exclude": [
+    "node_modules"
+  ]
+}

@@ -35,6 +35,7 @@ import {
     ImportJobs,
     ImportProfile,
     JobStatus,
+    PIMRepository,
     Product,
     ProductAttribute,
     ProductImportCSVSettings,
@@ -59,7 +60,6 @@ import {
     SpecificAttributesImportModel
 } from "./custom-models";
 import _ from "lodash";
-import {PIMRepository} from "PIMRepositoryPackage";
 
 const rdk = new RDK();
 
@@ -642,7 +642,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                                 code: attributeCode,
                                                 data: []
                                             }
-                                            const val = attributeSettings.type === AttributeTypes.Enum.MULTISELECT && typeof item[key] === "string" ? item[key].split(",") : item[key]
+                                            const val = [AttributeTypes.Enum.MULTISELECT, AttributeTypes.Enum.IMAGE_LIST].includes(attributeSettings.type) && typeof item[key] === "string" ? item[key].split(",") : item[key]
                                             if (attributeSettings.localizable && attributeSettings.scopable) {
                                                 // Note: export `attribute-${productAttribute.code}-${globalSettings.content.channel}-${locale}`
                                                 productModelAttribute.data.push({
@@ -713,7 +713,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                                                 code: attributeCode,
                                                 data: []
                                             }
-                                            const val = attributeSettings.type === AttributeTypes.Enum.MULTISELECT && typeof item[key] === "string" ? item[key].split(",") : item[key]
+                                            const val = [AttributeTypes.Enum.MULTISELECT, AttributeTypes.Enum.IMAGE_LIST].includes(attributeSettings.type) && typeof item[key] === "string" ? item[key].split(",") : item[key]
                                             if (attributeSettings.localizable && attributeSettings.scopable) {
                                                 // Note: export `attribute-${productAttribute.code}-${globalSettings.content.channel}-${locale}`
                                                 productModelAttribute.data.push({

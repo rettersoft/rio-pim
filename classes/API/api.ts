@@ -1,11 +1,12 @@
 import {APIData} from "./index";
-import {Classes, GetImageByRDKModel, GetProductsInput} from "./rio";
+import {Classes, GetProductsInput} from "./rio";
 import {ElasticHelper} from "./elastic";
 import {SearchTotalHits} from "@elastic/elasticsearch/lib/api/types";
 import RDK from "@retter/rdk";
 import {checkAuthorization} from "./middleware";
-import {PIMRepository} from "PIMRepositoryPackage";
 import {GetImageInputForAPI} from "./custom-models";
+import {Buffer} from "buffer";
+import {PIMRepository} from "PIMModelsPackage";
 
 const rdk = new RDK();
 
@@ -128,7 +129,7 @@ export async function getImage(data: APIData): Promise<APIData> {
     //await checkAuthorization(data)
     const d = GetImageInputForAPI.safeParse(data.request.queryStringParams)
 
-    if(d.success === false){
+    if (d.success === false) {
         data.response = {
             statusCode: 400,
             body: {message: "Invalid api parameters! (Model validation failed)", error: d.error}
@@ -146,6 +147,43 @@ export async function getImage(data: APIData): Promise<APIData> {
             "cache-control": result.cacheControl
         }
     }
+
+    return data
+}
+
+export async function uploadProductTempImage(data: APIData): Promise<APIData> {
+    await checkAuthorization(data)
+
+    if (!data.request.body.image || data.request.body.image === "" ||
+        !data.request.body.productId || data.request.body.productId === "" ||
+        !data.request.body.extension || data.request.body.extension === "" ||
+        !data.request.body.attributeCode || data.request.body.attributeCode === "") {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Invalid body!"
+            }
+        }
+        return data
+    }
+
+    try {
+        Buffer.from(data.request.body.image, "base64")
+    } catch (e) {
+        data.response = {
+            statusCode: 400,
+            body: {
+                message: "Invalid image data!"
+            }
+        }
+        return data
+    }
+
+    data.response = await new Classes.Product([data.context.instanceId, data.request.body.productId].join("-")).uploadTempImage({
+        image: data.request.body.image,
+        extension: data.request.body.extension,
+        attributeCode: data.request.body.attributeCode,
+    })
 
     return data
 }

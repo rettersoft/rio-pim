@@ -1,17 +1,8 @@
-import {
-    AttributeGroup,
-    AttributeOption,
-    BaseAttribute,
-    Category,
-    Channel,
-    CustomValidations,
-    Family,
-    Group,
-    GroupType,
-    IMAGE_CACHE_TTL_IN_SECONDS,
-    Product,
-    ProductModel
-} from "PIMModelsPackage";
+import {AttributeGroup, AttributeOption, BaseAttribute, Family, Group, GroupType} from "./product-settings-models";
+import {IMAGE_CACHE_TTL_IN_SECONDS} from "./constants";
+import {Category, Channel} from "./catalog-settings-models";
+import {CustomValidations} from "./custom-validations";
+import {Product, ProductModel} from "./product-models";
 import {Classes, GetImageByRDKModel} from "./rio";
 
 export interface GetCatalogSettingsResult {

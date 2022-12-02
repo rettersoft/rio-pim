@@ -6,6 +6,9 @@ import {
     BaseAttribute,
     BOOLEAN,
     DataType,
+    GetCatalogSettingsResult,
+    GetProductsSettingsResult,
+    PIMRepository,
     Product,
     ProductAttribute,
     ProductModel
@@ -13,7 +16,6 @@ import {
 import {Classes} from "./rio";
 import {PIMMiddlewarePackage} from "PIMMiddlewarePackage";
 import * as querystring from "querystring";
-import {GetCatalogSettingsResult, GetProductsSettingsResult, PIMRepository} from "PIMRepositoryPackage";
 import _ from "lodash";
 
 const middleware = new PIMMiddlewarePackage()
@@ -82,9 +84,13 @@ export async function attachUploadedProductImages(requestProductAttributes: Prod
     const attachedImages: string[] = []
     for (const attribute of requestProductAttributes) {
         const attributeProperty = productSettings.attributes.find(ap => ap.code === attribute.code)
-        if (attributeProperty.type === AttributeTypes.Enum.IMAGE) {
+        if ([AttributeTypes.Enum.IMAGE, AttributeTypes.Enum.IMAGE_LIST].includes(attributeProperty.type)) {
             const image = attribute.data.find(d => d.value !== undefined)?.value
-            if (image) attachedImages.push(image)
+            if (Array.isArray(image)) {
+                image.forEach(i => attachedImages.push(i))
+            } else {
+                if (image) attachedImages.push(image)
+            }
         }
     }
     return attachedImages
@@ -95,29 +101,53 @@ export function getProductRemovedImages(requestAttributes: ProductAttribute[], s
     const removedImages: string[] = []
     for (const stateAttribute of stateAttributes) {
         const attributeProperty = attributeProperties.find(ap => ap.code === stateAttribute.code)
-        if (attributeProperty && attributeProperty.type === AttributeTypes.Enum.IMAGE) {
+        if (attributeProperty && [AttributeTypes.Enum.IMAGE, AttributeTypes.Enum.IMAGE_LIST].includes(attributeProperty.type)) {
             if (attributeProperty.scopable && attributeProperty.localizable) {
                 stateAttribute.data.forEach(stateData => {
                     requestAttributes.find(ra => ra.code === stateAttribute.code)?.data.forEach(requestData => {
-                        if (requestData.scope === stateData.scope && requestData.locale === stateData.locale && stateData.value && !requestData.value) removedImages.push(stateData.value)
+                        if (requestData.scope === stateData.scope && requestData.locale === stateData.locale && stateData.value && !requestData.value) {
+                            if (Array.isArray(stateData.value)) {
+                                stateData.value.forEach(v => removedImages.push(v))
+                            } else {
+                                removedImages.push(stateData.value)
+                            }
+                        }
                     })
                 })
             } else if (attributeProperty.scopable && !attributeProperty.localizable) {
                 stateAttribute.data.forEach(stateData => {
                     requestAttributes.find(ra => ra.code === stateAttribute.code)?.data.forEach(requestData => {
-                        if (requestData.scope === stateData.scope && stateData.value && !requestData.value) removedImages.push(stateData.value)
+                        if (requestData.scope === stateData.scope && stateData.value && !requestData.value) {
+                            if (Array.isArray(stateData.value)) {
+                                stateData.value.forEach(v => removedImages.push(v))
+                            } else {
+                                removedImages.push(stateData.value)
+                            }
+                        }
                     })
                 })
             } else if (!attributeProperty.scopable && attributeProperty.localizable) {
                 stateAttribute.data.forEach(stateData => {
                     requestAttributes.find(ra => ra.code === stateAttribute.code)?.data.forEach(requestData => {
-                        if (requestData.locale === stateData.locale && stateData.value && !requestData.value) removedImages.push(stateData.value)
+                        if (requestData.locale === stateData.locale && stateData.value && !requestData.value) {
+                            if (Array.isArray(stateData.value)) {
+                                stateData.value.forEach(v => removedImages.push(v))
+                            } else {
+                                removedImages.push(stateData.value)
+                            }
+                        }
                     })
                 })
             } else {
                 stateAttribute.data.forEach(stateData => {
                     requestAttributes.find(ra => ra.code === stateAttribute.code)?.data.forEach(requestData => {
-                        if (stateData.locale === undefined && stateData.scope === undefined && stateData.value && !requestData.value) removedImages.push(stateData.value)
+                        if (stateData.locale === undefined && stateData.scope === undefined && stateData.value && !requestData.value) {
+                            if (Array.isArray(stateData.value)) {
+                                stateData.value.forEach(v => removedImages.push(v))
+                            } else {
+                                removedImages.push(stateData.value)
+                            }
+                        }
                     })
                 })
             }

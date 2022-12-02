@@ -9,6 +9,7 @@ export const AttributeTypes = Z.enum([
     "IDENTIFIER",
     "NUMBER",
     "IMAGE",
+    "IMAGE_LIST",
     "MULTISELECT",
     "SIMPLESELECT",
     "DATE",
@@ -90,6 +91,10 @@ export const SpecificAttributes = {
         maxFileSizeInMB: Z.number().min(0).max(5).default(5),
         allowedExtensions: Z.array(PimImageExtensions).optional()
     }),
+    IMAGE_LIST: BaseAttribute.extend({
+        maxFileSizeInMB: Z.number().min(0).max(5).default(5),
+        allowedExtensions: Z.array(PimImageExtensions).optional()
+    }),
     MULTISELECT: BaseAttribute.extend({}),
     SIMPLESELECT: BaseAttribute.extend({}),
     DATE: BaseAttribute.extend({
@@ -109,6 +114,7 @@ export const SpecificAttributes = {
 
 export type IDENTIFIER = Z.infer<typeof SpecificAttributes.IDENTIFIER>
 export type IMAGE = Z.infer<typeof SpecificAttributes.IMAGE>
+export type IMAGE_LIST = Z.infer<typeof SpecificAttributes.IMAGE_LIST>
 export type TEXT = Z.infer<typeof SpecificAttributes.TEXT>
 export type TEXTAREA = Z.infer<typeof SpecificAttributes.TEXTAREA>
 export type BOOLEAN = Z.infer<typeof SpecificAttributes.BOOLEAN>

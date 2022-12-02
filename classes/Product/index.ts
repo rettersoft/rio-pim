@@ -22,11 +22,11 @@ import {
     Codes,
     DataType,
     IMAGE,
+    PIMRepository,
     Product,
     ProductModel,
     TEMP_IMAGE_TTL_IN_SECONDS
 } from "PIMModelsPackage";
-import {PIMRepository} from "PIMRepositoryPackage";
 import _ from "lodash";
 import InternalDestination = Classes.InternalDestination;
 
@@ -497,6 +497,16 @@ export async function destroy(data: ProductData): Promise<ProductData> {
         }
     }
 
+
+    const allImages = [...data.state.private.tempImages, ...data.state.private.savedImages]
+    for (const chunkElement of _.chunk(allImages, 10)) {
+        const pipeline = rdk.pipeline()
+        chunkElement.forEach(el => {
+            pipeline.deleteFile({filename: el})
+        })
+        await pipeline.send()
+    }
+
     await Promise.all([
         sendWebhookProductEvent({
             instanceId: data.context.instanceId,
@@ -580,7 +590,7 @@ export async function uploadTempImage(data: ProductData): Promise<ProductData> {
     }
 
     const attributeProperty = getProductsSettingsResult.body.productSettings.attributes.find(a => a.code === data.request.body.attributeCode)
-    if (!attributeProperty || attributeProperty.type !== AttributeTypes.Enum.IMAGE) {
+    if (!attributeProperty || [AttributeTypes.Enum.IMAGE, AttributeTypes.Enum.IMAGE_LIST].includes(attributeProperty.type)) {
         data.response = {
             statusCode: 400,
             body: {

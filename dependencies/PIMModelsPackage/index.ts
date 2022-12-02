@@ -7,3 +7,5 @@ export * from "./import-export-models"
 export * from "./internal-destination-models"
 
 export * from "./custom-validations"
+
+export * from "./repository"
