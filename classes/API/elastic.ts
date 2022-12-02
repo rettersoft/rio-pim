@@ -59,7 +59,7 @@ export class ElasticHelper {
             if (props.sorts.createdAt) sort.push({"meta.createdAt": props.sorts.createdAt})
             if (props.sorts.updatedAt) sort.push({"meta.updatedAt": props.sorts.updatedAt})
             if (props.sorts.enabled) sort.push({"data.enabled": props.sorts.enabled})
-            if (props.sorts.label) sort.push({"attributeAsLabel": props.sorts.label})
+            if (props.sorts.label) sort.push({"attributeAsLabel.enum": props.sorts.label})
         }
 
         if (props && props.searchText) {
