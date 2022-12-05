@@ -595,7 +595,7 @@ export async function uploadTempImage(data: ProductData): Promise<ProductData> {
     }
 
     const attributeProperty = getProductsSettingsResult.body.productSettings.attributes.find(a => a.code === data.request.body.attributeCode)
-    if (!attributeProperty || [AttributeTypes.Enum.IMAGE, AttributeTypes.Enum.IMAGE_LIST].includes(attributeProperty.type)) {
+    if (!attributeProperty || ![AttributeTypes.Enum.IMAGE, AttributeTypes.Enum.IMAGE_LIST].includes(attributeProperty.type)) {
         data.response = {
             statusCode: 400,
             body: {
