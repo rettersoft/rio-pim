@@ -9,11 +9,15 @@ import {
     BaseAttribute,
     DATE,
     Family,
-    FamilyVariant, GetCatalogSettingsResult, GetProductsSettingsResult,
+    FamilyVariant,
+    GetCatalogSettingsResult,
+    GetProductsSettingsResult,
     IDENTIFIER,
     IMAGE,
+    IMAGE_LIST,
     NUMBER,
-    PimImageExtensions, PIMRepository,
+    PimImageExtensions,
+    PIMRepository,
     PimValidationRules,
     PRICE,
     Product,
@@ -226,6 +230,25 @@ export async function validateProductAttributes(props: { productFamily: string, 
                         const extModel = PimImageExtensions.safeParse(ext)
                         if (extModel.success === false) {
                             throw new Error(`Unsupported extension! (code: ${productAttribute.code}, extension: ${ext})`)
+                        }
+                    }
+                }
+                break
+            case AttributeTypes.Enum.IMAGE_LIST:
+                const IMAGE_LIST: IMAGE_LIST = attributeProperty
+                for (const datum of productAttribute.data) {
+                    if (!Array.isArray(datum.value)) {
+                        throw new Error(`Image list value must be array! (attribute: ${attributeProperty.code})`)
+                    }
+                    for (const valueElement of datum.value) {
+                        const ext = valueElement.split('.').pop()
+                        if (IMAGE_LIST.allowedExtensions !== undefined && !IMAGE_LIST.allowedExtensions.includes(ext)) {
+                            throw new Error(`${productAttribute.code} extension is invalid!`)
+                        } else if (IMAGE_LIST.allowedExtensions === undefined) {
+                            const extModel = PimImageExtensions.safeParse(ext)
+                            if (extModel.success === false) {
+                                throw new Error(`Unsupported extension! (code: ${productAttribute.code}, extension: ${ext})`)
+                            }
                         }
                     }
                 }
