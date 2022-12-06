@@ -185,6 +185,15 @@ export function manipulateRequestProductAttributes(data: ProductData, product: P
                             }
                         }
                         break
+                    case AttributeTypes.Enum.IMAGE_LIST:
+                        for (let j = 0; j < product.attributes[i].data.length; j++) {
+                            if (product.attributes[i].data[j].value) {
+                                product.attributes[i].data[j].meta = {
+                                    baseUrl: PIMRepository.getImageBaseURL(data.context.projectId, getProductClassAccountId(data))
+                                }
+                            }
+                        }
+                        break
                 }
             }
         }
