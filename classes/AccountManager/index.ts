@@ -108,6 +108,7 @@ export async function deleteAccount(data: AccountData): Promise<AccountData> {
         rdk.deleteInstance({classId: "Export", instanceId: accountId}),
         rdk.deleteInstance({classId: "API", instanceId: accountId}),
         rdk.deleteInstance({classId: "InternalDestination", instanceId: accountId}),
+        rdk.deleteInstance({classId: "Image", instanceId: accountId}),
     ])
 
     const productInstances: {success: boolean, data: {instanceIds: string[]}} = (await rdk.listInstanceIds({classId: "Product"})) as any

@@ -101,7 +101,8 @@ export async function sendToElastic(event: InternalDestinationEventHandlerInput,
                     await client.update({
                         index: ELASTIC_INDEX_PREFIX + "-" + accountId,
                         id: event.eventDocumentId,
-                        doc: event.eventDocument
+                        doc: event.eventDocument,
+                        doc_as_upsert: true
                     })
                     break
                 case WebhookEventOperation.Delete:
