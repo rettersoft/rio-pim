@@ -622,6 +622,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
         if (importData.length) {
             switch (jobSettings.job) {
                 case ImportJobs.Enum.product_import:
+                    importData = importData.map(it => ({...it, sku: it.sku.toString()}))
                     for (const item of importData) {
                         const productImportItem = ProductImportItem.safeParse(item)
                         if (productImportItem.success === false) {
@@ -693,6 +694,7 @@ export async function executeImport(data: ImportData): Promise<ImportData> {
                     }
                     break
                 case ImportJobs.Enum.product_model_import:
+                    importData = importData.map(it => ({...it, code: it.code.toString()}))
                     for (const item of importData) {
                         const productModelImportItem = ProductModelImportItem.safeParse(item)
                         if (productModelImportItem.success === false) {
